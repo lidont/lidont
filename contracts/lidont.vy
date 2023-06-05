@@ -32,6 +32,9 @@ interface RocketStorage:
 interface RocketMinipoolManager:
   def getNodeMinipoolAt(_nodeAddress: address, _index: uint256) -> address: view
 
+interface Minipool:
+  def getUserDepositAssignedTime() -> uint256: view
+
 interface RocketDepositPool:
   def deposit(): payable
 
@@ -69,6 +72,7 @@ stakedReth: public(HashMap[address, StakedRETHDetails])
 totalStakedReth: public(uint256)
 
 # Minipool rewards accounting
+rewardMinipoolsAfter: public(immutable(uint256))
 minipoolUsed: public(HashMap[address, bool])
 
 # Addresses: could be made arguments to handle other networks
@@ -81,6 +85,7 @@ def __init__():
   rocketEther = ERC20(rocketStorage.getAddress(keccak256("contract.addressrocketTokenRETH")))
   stakedEther = ERC20(stETHAddress)
   unstETH = UnstETH(unstETHAddress)
+  rewardMinipoolsAfter = block.timestamp
   self.minipoolUsed[empty(address)] = True
   self.owner = msg.sender
 
@@ -230,7 +235,8 @@ def claimMinipool(nodeAddress: address, index: uint256):
           msg.sender == nodeAddress), "auth"
   rocketMinipoolManager: RocketMinipoolManager = RocketMinipoolManager(rocketStorage.getAddress(rocketMinipoolManagerKey))
   minipool: address = rocketMinipoolManager.getNodeMinipoolAt(nodeAddress, index)
-  assert not self.minipoolUsed[minipool], "already claimed"
+  assert rewardMinipoolsAfter < Minipool(minipool).getUserDepositAssignedTime(), "old"
+  assert not self.minipoolUsed[minipool], "claimed"
   self._mint(MINIPOOL_REWARD)
   self._transfer(empty(address), msg.sender, MINIPOOL_REWARD)
   self.minipoolUsed[minipool] = True
