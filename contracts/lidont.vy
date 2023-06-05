@@ -226,7 +226,8 @@ def claim() -> uint256:
 
 @external
 def claimMinipool(nodeAddress: address, index: uint256):
-  assert msg.sender == rocketStorage.getNodeWithdrawalAddress(nodeAddress), "auth"
+  assert (msg.sender == rocketStorage.getNodeWithdrawalAddress(nodeAddress) or
+          msg.sender == nodeAddress), "auth"
   rocketMinipoolManager: RocketMinipoolManager = RocketMinipoolManager(rocketStorage.getAddress(rocketMinipoolManagerKey))
   minipool: address = rocketMinipoolManager.getNodeMinipoolAt(nodeAddress, index)
   assert not self.minipoolUsed[minipool], "already claimed"
