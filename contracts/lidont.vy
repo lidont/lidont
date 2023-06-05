@@ -48,8 +48,9 @@ rocketEther: immutable(ERC20)
 stakedEther: immutable(ERC20)
 unstETH: immutable(UnstETH)
 
-# ERC20 functions
 owner: public(address)
+
+# ERC20 functions
 name: public(constant(String[64])) = "Lidont Staked to Rocket Ether Ratchet"
 symbol: public(constant(String[8])) = "LIDONT"
 decimals: public(constant(uint8)) = 18
@@ -212,13 +213,14 @@ def unstake(rETHAmount: uint256):
   assert rocketEther.transfer(msg.sender, rETHAmount), "rETH transfer failed"
 
 @external
-def claim():
+def claim() -> uint256:
   self._addRewardDebt(msg.sender)
   amount: uint256 = self.stakedReth[msg.sender].rewardDebt
   self._mint(amount)
   self._transfer(empty(address), msg.sender, amount)
   self.stakedReth[msg.sender].rewardDebt = 0
   log ClaimEmission(msg.sender, amount)
+  return amount
 
 @external
 def claimMinipool(index: uint256):
