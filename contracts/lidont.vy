@@ -27,6 +27,7 @@ event Approval:
 
 interface RocketStorage:
   def getAddress(_key: bytes32) -> address: view
+  def getNodeWithdrawalAddress(_nodeAddress: address) -> address: view
 
 interface RocketMinipoolManager:
   def getNodeMinipoolAt(_nodeAddress: address, _index: uint256) -> address: view
@@ -188,6 +189,7 @@ event Swap:
 
 event ClaimMinipool:
   who: indexed(address)
+  node: indexed(address)
   minipool: indexed(address)
 
 event ClaimEmission:
@@ -223,14 +225,15 @@ def claim() -> uint256:
   return amount
 
 @external
-def claimMinipool(index: uint256):
+def claimMinipool(nodeAddress: address, index: uint256):
+  assert msg.sender == rocketStorage.getNodeWithdrawalAddress(nodeAddress), "auth"
   rocketMinipoolManager: RocketMinipoolManager = RocketMinipoolManager(rocketStorage.getAddress(rocketMinipoolManagerKey))
-  minipool: address = rocketMinipoolManager.getNodeMinipoolAt(msg.sender, index)
+  minipool: address = rocketMinipoolManager.getNodeMinipoolAt(nodeAddress, index)
   assert not self.minipoolUsed[minipool], "already claimed"
   self._mint(MINIPOOL_REWARD)
   self._transfer(empty(address), msg.sender, MINIPOOL_REWARD)
   self.minipoolUsed[minipool] = True
-  log ClaimMinipool(msg.sender, minipool)
+  log ClaimMinipool(msg.sender, nodeAddress, minipool)
 
 # Manage this contract's stETH and rETH balances:
 # - withdraw ETH for stETH
