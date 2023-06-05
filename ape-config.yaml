@@ -1,0 +1,8 @@
+plugins:
+  - name: vyper
+  - name: foundry
+ethereum:
+  local:
+    default_provider: foundry
+foundry:
+  host: http://localhost:8549
