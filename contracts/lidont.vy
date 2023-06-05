@@ -28,7 +28,7 @@ interface RocketDepositPool:
   def deposit(): payable
 
 interface RocketEther:
-  def getExchangeRate() -> uint256: view
+  def getRethValue(_ethAmount: uint256) -> uint256: view
 
 interface UnstETH:
   def requestWithdrawals(_amounts: DynArray[uint256, 1], _owner: address) -> DynArray[uint256, 1]: nonpayable
@@ -41,7 +41,6 @@ LIDONT_RATIO: constant(uint256) = 10000
 
 rocketDepositPoolKey: constant(bytes32) = keccak256("contract.addressrocketDepositPool")
 rocketEther: immutable(RocketEther)
-oneRETH: immutable(uint256)
 unstETH: immutable(UnstETH)
 stakedEther: immutable(ERC20)
 
@@ -57,7 +56,6 @@ allowance: public(HashMap[address, HashMap[address, uint256]])
 def __init__():
   rocketStorage = RocketStorage(0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46)
   rocketEther = RocketEther(rocketStorage.getAddress(keccak256("contract.addressrocketTokenRETH")))
-  oneRETH = 10 ** convert(ERC20(rocketEther.address).decimals(), uint256)
   unstETH = UnstETH(0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1)
   stakedEther = ERC20(0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84)
   self.owner = msg.sender
@@ -124,7 +122,7 @@ def transferFrom(_from: address, _to: address, _value: uint256) -> bool:
 
 @external
 def swap(stETHAmount: uint256):
-  rETHAmount: uint256 = (stETHAmount * rocketEther.getExchangeRate()) / oneRETH
+  rETHAmount: uint256 = rocketEther.getRethValue(stETHAmount)
   assert stakedEther.transferFrom(msg.sender, self, stETHAmount), "stETH transfer failed"
   assert ERC20(rocketEther.address).transfer(msg.sender, rETHAmount), "rETH transfer failed"
   lidontAmount: uint256 = stETHAmount * LIDONT_RATIO
