@@ -174,15 +174,14 @@ def _updateLiquidityRatio(who: address):
 
 @internal
 def _addRewardDebt(fromLP: bool, who: address):
-  if self.emissions[fromLP][who].lastClaimBlock != 0:
-    blocks: uint256 = block.number - self.emissions[fromLP][who].lastClaimBlock
-    value: uint256 = self.stakedReth[who]
-    multiplier: uint256 = STAKING_EMISSION
-    if fromLP:
-      self._updateLiquidityRatio(who)
-      value = self.liquidityShare[who].share
-      multiplier = LIQUIDITY_EMISSION
-    self.emissions[fromLP][who].rewardDebt += blocks * value * multiplier
+  blocks: uint256 = block.number - self.emissions[fromLP][who].lastClaimBlock
+  value: uint256 = self.stakedReth[who]
+  multiplier: uint256 = STAKING_EMISSION
+  if fromLP:
+    self._updateLiquidityRatio(who)
+    value = self.liquidityShare[who].share
+    multiplier = LIQUIDITY_EMISSION
+  self.emissions[fromLP][who].rewardDebt += blocks * value * multiplier
   self.emissions[fromLP][who].lastClaimBlock = block.number
 
 @internal
