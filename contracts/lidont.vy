@@ -144,7 +144,9 @@ def _mint(amount: uint256):
 @internal
 def _addRewardDebt(who: address):
   blocks: uint256 = block.number - self.stakedReth[who].lastClaimBlock
-  self.stakedReth[who].rewardDebt += blocks * self.stakedReth[who].stake * STAKING_EMISSION
+  amount: uint256 = blocks * self.stakedReth[who].stake * STAKING_EMISSION
+  self._mint(amount)
+  self.stakedReth[who].rewardDebt += amount
   self.stakedReth[who].lastClaimBlock = block.number
 
 @internal
@@ -204,7 +206,6 @@ def unstake(rETHAmount: uint256):
 def claimEmission() -> uint256:
   self._addRewardDebt(msg.sender)
   amount: uint256 = self.stakedReth[msg.sender].rewardDebt
-  self._mint(amount) # TODO: should we instead mint this when the rewardDebt is added?
   self._transfer(empty(address), msg.sender, amount)
   self.stakedReth[msg.sender].rewardDebt = 0
   log ClaimEmission(msg.sender, amount)
