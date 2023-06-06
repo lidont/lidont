@@ -2,6 +2,7 @@
 
 MAX_REQUESTS: constant(uint256) = 32 # maximum number of stETH withdrawals a caller of finaliseWithdrawal can process at a time
 STAKING_EMISSION: constant(uint256) = 10 # amount of atto-LIDONT emitted per staked atto-rETH per block
+LIQUIDITY_EMISSION: constant(uint256) = 20 # amount of atto-LIDONT emitted per atto-rETH of liquidity provided per block
 MINIPOOL_REWARD: constant(uint256) = 1000 * (10 ** 18) # amount of atto-LIDONT emitted per minipool claim
 
 interface ERC20:
@@ -60,13 +61,26 @@ totalSupply: public(uint256)
 balanceOf: public(HashMap[address, uint256])
 allowance: public(HashMap[address, HashMap[address, uint256]])
 
-# Staked rETH accounting
-struct StakeDetails:
-  stake: uint256 # amount of atto-rETH staked
-  rewardDebt: uint256 # amount of atto-LIDONT rewards owed
+# Emissions (for both LP and staked rETH) accounting
+struct EmissionDetails:
+  rewardDebt: uint256 # amount of rewards owed (atto-LIDONT)
   lastClaimBlock: uint256 # block for which rewardDebt is current
 
-stakedReth: public(HashMap[address, StakeDetails])
+emissions: public(HashMap[bool # fromLP
+                         ,HashMap[address, EmissionDetails]])
+
+# Liquidity provision accounting
+struct LiquidityShare:
+  # a ratio based on a snapshot of the contract total liquidity
+  # to get the current ratio, update total to the current contract liquidity
+  share: uint256 # numerator (in atto-rETH)
+  total: uint256 # denominator (in atto-rETH)
+
+liquidityShare: public(HashMap[address, LiquidityShare])
+
+# Staked rETH accounting
+stakedReth: public(HashMap[address, uint256])
+totalStakedReth: public(uint256)
 
 # Minipool rewards accounting
 rewardMinipoolsFromIndex: public(immutable(uint256))
@@ -120,7 +134,7 @@ def transferFrom(_from: address, _to: address, _value: uint256) -> bool:
     self.allowance[_from][_to] = unsafe_sub(allowanceFrom, _value)
   return transferred
 
-# internal functions for minting LIDONT, and staking and unstaking rETH
+# internal functions for minting LIDONT, staking and unstaking rETH, and adding/removing liquidity
 
 @internal
 def forceSend(_to: address, _amount: uint256) -> bool:
@@ -145,34 +159,79 @@ def _mint(amount: uint256):
   log Mint(amount)
 
 @internal
-def _addRewardDebt(who: address):
-  blocks: uint256 = block.number - self.stakedReth[who].lastClaimBlock
-  self.stakedReth[who].rewardDebt += blocks * self.stakedReth[who].stake * STAKING_EMISSION
-  self.stakedReth[who].lastClaimBlock = block.number
+@view
+def _rETHBalance() -> uint256:
+  return rocketEther.balanceOf(self) - self.totalStakedReth
+
+@internal
+@view
+def _totalLiquidity() -> uint256:
+  ETHBalance: uint256 = self.balance + stakedEther.balanceOf(self) + self.pendingWithdrawalValue
+  return self._rETHBalance() + RocketEther(rocketEther.address).getRethValue(ETHBalance)
+
+@internal
+def _updateLiquidityRatio(who: address):
+  newTotal: uint256 = self._totalLiquidity()
+  newShare: uint256 = 0
+  if self.liquidityShare[who].share != 0:
+    newShare = (self.liquidityShare[who].share * newTotal) / self.liquidityShare[who].total
+  self.liquidityShare[who].share = newShare
+  self.liquidityShare[who].total = newTotal
+  # justification: newShare / newTotal
+  # == (share * newTotal / total) / newTotal
+  # == share / total
+
+@internal
+def _addRewardDebt(fromLP: bool, who: address):
+  blocks: uint256 = block.number - self.emissions[fromLP][who].lastClaimBlock
+  # if not fromLP:
+  value: uint256 = self.stakedReth[who]
+  multiplier: uint256 = STAKING_EMISSION
+  if fromLP:
+    self._updateLiquidityRatio(who)
+    value = self.liquidityShare[who].share # TODO: this accounting will be off if _totalLiquidity changes often
+    multiplier = LIQUIDITY_EMISSION
+  self.emissions[fromLP][who].rewardDebt += blocks * value * multiplier
+  self.emissions[fromLP][who].lastClaimBlock = block.number
 
 @internal
 def _stake(who: address, amount: uint256):
-  self._addRewardDebt(who)
-  self.stakedReth[who].stake += amount
+  self._addRewardDebt(False, who)
+  self.totalStakedReth += amount
+  self.stakedReth[who] += amount
   log Stake(who, amount)
 
 @internal
 def _unstake(who: address, amount: uint256):
-  self._addRewardDebt(who)
-  self.stakedReth[who].stake -= amount
+  self._addRewardDebt(False, who)
+  self.totalStakedReth -= amount
+  self.stakedReth[who] -= amount
   log Unstake(who, amount)
 
 # Main mechanisms:
 # - swap stETH for staked rETH
 # - deposit (stake) rETH for staked rETH
 # - withdraw (unstake) staked rETH
-# - claim LIDONT rewards for staked rETH
+# - add liquidity in the form of rETH
+# - remove liquidity
 # - claim LIDONT for a minipool
+# - claim LIDONT rewards for staked rETH / liquidity provision
 
 event Swap:
   who: indexed(address)
   stakedEther: indexed(uint256)
   rocketEther: indexed(uint256)
+
+event AddLiquidity:
+  who: indexed(address)
+  amount: indexed(uint256)
+  newShare: uint256
+  newTotal: uint256
+
+event RemoveLiquidity:
+  who: indexed(address)
+  share: uint256
+  total: uint256
 
 event ClaimMinipool:
   who: indexed(address)
@@ -181,12 +240,14 @@ event ClaimMinipool:
 
 event ClaimEmission:
   who: indexed(address)
+  fromLP: indexed(bool)
   lidont: indexed(uint256)
 
 @external
 def swap(stETHAmount: uint256, stake: bool):
   rETHAmount: uint256 = RocketEther(rocketEther.address).getRethValue(stETHAmount)
   assert stakedEther.transferFrom(msg.sender, self, stETHAmount), "stETH transfer failed"
+  assert rETHAmount <= self._rETHBalance(), "not enough rETH"
   if stake:
     self._stake(msg.sender, rETHAmount)
   else:
@@ -204,13 +265,36 @@ def unstake(rETHAmount: uint256):
   assert rocketEther.transfer(msg.sender, rETHAmount), "rETH transfer failed"
 
 @external
-def claimEmission() -> uint256:
-  self._addRewardDebt(msg.sender)
-  amount: uint256 = self.stakedReth[msg.sender].rewardDebt
+def addLiquidity(rETHAmount: uint256):
+  self._addRewardDebt(True, msg.sender)
+  assert rocketEther.transferFrom(msg.sender, self, rETHAmount), "rETH transfer failed"
+  self.liquidityShare[msg.sender].share += rETHAmount
+  self.liquidityShare[msg.sender].total += rETHAmount
+  log AddLiquidity(msg.sender, rETHAmount,
+    self.liquidityShare[msg.sender].share,
+    self.liquidityShare[msg.sender].total)
+
+@external
+def removeLiquidity():
+  self._addRewardDebt(True, msg.sender)
+  share: uint256 = self.liquidityShare[msg.sender].share
+  total: uint256 = self.liquidityShare[msg.sender].total
+  self.liquidityShare[msg.sender].share = 0
+  amountETH: uint256 = (self.balance * share) / total
+  amountETH += (self.pendingWithdrawalValue * share) / total
+  assert self.forceSend(msg.sender, amountETH), "ETH transfer failed"
+  assert stakedEther.transfer(msg.sender, (stakedEther.balanceOf(self) * share) / total), "stETH transfer failed"
+  assert rocketEther.transfer(msg.sender, (self._rETHBalance() * share) / total), "rETH transfer failed"
+  log RemoveLiquidity(msg.sender, share, total)
+
+@external
+def claimEmission(fromLP: bool) -> uint256:
+  self._addRewardDebt(fromLP, msg.sender)
+  amount: uint256 = self.emissions[fromLP][msg.sender].rewardDebt
   self._mint(amount) # TODO: should we instead mint this when the rewardDebt is added?
   self._transfer(empty(address), msg.sender, amount)
-  self.stakedReth[msg.sender].rewardDebt = 0
-  log ClaimEmission(msg.sender, amount)
+  self.emissions[fromLP][msg.sender].rewardDebt = 0
+  log ClaimEmission(msg.sender, fromLP, amount)
   return amount
 
 @external
