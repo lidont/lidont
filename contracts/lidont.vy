@@ -1,7 +1,7 @@
 # @version 0.3.8
 
 MAX_REQUESTS: constant(uint256) = 32 # maximum number of stETH withdrawals a caller of finaliseWithdrawal can process at a time
-STAKING_EMISSION: constant(uint256) = 10 # amount of atto-LIDONT emitted per staked atto-rETH per block
+STAKING_EMISSION: constant(uint256) = 10 # amount of LIDONT emitted per staked rETH per block
 MINIPOOL_REWARD: constant(uint256) = 1000 * (10 ** 18) # amount of atto-LIDONT emitted per minipool claim
 
 interface ERC20:
@@ -71,9 +71,6 @@ stakedReth: public(HashMap[address, StakeDetails])
 # Minipool rewards accounting
 rewardMinipoolsFromIndex: public(immutable(uint256))
 minipoolClaimed: public(HashMap[address, bool])
-
-# stETH withdrawal accounting
-pendingWithdrawalValue: public(uint256)
 
 # Addresses: could be made arguments to handle other networks
 rocketStorageAddress: constant(address) = 0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46
@@ -187,11 +184,11 @@ event ClaimEmission:
 def swap(stETHAmount: uint256, stake: bool):
   rETHAmount: uint256 = RocketEther(rocketEther.address).getRethValue(stETHAmount)
   assert stakedEther.transferFrom(msg.sender, self, stETHAmount), "stETH transfer failed"
+  log Swap(msg.sender, stETHAmount, rETHAmount)
   if stake:
     self._stake(msg.sender, rETHAmount)
   else:
     assert rocketEther.transfer(msg.sender, rETHAmount), "rETH transfer failed"
-  log Swap(msg.sender, stETHAmount, rETHAmount)
 
 @external
 def stake(rETHAmount: uint256):
@@ -240,14 +237,12 @@ def initiateWithdrawal():
   amount: uint256 = stakedEther.balanceOf(self)
   assert stakedEther.approve(unstETH.address, amount), "stETH approve failed"
   requestId: uint256 = unstETH.requestWithdrawals([amount], self)[0]
-  self.pendingWithdrawalValue += amount
   log WithdrawalRequest(requestId, amount)
 
 @external
 def finaliseWithdrawal(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]):
   before: uint256 = self.balance
   unstETH.claimWithdrawals(_requestIds, _hints)
-  self.pendingWithdrawalValue -= (self.balance - before)
 
 @external
 def mintRocketEther():
