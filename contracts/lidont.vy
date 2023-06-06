@@ -31,10 +31,9 @@ interface RocketStorage:
   def getNodeWithdrawalAddress(_nodeAddress: address) -> address: view
 
 interface RocketMinipoolManager:
+  def getMinipoolCount() -> uint256: view
+  def getMinipoolAt(_index: uint256) -> address: view
   def getNodeMinipoolAt(_nodeAddress: address, _index: uint256) -> address: view
-
-interface Minipool:
-  def getUserDepositAssignedTime() -> uint256: view
 
 interface RocketDepositPool:
   def deposit(): payable
@@ -84,7 +83,7 @@ stakedReth: public(HashMap[address, uint256])
 totalStakedReth: public(uint256)
 
 # Minipool rewards accounting
-rewardMinipoolsAfter: public(immutable(uint256))
+rewardMinipoolsFromIndex: public(immutable(uint256))
 minipoolClaimed: public(HashMap[address, bool])
 
 # stETH withdrawal accounting
@@ -100,7 +99,7 @@ def __init__():
   rocketEther = ERC20(rocketStorage.getAddress(rocketEtherKey))
   stakedEther = ERC20(stETHAddress)
   unstETH = UnstETH(unstETHAddress)
-  rewardMinipoolsAfter = block.timestamp
+  rewardMinipoolsFromIndex = RocketMinipoolManager(rocketStorage.getAddress(rocketMinipoolManagerKey)).getMinipoolCount()
   self.minipoolClaimed[empty(address)] = True
 
 # ERC20 functions
@@ -299,12 +298,13 @@ def claimEmission(fromLP: bool) -> uint256:
   return amount
 
 @external
-def claimMinipool(nodeAddress: address, index: uint256):
+def claimMinipool(nodeAddress: address, nodeIndex: uint256, index: uint256):
   assert (msg.sender == rocketStorage.getNodeWithdrawalAddress(nodeAddress) or
           msg.sender == nodeAddress), "auth"
   rocketMinipoolManager: RocketMinipoolManager = RocketMinipoolManager(rocketStorage.getAddress(rocketMinipoolManagerKey))
-  minipool: address = rocketMinipoolManager.getNodeMinipoolAt(nodeAddress, index)
-  assert rewardMinipoolsAfter < Minipool(minipool).getUserDepositAssignedTime(), "old"
+  minipool: address = rocketMinipoolManager.getNodeMinipoolAt(nodeAddress, nodeIndex)
+  assert rocketMinipoolManager.getMinipoolAt(index) == minipool, "index"
+  assert rewardMinipoolsFromIndex <= index, "old"
   assert not self.minipoolClaimed[minipool], "claimed"
   self._mint(MINIPOOL_REWARD)
   self._transfer(empty(address), msg.sender, MINIPOOL_REWARD)
