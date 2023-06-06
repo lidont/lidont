@@ -1,0 +1,12 @@
+{
+    "name": "lidont",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.mjs",
+    "scripts": {
+        "dev": "npx live-server"
+    },
+    "dependencies": {
+        "ethers": "*"
+    }
+}
