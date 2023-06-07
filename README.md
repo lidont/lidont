@@ -1,12 +1,12 @@
 # Lidont
-Convert stETH to rETH and earn Lidont tokens.
+Convert stETH to rETH or spin up Rocket Pool minipools and earn Lidont tokens.
 
 # Contract functionality
 Lidont is an [ERC-20](https://eips.ethereum.org/EIPS/eip-20) compliant token contract.
 In addition to the standard ERC-20 functionality, it implements the following mechanisms.
 
 ## Swap stETH for (staked) rETH
-`stake(uint256 stETHAmount, bool stake)`: deposit Lido Staked Ether (stETH) into the Lidont contract and receive Rocket Ether (rETH) in return, at the current Rocket Pool protocol price.
+`swap(uint256 stETHAmount, bool stake)`: deposit Lido Staked Ether (stETH) into the Lidont contract and receive Rocket Ether (rETH) in return, at the current Rocket Pool protocol price.
 If `stake` is true, your rETH is immediately staked with the Lidont contract, otherwise it is transferred to you.
 
 Fails if there is not enough rETH in the Lidont contract to transfer to you (when `stake` is false), or if you did not approve the Lidont contract for the transfer of at least `stETHAmount` stETH from your account.
