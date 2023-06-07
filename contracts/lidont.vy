@@ -2,7 +2,7 @@
 
 MAX_REQUESTS: constant(uint256) = 32 # maximum number of stETH withdrawals a caller of finaliseWithdrawal can process at a time
 STAKING_EMISSION: constant(uint256) = 1 # amount of LIDONT emitted per staked rETH per block
-MINIPOOL_REWARD: constant(uint256) = 1000 * (10 ** 18) # amount of atto-LIDONT emitted per minipool claim
+MINIPOOL_REWARD: constant(uint256) = 2100000 * (10 ** 18) # amount of atto-LIDONT emitted per minipool claim
 
 interface ERC20:
   def name() -> String[64]: view
