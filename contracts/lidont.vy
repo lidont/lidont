@@ -83,12 +83,8 @@ def getStake(who: address) -> uint256:
 rewardMinipoolsFromIndex: public(immutable(uint256))
 minipoolClaimed: public(HashMap[address, bool])
 
-# Addresses: could be made arguments to handle other networks
-rocketStorageAddress: constant(address) = 0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46
-unstETHAddress:       constant(address) = 0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1
-stETHAddress:         constant(address) = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84
 @external
-def __init__():
+def __init__(rocketStorageAddress: address, stETHAddress: address, unstETHAddress: address):
   rocketStorage = RocketStorage(rocketStorageAddress)
   rocketEther = ERC20(rocketStorage.getAddress(rocketEtherKey))
   stakedEther = ERC20(stETHAddress)
