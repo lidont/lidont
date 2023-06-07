@@ -255,6 +255,6 @@ def finaliseWithdrawal(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: Dyn
   unstETH.claimWithdrawals(_requestIds, _hints)
 
 @external
-def mintRocketEther():
+def mintRocketEther(ethAmount: uint256):
   depositPool: RocketDepositPool = RocketDepositPool(rocketStorage.getAddress(rocketDepositPoolKey))
-  depositPool.deposit(value = self.balance)
+  depositPool.deposit(value = ethAmount)

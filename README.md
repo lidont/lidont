@@ -49,9 +49,9 @@ A maximum of 32 requestIds can be processed at a time by `finaliseWithdrawal`.
 Fails if a withdrawal is not yet ready to finalise.
 
 ## Mint rETH
-`mintRocketEther()`: mint rETH with Rocket Pool directly, using the Lidont contract's entire ETH balance.
+`mintRocketEther(ethAmount: uint256)`: mint rETH with Rocket Pool directly, using the Lidont contract's ETH balance.
 
 Anyone can call this function to pay gas to convert the Lidont contract's ETH to rETH.
 This rETH is not staked by anyone - it is simply used as liquidity for future swaps.
 
-Fails if there is not enough room in the Rocket Pool deposit pool.
+Fails if `ethAmount` exceeds the Lidont contract's balance, or if there is not enough room in the Rocket Pool deposit pool.
