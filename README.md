@@ -38,8 +38,9 @@ This can only be claimed by the registered Rocket Pool node account, or its Rock
 (The indices can be computed by the frontend.)
 
 ## Withdraw stETH from Lido
-`initiateWithdrawal()`: request withdrawal of the Lidont's stETH balance from Lido, sending its stETH to the withdrawal contract.
-`finaliseWithdrawal(uint256[] requestIds, uint256[] hints)`: finalise the withdrawal with Lido, receiving ETH for the Lidont contract.
+`initiateWithdrawal()`: request withdrawal of the Lidont contract's entire stETH balance from Lido, sending its stETH to Lido's withdrawal contract.
+
+`finaliseWithdrawal(uint256[] requestIds, uint256[] hints)`: finalise the withdrawal with Lido, receiving ETH into the Lidont contract.
 
 Anyone can call these functions and pay the gas to convert the Lidont contract's stETH into ETH.
 A maximum of 32 requestIds can be processed at a time by `finaliseWithdrawal`.
