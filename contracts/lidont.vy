@@ -1,6 +1,9 @@
 # @version 0.3.8
 
-MAX_REQUESTS: constant(uint256) = 32 # maximum number of stETH withdrawals a caller of finaliseWithdrawal can process at a time
+MAX_LIDO_REQUESTS: constant(uint8) = 80 # maximum requestIds within a withdrawal request
+MAX_LIDO_WITHDRAWAL: constant(uint256) = 1000 * (10 ** 18) # maximum size of a requestId
+
+MAX_REQUESTS: constant(uint8) = 32 # maximum number of stETH withdrawals a caller of finaliseWithdrawal can process at a time
 STAKING_EMISSION: constant(uint256) = 1 # amount of LIDONT emitted per staked rETH per block
 MINIPOOL_REWARD: constant(uint256) = 2100000 * (10 ** 18) # amount of atto-LIDONT emitted per minipool claim
 
@@ -41,7 +44,7 @@ interface RocketEther:
   def getRethValue(_ethAmount: uint256) -> uint256: view
 
 interface UnstETH:
-  def requestWithdrawals(_amounts: DynArray[uint256, 1], _owner: address) -> DynArray[uint256, 1]: nonpayable
+  def requestWithdrawals(_amounts: DynArray[uint256, MAX_LIDO_REQUESTS], _owner: address) -> DynArray[uint256, MAX_LIDO_REQUESTS]: nonpayable
   def claimWithdrawals(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]): nonpayable
 
 interface Minipool:
@@ -239,16 +242,22 @@ def claimMinipool(nodeAddress: address, nodeIndex: uint256, index: uint256):
 # - mint rETH with ETH
 
 event WithdrawalRequest:
-  requestId: indexed(uint256)
+  requestIds: DynArray[uint256, MAX_LIDO_REQUESTS]
   amount: indexed(uint256)
 
 @external
-def initiateWithdrawal() -> uint256:
-  amount: uint256 = stakedEther.balanceOf(self)
-  assert stakedEther.approve(unstETH.address, amount), "stETH approve failed"
-  requestId: uint256 = unstETH.requestWithdrawals([amount], self)[0]
-  log WithdrawalRequest(requestId, amount)
-  return requestId
+def initiateWithdrawal(stETHAmount: uint256) -> DynArray[uint256, MAX_LIDO_REQUESTS]:
+  assert stakedEther.approve(unstETH.address, stETHAmount), "stETH approve failed"
+  amountLeft: uint256 = stETHAmount
+  requestAmounts: DynArray[uint256, MAX_LIDO_REQUESTS] = []
+  for _ in range(MAX_LIDO_REQUESTS):
+    amount: uint256 = min(amountLeft, MAX_LIDO_WITHDRAWAL)
+    requestAmounts.append(amount)
+    amountLeft = unsafe_sub(amountLeft, amount)
+    if amountLeft == 0: break
+  requestIds: DynArray[uint256, MAX_LIDO_REQUESTS] = unstETH.requestWithdrawals(requestAmounts, self)
+  log WithdrawalRequest(requestIds, stETHAmount)
+  return requestIds
 
 @external
 def finaliseWithdrawal(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]):

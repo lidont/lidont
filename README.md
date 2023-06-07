@@ -38,18 +38,23 @@ This can only be claimed by the registered Rocket Pool node account, or its Rock
 (The indices can be computed by the frontend.)
 
 ## Withdraw stETH from Lido
-`initiateWithdrawal()`: request withdrawal of the Lidont contract's entire stETH balance from Lido, sending its stETH to Lido's withdrawal contract.
+`initiateWithdrawal(stETHAmount: uint256) -> uint256[]`: request withdrawal of the Lidont contract's stETH from Lido, sending the stETH to Lido's withdrawal contract.
+
+Fails if `stETHAmount` exceeds the Lidont contract's stETH balance, or is too large for a single Lido withdrawal (> 80000 stETH).
 
 `finaliseWithdrawal(uint256[] requestIds, uint256[] hints)`: finalise the withdrawal with Lido, receiving ETH into the Lidont contract.
 
+Fails if a withdrawal is not yet ready to finalise.
+
 Anyone can call these functions and pay the gas to convert the Lidont contract's stETH into ETH.
+Respecting Lido limitations, if `stETHAmount` (in atto-stETH) is larger than 1000 stETH, the request is broken up into (up to 80) requests of size 1000 stETH.
+The array of requestIds from Lido is returned and also included in the emitted log `WithdrawalRequest(uint256 indexed stETHamount, uint256[] requestIds)`.
+
 A maximum of 32 requestIds can be processed at a time by `finaliseWithdrawal`.
 (The `requestIds` and `hints` can be computed by the frontend.)
 
-Fails if a withdrawal is not yet ready to finalise.
-
 ## Mint rETH
-`mintRocketEther(ethAmount: uint256)`: mint rETH with Rocket Pool directly, using the Lidont contract's ETH balance.
+`mintRocketEther(uint256 ethAmount)`: mint rETH with Rocket Pool directly, using the Lidont contract's ETH balance.
 
 Anyone can call this function to pay gas to convert the Lidont contract's ETH to rETH.
 This rETH is not staked by anyone - it is simply used as liquidity for future swaps.
