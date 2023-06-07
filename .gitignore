@@ -1,4 +1,4 @@
 .build
 __pycache__
 node_modules
-pakage-lock.json
+package-lock.json
