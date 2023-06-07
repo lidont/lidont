@@ -1,5 +1,5 @@
 import * as ethers from '../node_modules/ethers/dist/ethers.js';
-import { EventEmitter } from './util.mjs';
+import { EventEmitter, sanitizeHTML } from './util.mjs';
 import { store } from './store.mjs';
 
 
@@ -13,9 +13,11 @@ window.RADIO = new EventEmitter()
 // Markup
 //
 const MARKUP = (state) => {
-    return `
-        <button data-action="connectWallet">Connect ${state.address ? state.address : ''}</button>
-    `
+    return sanitizeHTML(`
+    <div class="container">
+        <button class="button" type="button" data-action="connectWallet">${state.address ? state.address : 'Click to Connect Wallet'}</button>
+    <div>
+    `)
 }
 
 function render(){
