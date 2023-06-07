@@ -44,6 +44,11 @@ interface UnstETH:
   def requestWithdrawals(_amounts: DynArray[uint256, 1], _owner: address) -> DynArray[uint256, 1]: nonpayable
   def claimWithdrawals(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]): nonpayable
 
+interface Minipool:
+  def getStatus() -> uint8: view
+Staking: constant(uint8) = 2
+Withdrawable: constant(uint8) = 3
+
 rocketStorage: immutable(RocketStorage)
 rocketDepositPoolKey: constant(bytes32) = keccak256("contract.addressrocketDepositPool")
 rocketMinipoolManagerKey: constant(bytes32) = keccak256("contract.addressrocketMinipoolManager")
@@ -219,6 +224,8 @@ def claimMinipool(nodeAddress: address, nodeIndex: uint256, index: uint256):
   minipool: address = rocketMinipoolManager.getNodeMinipoolAt(nodeAddress, nodeIndex)
   assert rocketMinipoolManager.getMinipoolAt(index) == minipool, "index"
   assert rewardMinipoolsFromIndex <= index, "old"
+  minipoolStatus: uint8 = Minipool(minipool).getStatus()
+  assert minipoolStatus == Staking or minipoolStatus == Withdrawable, "not staking"
   assert not self.minipoolClaimed[minipool], "claimed"
   self._mint(MINIPOOL_REWARD)
   self._transfer(empty(address), msg.sender, MINIPOOL_REWARD)
