@@ -73,6 +73,12 @@ struct StakeDetails:
 
 stakedReth: public(HashMap[address, StakeDetails])
 
+# easy balance viewer (stakedReth(who)[0] is equivalent)
+@external
+@view
+def getStake(who: address) -> uint256:
+  return self.stakedReth[who].stake
+
 # Minipool rewards accounting
 rewardMinipoolsFromIndex: public(immutable(uint256))
 minipoolClaimed: public(HashMap[address, bool])
@@ -241,15 +247,15 @@ event WithdrawalRequest:
   amount: indexed(uint256)
 
 @external
-def initiateWithdrawal():
+def initiateWithdrawal() -> uint256:
   amount: uint256 = stakedEther.balanceOf(self)
   assert stakedEther.approve(unstETH.address, amount), "stETH approve failed"
   requestId: uint256 = unstETH.requestWithdrawals([amount], self)[0]
   log WithdrawalRequest(requestId, amount)
+  return requestId
 
 @external
 def finaliseWithdrawal(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]):
-  before: uint256 = self.balance
   unstETH.claimWithdrawals(_requestIds, _hints)
 
 @external
