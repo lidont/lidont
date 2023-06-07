@@ -1,5 +1,5 @@
-/* global Phaser, EventEmitter3 */
-import { GAME_WIDTH, GAME_HEIGHT } from './constants.mjs';
+/* global EventEmitter3 */
+import { LIDONT_CONTRACT_ADDRESS } from './constants.mjs';
 
 
 window.DEBUG = true
