@@ -1,2 +1,1 @@
-export const WIDTH  = window.innerWidth
-export const HEIGHT = window.innerHeight
+export const LIDONT_CONTRACT_ADDRESS  = "0x0"

@@ -4,9 +4,10 @@
     "description": "",
     "main": "index.mjs",
     "scripts": {
-        "dev": "npx live-server"
+        "serve": "npx live-server"
     },
     "dependencies": {
-        "ethers": "*"
+        "ethers": "6.4.2",
+        "redux-toolkit": "1.1.2"
     }
 }
