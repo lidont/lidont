@@ -3,28 +3,10 @@ import { waitForSeconds, createStore, log } from './util.mjs'
 import { Erc20Abi } from './ConnectWeb3.mjs'
 
 
-// Lidont Store
-//
-/*
-export const store = createStore((setState, getState, api) => ({
-    time: 200,
-    points: undefined,
-    isReloading: false,
-
-    reload: async () => {
-        await waitForSeconds(2)
-        setState({ isReloading: false })
-        window.RADIO.emit("reload")
-    },
-}))
-*/
-
-
-
-// Wallet Store
+// Store
 //
 
-export const walletStore = createStore(log( (setState, getState, api) => ({
+export const store = createStore(log( (setState, getState, api) => ({
     loading: false,
     address: null,
     balance: null,
