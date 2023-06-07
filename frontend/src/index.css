@@ -1,5 +1,21 @@
-/* ITCSS */
+/*  ITCSS 
+    https://github.com/aarongarciah/itcss-sample 
+    
+    ITCSS "uses" specificity in ascending fashion.
+    The more down we go the more specific we can be.
+    classes are only allowed from 5 and up!
+*/
 
+/* 1 Settings (animations, breakpoints, colors, spacing, typography) */
+
+/* 2 Tools (clearfix, hidden) */
+
+/* 3 Generic */
+* {
+    box-sizing: border-box;
+}
+
+/* 4 Elements (body, section, etc. everythoing native) */
 body, html {
     margin: 0;
     padding: 0;
@@ -9,17 +25,18 @@ body, html {
     font-family: monospace;
     font-size: 16px;
 }
-* {
-    box-sizing: border-box;
-}
-#root {
-    display: block;
-    position: fixed;
-    height: 100%;
+section {
     width: 100%;
-    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
 }
-container {
+h2 {
+    font-size: 3rem;
+}
+
+/* 5 Objects (you are allowed to use classes from here on) */
+
+.container {
     max-width: 1024px;
     padding: 2rem;
     display: block;
@@ -28,11 +45,17 @@ container {
     height: 100%;
     margin: 0 auto;
 }
-section {
+
+/* 6 Components - (the meat, buttons etc.) */
+
+
+
+/* 7 util - (IDs etc, here you can use !important and dirty hacks)*/
+
+#root {
+    display: block;
+    position: fixed;
+    height: 100%;
     width: 100%;
-    display: flex;
-    justify-content: space-between;
-}
-h2 {
-    font-size: 3rem;
+    pointer-events: none;
 }
