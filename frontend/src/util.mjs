@@ -1,25 +1,18 @@
 /*
     zustand state management library
-
-    MODIFIED!!!!
-
-    line 53: dispatch() method added
-
-    MODIFIED!!!!
-
     zustand/vanilla is a agnostic state management library with no dependencies
 
     this is the manually compiled js version from:
     https://github.com/pmndrs/zustand/blob/main/src/vanilla.ts
 
-    API is Redux-like:
+        CAVE! - edits: line 53: dispatch() method added
 
-    import createStore from 'zustand/vanilla'
+    Usage (Redux-like):
 
+    import createStore from '...'
     const store = createStore(() => ({
         test: 1,
     }))
-
     const { getState, setState, subscribe, destroy, dispatch } = store
 */
 
@@ -70,57 +63,11 @@ const createStoreImpl = (createState) => {
     state = createState(setState, getState, api);
     return api;
   };
-  
-  export default createStore;
 
 
 
-
-/*
-    template string to html helper
-    usage:
-
-    const tmpl = addrs => html`
-    <table>
-    ${addrs.map(addr => html`
-        <tr>$${addr.first}</tr>
-        <tr>$${addr.last}</tr>
-    `)}
-    </table>
-`;
-
-*/
-
-
-export function html(literals, ...substs) {
-    return literals.raw.reduce((acc, lit, i) => {
-        let subst = substs[i-1];
-        if (Array.isArray(subst)) {
-            subst = subst.join('');
-        }
-        if (acc.endsWith('$')) {
-            subst = escapeHtml(subst);
-            acc = acc.slice(0, -1);
-        }
-        return acc + subst + lit;
-    });
-}
-
-
-export function escapeHtml(s){
-    var text = document.createTextNode(s),
-        p = document.createElement('p');
-    p.appendChild(text);
-    return p.innerHTML;
-}
-
-
-/*
-
-waits for x seconds, returns promise
-
-*/
-
+// waits for x seconds, returns promise
+//
 export function waitForSeconds(seconds){
     const P = new Promise( (resolve, reject) => {
         setTimeout( () => {
@@ -129,4 +76,27 @@ export function waitForSeconds(seconds){
     })
 
     return P
+}
+
+
+// event emitter
+//
+export class EventEmitter{
+    constructor(){
+        this.callbacks = {}
+    }
+
+    on(event, cb){
+        if(!this.callbacks[event]) this.callbacks[event] = [];
+        this.callbacks[event].push(cb)
+    }
+
+    emit(event, data){
+        let cbs = this.callbacks[event]
+        if(cbs){
+            setTimeout( () => {
+                cbs.forEach(cb => cb(data))
+            }, 0)
+        }
+    }
 }

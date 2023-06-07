@@ -1,9 +1,7 @@
-/* global EventEmitter3 */
-import { LIDONT_CONTRACT_ADDRESS } from './constants.mjs';
+import { ethers } from 'ethers';
+
+// window.DEBUG = true
+// window.RADIO = new window.EventEmitter3()
 
 
-window.DEBUG = true
-
-
-// global pubsub
-window.RADIO = new window.EventEmitter3()
+// init
