@@ -1,12 +1,11 @@
-import { waitForSeconds, createStore } from './util.mjs'
+import * as ethers from '../node_modules/ethers/dist/ethers.js';
+import { waitForSeconds, createStore, log } from './util.mjs'
 import { Erc20Abi } from './ConnectWeb3.mjs'
-
-// usage: const { setState, getState, subscribe, destroy, dispatch } = store
-// based on zustand state management lib
 
 
 // Lidont Store
 //
+/*
 export const store = createStore((setState, getState, api) => ({
     time: 200,
     points: undefined,
@@ -17,52 +16,57 @@ export const store = createStore((setState, getState, api) => ({
         setState({ isReloading: false })
         window.RADIO.emit("reload")
     },
-
 }))
+*/
 
 
 
 // Wallet Store
 //
 
-export const walletStore = createStore((setState, getState, api) => ({
+export const walletStore = createStore(log( (setState, getState, api) => ({
+    loading: false,
+    address: null,
     balance: null,
     balanceFormatted: null,
     balancesErc20: [],
 
-    provider: window.ethereum ? new ethers.providers.Web3Provider(window.ethereum) : new ethers.providers.InfuraProvider("mainnet", "ID"),
+    provider: window.ethereum ? new ethers.BrowserProvider(window.ethereum) : new ethers.InfuraProvider("mainnet", "ID"),
 
     async connectWallet() {
+        const { address, loading } = getState()
         const { ethereum } = window;
-        if (ethereum && this.address == "" && this.loading === false) {
+
+        if (ethereum && !address && !loading) {
 
           try {
             await ethereum.request({ method: "eth_requestAccounts" });
           } catch (error) { return console.log(error) }
 
           const accounts = await ethereum.request({ method: "eth_accounts" });
-          const provider = provider;
-          const signer = provider.getSigner();
-          const chainId = await signer.getChainId();
-          
-          await updateBalance();
+          const provider = getState().provider;
+          const signer = await provider.getSigner();
+          const network = await signer.provider.getNetwork();
+          const chainId = network.chainId
 
           setState({ address: accounts[0] })
           setState({ chainId: chainId })
-
+          
+          await getState().updateBalance();
         }
     },
 
     async updateBalance() {
         let signer
+        const { provider, address } = getState();
 
         try { 
-          signer = provider.getSigner();
+          signer = await provider.getSigner();
         } catch(e) { return console.log(e) }
   
-        const balance = await signer.getBalance();
+        const balance = await provider.getBalance(address);
         setState({ balance })
-        const balanceFormatted = ethers.utils.formatEther(balance)
+        const balanceFormatted = ethers.formatEther(balance)
         setState({ balanceFormatted })
 
         return {balance, balanceFormatted}
@@ -88,6 +92,6 @@ export const walletStore = createStore((setState, getState, api) => ({
         return entry
       },
 
-}))
+})))
 
 

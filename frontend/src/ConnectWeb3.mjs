@@ -1,4 +1,4 @@
-import { Contract, JsonRpcProvider } from "ethers";
+import { Contract, JsonRpcProvider } from '../node_modules/ethers/dist/ethers.js';
 
 
 export class ConnectWeb3 {

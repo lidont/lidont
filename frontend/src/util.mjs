@@ -5,15 +5,12 @@
     this is the manually compiled js version from:
     https://github.com/pmndrs/zustand/blob/main/src/vanilla.ts
 
-        CAVE! - edits: line 53: dispatch() method added
-
-    Usage (Redux-like):
-
+    Usage:
     import createStore from '...'
     const store = createStore(() => ({
         test: 1,
     }))
-    const { getState, setState, subscribe, destroy, dispatch } = store
+    const { getState, setState, subscribe, destroy } = store
 */
 
 // zustand/vanilla
@@ -62,6 +59,21 @@ export const createStore = (createState) =>
   createState ? createStoreImpl(createState) : createStoreImpl;
 
 
+// Logger
+//
+export const log = (config) => (set, get, api) =>
+config(
+  (...args) => {
+    console.log('  applying', args)
+    set(...args)
+    console.log('  new state', get())
+  },
+  get,
+  api
+)
+
+
+/*
 // zustand/middleware/redux
 //
 const reduxImpl = (reducer, initial) => (set, _get, api) => {
@@ -81,6 +93,7 @@ export const combine =
   (initialState, create) =>
   (...a) =>
     Object.assign({}, initialState, create(...a));
+*/
 
 
 // waits for x seconds, returns promise
@@ -139,6 +152,7 @@ export class EventEmitter {
   }
 
   emit(event, data) {
+    if(window.DEBUG) console.log("<- emit: ", event, data)
     let cbs = this.callbacks[event];
     if (cbs) {
       setTimeout(() => {
