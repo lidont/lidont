@@ -1,6 +1,6 @@
 import * as ethers from '../node_modules/ethers/dist/ethers.js';
 import { EventEmitter } from './util.mjs';
-import { walletStore } from './store.mjs';
+import { store } from './store.mjs';
 
 
 window.DEBUG = true
@@ -10,9 +10,30 @@ window.DEBUG = true
 window.RADIO = new EventEmitter()
 
 
-// Setup
+// Markup
 //
+const MARKUP = (state) => {
+    return `
+        <button data-action="connectWallet">Connect ${state.address ? state.address : ''}</button>
+    `
+}
 
+function render(){
+    document.getElementById("root").innerHTML = MARKUP(store.getState())
+}
+
+
+// Initial Render
+//
+render()
+
+
+// Subscriptions
+//
+store.subscribe( (args) => {
+    console.log("updated Store -> render", args)
+    render()
+})
 
 // Input Handlers
 //
@@ -22,7 +43,7 @@ document.addEventListener('click', async function (event) {
 	event.preventDefault();
 
     if(event.target.matches('[data-action="connectWallet"]')){
-        await walletStore.getState().connectWallet()
+        await store.getState().connectWallet()
     }
 
 }, false);
