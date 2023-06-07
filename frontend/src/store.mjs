@@ -1,6 +1,7 @@
 import { waitForSeconds, createStore } from './util.mjs'
+import { Erc20Abi } from './ConnectWeb3.mjs'
 
-// usage: const { setState, getState, subscribe, destroy } = store
+// usage: const { setState, getState, subscribe, destroy, dispatch } = store
 // based on zustand state management lib
 
 
