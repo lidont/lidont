@@ -14,8 +14,12 @@ addresses = dict(mainnet =
                  )
 
 def main():
-    deployer = accounts.test_accounts[0] # TODO
-    network = networks.provider.network.name.removesuffix('-fork')
+    network = networks.provider.network.name
+    if network.endswith('-fork'):
+        deployer = accounts.test_accounts[0]
+    else:
+        deployer = accounts[0]
+    network = network.removesuffix('-fork')
     args = addresses[network].values()
     deployed = project.lidont.deploy(*args, sender=deployer)
     IPython.embed()
