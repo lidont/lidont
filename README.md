@@ -17,7 +17,7 @@ Fails if there is not enough rETH in the Lidont contract to transfer to you (whe
 Fails if you did not approve the Lidont contract for the transfer of at least `rETHAmount` rETH from your account.
 
 ## Unstake rETH
-`unstake(uint256 rETHAmount)`: reduce your Rocket Ether stake with the Lidont contract.
+`unstake(uint256 rETHAmount) → (uint256, uint256, uint256)`: reduce your Rocket Ether stake with the Lidont contract.
 
 Fails if the `rETHAmount` is larger than your current rETH stake.
 
@@ -28,7 +28,7 @@ where `totalStakedReth` is the sum of all current rETH stakes (before your unsta
 Returns the amounts of stETH, rETH, and ETH received, so can be static-called to view the value of unstaking.
 
 ## Claim rewards for staked rETH
-`claimEmission() -> uint256`: receive Lidont tokens for your staked rETH.
+`claimEmission() → uint256`: receive Lidont tokens for your staked rETH.
 
 Lidont accrues to staked rETH at the rate of 1 Lidont per staked rETH per block.
 
@@ -42,7 +42,7 @@ This can only be claimed by the registered Rocket Pool node account, or its Rock
 (The indices can be computed by the frontend.)
 
 ## Withdraw stETH from Lido
-`initiateWithdrawal(stETHAmount: uint256) -> uint256[]`: request withdrawal of the Lidont contract's stETH from Lido, sending the stETH to Lido's withdrawal contract.
+`initiateWithdrawal(stETHAmount: uint256) → uint256[]`: request withdrawal of the Lidont contract's stETH from Lido, sending the stETH to Lido's withdrawal contract.
 
 Fails if `stETHAmount` exceeds the Lidont contract's stETH balance, or is too large for a single Lido withdrawal (> 80000 stETH).
 
