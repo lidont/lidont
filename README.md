@@ -16,12 +16,16 @@ Fails if there is not enough rETH in the Lidont contract to transfer to you (whe
 
 Fails if you did not approve the Lidont contract for the transfer of at least `rETHAmount` rETH from your account.
 
-`getStake(address who) -> uint256`: returns the current rETH stake for the account `who`.
-
 ## Unstake rETH
-`unstake(uint256 rETHAmount)`: unstake Rocket Ether from the Lidont contract, returning it to your account.
+`unstake(uint256 rETHAmount)`: reduce your Rocket Ether stake with the Lidont contract.
 
 Fails if the `rETHAmount` is larger than your current rETH stake.
+
+Your rETH is not returned directly.
+Instead, you receive a `rETHAmount / totalStakedReth` share of each of the Lidont contract's current assets (stETH, rETH, ETH),
+where `totalStakedReth` is the sum of all current rETH stakes (before your unstake).
+
+Returns the amounts of stETH, rETH, and ETH received, so can be static-called to view the value of unstaking.
 
 ## Claim rewards for staked rETH
 `claimEmission() -> uint256`: receive Lidont tokens for your staked rETH.

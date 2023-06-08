@@ -70,17 +70,15 @@ allowance: public(HashMap[address, HashMap[address, uint256]])
 
 # Staked rETH accounting
 struct StakeDetails:
-  stake: uint256 # amount of atto-rETH staked
+  stake: uint256 # amount of atto-rETH considered staked
+                 # staking rETH increments this number
+                 # unstaking reduces this number, but
+                 # what is actually returned depends on calculated stake-share
   rewardDebt: uint256 # amount of atto-LIDONT rewards owed
   lastClaimBlock: uint256 # block for which rewardDebt is current
 
 stakedReth: public(HashMap[address, StakeDetails])
-
-# easy balance viewer (stakedReth(who)[0] is equivalent)
-@external
-@view
-def getStake(who: address) -> uint256:
-  return self.stakedReth[who].stake
+totalStakedReth: public(uint256)
 
 # Minipool rewards accounting
 rewardMinipoolsFromIndex: public(immutable(uint256))
@@ -163,12 +161,14 @@ def _addRewardDebt(who: address):
 def _stake(who: address, amount: uint256):
   self._addRewardDebt(who)
   self.stakedReth[who].stake += amount
+  self.totalStakedReth += amount
   log Stake(who, amount)
 
 @internal
 def _unstake(who: address, amount: uint256):
   self._addRewardDebt(who)
   self.stakedReth[who].stake -= amount
+  self.totalStakedReth -= amount
   log Unstake(who, amount)
 
 # Main mechanisms:
@@ -207,10 +207,23 @@ def stake(rETHAmount: uint256):
   assert rocketEther.transferFrom(msg.sender, self, rETHAmount), "rETH transfer failed"
   self._stake(msg.sender, rETHAmount)
 
+@internal
+@pure
+def fracOf(v: uint256, n: uint256, d: uint256) -> uint256:
+  return (v * n) / d
+
 @external
-def unstake(rETHAmount: uint256):
+def unstake(rETHAmount: uint256) -> (uint256, uint256, uint256):
+  withdrawN: uint256 = rETHAmount
+  withdrawD: uint256 = self.totalStakedReth
   self._unstake(msg.sender, rETHAmount)
-  assert rocketEther.transfer(msg.sender, rETHAmount), "rETH transfer failed"
+  stETH: uint256 = self.fracOf(stakedEther.balanceOf(self), withdrawN, withdrawD)
+  rETH: uint256 = self.fracOf(rocketEther.balanceOf(self), withdrawN, withdrawD)
+  ETH: uint256 = self.fracOf(self.balance, withdrawN, withdrawD)
+  assert stakedEther.transfer(msg.sender, stETH), "stETH transfer failed"
+  assert rocketEther.transfer(msg.sender, rETH), "rETH transfer failed"
+  assert self.forceSend(msg.sender, ETH), "ETH transfer failed"
+  return stETH, rETH, ETH
 
 @external
 def claimEmission() -> uint256:
