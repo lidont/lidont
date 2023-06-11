@@ -12,6 +12,33 @@ if(window.DEBUG){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// rainbow effect
+// TODO: make WC
 (function () {
     var angle = 0;
     var p = document.querySelector('h2');
@@ -54,23 +81,6 @@ if(window.DEBUG){
 //
 //window.RADIO = new EventEmitter()
 
-/*
-function render(){
-    document.getElementById("root").innerHTML = template(store.getState())
-}
-*/
-
-// Initial Render
-//
-// render()
-
-// Subscriptions
-//
-/*
-store.subscribe( (args) => {
-    console.log("updated Store -> render", args)
-})
-*/
 
 // Input Handlers
 //

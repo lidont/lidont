@@ -8,19 +8,16 @@ export class ConnectWeb3 {
       throw new Error("param is missing from constructor")
     }
     this.contract = new Contract(contractAddr, /*Abi*/)
-    this.lidont = new Contract("0x0", ERC20Abi)
   }
 
   connectProvider(provider) {
     this.provider = provider;
     this.contract = this.contract.connect(this.provider);
-    this.lidont = this.lidont.connect(this.provider);
   }
 
   connectURL(url) {
     this.provider = new JsonRpcProvider(url);
     this.contract = this.contract.connect(this.provider);
-    this.lidont = this.lidont.connect(this.provider);
   }
 
   disconnect() {
@@ -31,28 +28,22 @@ export class ConnectWeb3 {
   //
 
   async swap(signer, amount, stake = false) {
-    const pair = new Contract(pairAddr, RenaV2PairAbi, signer);
+    const pair = new Contract(pairAddr, Abi, signer);
     const distributorAddr = await pair.distributor();
-    const distributor = new Contract(distributorAddr, RDistributorAbi, signer);
-    const isOwner = await distributor.hasRole(distributor.DISCOUNTER_ROLE(), signer.getAddress());
-    if (!isOwner) throw "Signer is not the rBond owner";
-    this.addTx(await pair.setBondDuration(duration));
+    const distributor = new Contract(distributorAddr, Abi, signer);
   }
 
-  async fetchRBondLockingDuration(pairAddr) {
+  async fetchDuration(pairAddr) {
     if (!ethers.utils.isAddress(pairAddr)) throw "Invalid pairAddr";
-    const pair = new Contract(pairAddr, RenaV2PairAbi, this.provider);
+    const pair = new Contract(pairAddr, Abi, this.provider);
     const bondAddr = await pair.bond();
-    const bond = new Contract(bondAddr, RBondAbi, this.provider);
+    const bond = new Contract(bondAddr, Abi, this.provider);
     return await bond.bondDuration();
   }
 
 
 
-  async stake(
-    signer,
-    amount,
-    duration) {
+  async stake(signer,amount,duration) {
     if (duration < 0 || duration > await (await this.getMaxLockingDuration()).toNumber()) throw "Invalid locking duration";
     this.addTx(await this.contract.connect(signer).stake(amount, AbiCoder.defaultAbiCoder().encode(["uint"], [duration])));
   }

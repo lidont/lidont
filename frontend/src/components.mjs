@@ -46,7 +46,7 @@ customElements.define(
     }
     render(address){
       this.innerHTML = `
-        <button-connected data-action="connectWallet">${!address ? "Connect" : formatDisplayAddr(address)}</button-connected>
+        <button-connected data-action="connectNetworkAndWallet">${!address ? "Connect" : formatDisplayAddr(address)}</button-connected>
       `;
     }
     connectedCallback() { this.render(); }
@@ -93,7 +93,6 @@ customElements.define(
       const stateKey = this.getAttribute("data-stateKey")
       let prevValue = null
       store.subscribe( () => {
-        console.log("redner")
         const stateValue = store.getState()[stateKey]
         const isEqual = prevValue === stateValue
         if(isEqual){ return }

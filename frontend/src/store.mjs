@@ -46,15 +46,23 @@ export const store = createStore(
     address: null,
     balance: null,
     balanceFormatted: null,
-    balancesErc20: [],
+    erc20OfInterest: ["LIDONT", "rETH", "stETH"],
+    balances: {
+
+    },
+
+    // for <input-connected> inputs are mapped to <input name=???> name components & forms
+    inputs: {},
 
     provider: window.ethereum
       ? new ethers.BrowserProvider(window.ethereum)
       : new ethers.InfuraProvider("mainnet", "ID"),
 
-    // for <lidont-input> inputs are mapped to <input name=???> name components & forms
-    inputs: {},
-    async handleInputs() {},
+    // compound actions
+    async connectNetworkAndWallet(){
+      await this.addConnectNetwork(chainIdDefault)
+      await this.connectWallet()
+    },
 
     async connectWallet() {
       const { address, loading } = getState();
