@@ -1,14 +1,59 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <title>lidont</title>
-    <link rel="stylesheet" type="text/css" href="src/index.css"></link>
+    <link rel="stylesheet" type="text/css" href="src/index.css" />
 </head>
+
 <body>
-<div id="root"></div>
-<script type="module">
-    import './src/index.mjs'
-</script>
+    <main>
+        <div class="container">
+            <div class="nav">
+                <div class="flex-left">🍔</div>
+                <lidont-button-connect class="flex-right"></lidont-button-connect>
+            </div>
+            <div class="flex-center"><img src="logo.png" /></div>
+            <hr />
+            <div class="card">
+                <div class="flex flex-between">
+                    <sub>Swap stETH</sub>
+                    <sub>Balance: ?? stETH</sub>
+                </div>
+
+                <div class="flex stack">
+                    <span>Input:</span>
+                    <lidont-input class="flex-center" name="amountSTETH"></lidont-input>
+                </div>
+            </div>
+            <hr />
+            <div class="card">
+                <div class="flex flex-between">
+                    <sub>Stake rETH to earn $LIDONT</sub>
+                    <sub>Balance: ?? rETH</sub>
+                </div>
+
+                <div class="flex">
+                    <span class="flex-left flex-1">Input:</span>
+                    <lidont-input class="flex-center flex-5" name="amountRETH"></lidont-input>
+                    <span class="flex-right flex-1"></span>
+                </div>
+            </div>
+            <hr />
+            <div class="card">
+                <div class="flex flex-between">
+                    <sub>Claim $LIDONT</sub>
+                    <sub>Balance: ?? rETH</sub>
+                </div>
+                <lidont-button data-action="claimRewards">Claim Rewards</lidont-button>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import "./src/index.mjs";
+    </script>
 </body>
+
 </html>

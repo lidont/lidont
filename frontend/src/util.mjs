@@ -212,3 +212,29 @@ export function sanitizeHTML (str, nodes) {
 	return nodes ? html.childNodes : html.innerHTML;
 
 }
+
+
+// toggle dark mode
+//
+var storedTheme = localStorage.getItem('theme') || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+if (storedTheme) document.documentElement.setAttribute('data-theme', storedTheme)
+
+export function toggleTheme () {
+    var currentTheme = document.documentElement.getAttribute("data-theme");
+    var targetTheme = "light";
+
+    if (currentTheme === "light") {
+        targetTheme = "dark";
+    }
+
+    document.documentElement.setAttribute('data-theme', targetTheme)
+    localStorage.setItem('theme', targetTheme);
+};
+
+
+// utils
+//
+
+export function formatDisplayAddr(addr){
+  return addr.slice(0, 4) +'...'+ addr.slice(Math.max(addr.length - 4, 0))
+}

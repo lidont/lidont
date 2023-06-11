@@ -1,57 +1,98 @@
-import { Contract, JsonRpcProvider } from '../node_modules/ethers/dist/ethers.js';
+import { Contract, JsonRpcProvider, AbiCoder } from '../node_modules/ethers/dist/ethers.js';
 
 
 export class ConnectWeb3 {
 
-    constructor(contractAddr) {
-        if(!contractAddr){
-            throw new Error("param is missing from constructor")
-        }
-        this.contract = new Contract(contractAddr, /*Abi*/)
-        this.lidont = new Contract("0x0", ERC20Abi)
+  constructor(contractAddr) {
+    if (!contractAddr) {
+      throw new Error("param is missing from constructor")
     }
+    this.contract = new Contract(contractAddr, /*Abi*/)
+    this.lidont = new Contract("0x0", ERC20Abi)
+  }
 
-    connectProvider(provider) {
-            this.provider = provider;
-            this.contract = this.contract.connect(this.provider);
-            this.lidont = this.lidont.connect(this.provider);
-    }
+  connectProvider(provider) {
+    this.provider = provider;
+    this.contract = this.contract.connect(this.provider);
+    this.lidont = this.lidont.connect(this.provider);
+  }
 
-    connectURL(url) {
-        this.provider = new JsonRpcProvider(url);
-        this.contract = this.contract.connect(this.provider);
-        this.lidont = this.lidont.connect(this.provider);
-    }
+  connectURL(url) {
+    this.provider = new JsonRpcProvider(url);
+    this.contract = this.contract.connect(this.provider);
+    this.lidont = this.lidont.connect(this.provider);
+  }
 
-    disconnect() {
-        this.provider.removeAllListeners();
-    }
+  disconnect() {
+    this.provider.removeAllListeners();
+  }
+
+  // SC Functions & reads
+  //
+
+  async swap(signer, amount, stake = false) {
+    const pair = new Contract(pairAddr, RenaV2PairAbi, signer);
+    const distributorAddr = await pair.distributor();
+    const distributor = new Contract(distributorAddr, RDistributorAbi, signer);
+    const isOwner = await distributor.hasRole(distributor.DISCOUNTER_ROLE(), signer.getAddress());
+    if (!isOwner) throw "Signer is not the rBond owner";
+    this.addTx(await pair.setBondDuration(duration));
+  }
+
+  async fetchRBondLockingDuration(pairAddr) {
+    if (!ethers.utils.isAddress(pairAddr)) throw "Invalid pairAddr";
+    const pair = new Contract(pairAddr, RenaV2PairAbi, this.provider);
+    const bondAddr = await pair.bond();
+    const bond = new Contract(bondAddr, RBondAbi, this.provider);
+    return await bond.bondDuration();
+  }
 
 
-    async updatePendingTransactions() {
-        this.pending = await Promise.all(this.pending.map(async tx => {
-            return tx.confirmations == 0? await this.provider.getTransaction(tx.hash) : tx;
-        }));
-    }
 
-    async addTx(tx) {
-        this.pending.push(await this.provider.getTransaction(tx.hash));
-    }
+  async stake(
+    signer,
+    amount,
+    duration) {
+    if (duration < 0 || duration > await (await this.getMaxLockingDuration()).toNumber()) throw "Invalid locking duration";
+    this.addTx(await this.contract.connect(signer).stake(amount, AbiCoder.defaultAbiCoder().encode(["uint"], [duration])));
+  }
 
-    purgeMinedTransactions() {
-        this.pending = this.pending.filter(tx => tx.confirmations == 0);
-    }
+  async unstake(signer,amount,lockID) {
+    const tx = await this.contract.connect(signer).unstake(amount, AbiCoder.defaultAbiCoder().encode(["uint"], [lockID]));
+    this.addTx(tx);
+  }
+
+  async claimRewards(signer) {
+    const reward = await this.getRewardFor(signer);
+    this.addTx(await this.contract.connect(signer).withdraw(reward));
+  }
 
 
-    /**
-     * Helper to query the amount of digits of an erc20 token
-     * @param tokenAddr Address of the erc20 token
-     * @returns Number of digits of an erc20 token
-     */
-    async getTokenDecimals(tokenAddr) {
-        const token = new Contract(tokenAddr, ERC20Abi, this.provider)
-        return await token.decimals();
-    }
+
+  // Transaction Queue
+  //
+
+  async updatePendingTransactions() {
+    this.pending = await Promise.all(this.pending.map(async tx => {
+      return tx.confirmations == 0 ? await this.provider.getTransaction(tx.hash) : tx;
+    }));
+  }
+
+  async addTx(tx) {
+    this.pending.push(await this.provider.getTransaction(tx.hash));
+  }
+
+  purgeMinedTransactions() {
+    this.pending = this.pending.filter(tx => tx.confirmations == 0);
+  }
+
+
+  // Helper
+  //
+  async getTokenDecimals(tokenAddr) {
+    const token = new Contract(tokenAddr, ERC20Abi, this.provider)
+    return await token.decimals();
+  }
 }
 
 

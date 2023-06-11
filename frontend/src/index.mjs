@@ -1,45 +1,58 @@
 import * as ethers from '../node_modules/ethers/dist/ethers.js';
-import { EventEmitter, sanitizeHTML } from './util.mjs';
 import { store } from './store.mjs';
+import './components.mjs'
 
 
 window.DEBUG = true
+if(window.DEBUG){
+    console.log("DEBUG MODE")
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Global Event Bus optional but useful with minimal approaches
 //
-window.RADIO = new EventEmitter()
+//window.RADIO = new EventEmitter()
 
-
-// Markup
-//
-const MARKUP = (state) => {
-    return sanitizeHTML(`
-    <div class="container">
-        <button class="button" type="button" data-action="connectWallet">${state.address ? state.address : 'Click to Connect Wallet'}</button>
-    <div>
-    `)
-}
-
+/*
 function render(){
-    document.getElementById("root").innerHTML = MARKUP(store.getState())
+    document.getElementById("root").innerHTML = template(store.getState())
 }
-
+*/
 
 // Initial Render
 //
-render()
-
+// render()
 
 // Subscriptions
 //
+/*
 store.subscribe( (args) => {
     console.log("updated Store -> render", args)
-    render()
 })
+*/
 
 // Input Handlers
 //
-
+/*
 document.addEventListener('click', async function (event) {
     // console.log(event.target)
 	event.preventDefault();
@@ -49,3 +62,4 @@ document.addEventListener('click', async function (event) {
     }
 
 }, false);
+*/
