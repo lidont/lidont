@@ -11,7 +11,7 @@
 :root {
   --radius: 0.66rem;
 
-  --bg-radial: radial-gradient(ellipse at center,rgba(0,0,0,.1) 0%,rgba(196,76,72,.1) 30%,rgb(231, 133, 57) 100%);
+  --bg-radial: radial-gradient(ellipse at center,rgba(0,0,0,.1) 0%,rgba(196,76,72,.1) 30%,rgb(203, 94, 51) 100%);
 
   --text-color: #121416d8;
   --link-color: #53378e;
@@ -59,6 +59,14 @@ html[data-theme="dark"] {
   }
 }
 
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
 /* 3 Generic */
 
 html {
@@ -103,7 +111,7 @@ main {
   overflow-y: scroll;
 }
 
-a, span, p, sub {
+a, span, p, sub, label {
   color: var(--color-light);
 }
 
@@ -117,7 +125,11 @@ a:hover:not(.button) {
 }
 
 sub {
-  font-size: 0.66rem;
+  font-size: 1rem;
+  font-weight: 200;
+  display: flex;
+  gap: 0.5rem;
+  line-height: 1rem;
 }
 
 span {
@@ -127,9 +139,11 @@ span {
 
 hr {
   border: none;
-  background-color: var(--color-lightGrey);
+  background-color: transparent;
   height: 1px;
   margin: 1rem 0;
+  box-shadow: rgb(38, 90, 139) 0px 0px 99px 10px;
+  margin-bottom: 0px;
 }
 
 img {
@@ -139,12 +153,25 @@ img {
 input {
   font-family: inherit;
   border-radius: var(--radius);
-  font-size: 1em;
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  border: none;
   transition: all 0.2s ease;
   display: block;
   width: 100%;
   color: var(--color-light);
   background-color: var(--color-dark);
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    /* display: none; <- Crashes Chrome on hover */
+    -webkit-appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+input[type=number] {
+    -moz-appearance:textfield; /* Firefox */
 }
 
 /* 5 Objects (you are allowed to use classes from here on) */
@@ -221,6 +248,7 @@ input {
 .stack {
   display: flex;
   gap: 1rem;
+  padding: 1.5rem 0rem;
 }
 
 .nav {
@@ -247,8 +275,14 @@ input {
   }
 }
 
+.icon {
+  margin: 1.5rem 0rem;
+  font-size: 2rem;
+  line-height: 2rem;
+}
+
 .button {
-  margin: 0em;
+  margin: 1.5rem 0rem;
   padding: 0.5rem 0.25rem;
   display: flex;
   width: 220px;
@@ -319,9 +353,9 @@ input {
 
 .card {
   padding: 1rem 2rem;
-  border-radius: 4px;
-  background: rgba(0,0,0,.1);
-  box-shadow: 0 1px 3px var(--color-darkGrey);
+  margin-bottom: 2rem;
+  border-radius: var(--radius);
+  box-shadow: 0px 0px 1px 0px var(--color-darkGrey), 0 0 200px rgba(170, 170, 170, 0.33) inset;
 }
 
 .card p:last-child {
@@ -332,6 +366,28 @@ input {
   margin-top: 0;
   margin-bottom: 1rem;
 }
+
+.logo {
+  max-height: 128px;
+}
+
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 0.05rem solid #ffffff;
+  border-bottom: 0.25rem solid rgba(0,0,0,0);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+.spinner--hidden {
+  display: none;
+}
+
+.heading-rainbow {
+  font-size: 2rem;
+}
+
 
 /* 7 util - (IDs etc, here you can use !important and dirty hacks)*/
 

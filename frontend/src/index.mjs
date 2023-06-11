@@ -12,6 +12,28 @@ if(window.DEBUG){
 
 
 
+(function () {
+    var angle = 0;
+    var p = document.querySelector('h2');
+    var text = p.textContent.split('');
+    var len = text.length;
+    var phaseJump = 360 / len;
+    var spans;
+  
+    p.innerHTML = text.map(function (char) {
+      return '<span class="heading-rainbow">' + char + '</span>';
+    }).join('');
+  
+    spans = p.children;
+  
+    (function wheee () {
+      for (var i = 0; i < len; i++) {
+        spans[i].style.color = 'hsl(' + (angle + Math.floor(i * phaseJump)) + ', 55%, 70%)';
+      }
+      angle++;
+      requestAnimationFrame(wheee);
+    })();
+  })();
 
 
 
