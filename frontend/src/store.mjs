@@ -51,6 +51,7 @@ export const store = createStore(
 
     },
 
+    // forms 
     // for <input-connected> inputs are mapped to <input name=???> name components & forms
     inputs: {},
 
