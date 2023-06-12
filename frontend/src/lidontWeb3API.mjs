@@ -1,10 +1,11 @@
 import * as ethers from "../node_modules/ethers/dist/ethers.js";
 import { abi as Abi } from "./abi.mjs";
 
+/*
 const iface = new ethers.Interface(Abi);
-const ABI = iface.format(false);
-
+const ABI = iface.format(true);
 console.log(ABI)
+*/
 
 
 export class lidontWeb3API {
@@ -12,6 +13,7 @@ export class lidontWeb3API {
     if (!contractAddr) {
       throw new Error("param is missing from constructor");
     }
+    this.contractAddr = contractAddr
     this.contract = new ethers.Contract(contractAddr, Abi);
   }
 
@@ -40,9 +42,9 @@ export class lidontWeb3API {
 
   async swap(signer, stETHAmount, stake) {
     const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
     debugger
-    const swapFunc = this.contract.getFunction("swap")
-    const tx =  await swapFunc(who, stETHAmount, stake);
+    const tx = await contract.swap(who, stETHAmount, stake);
     this.addTx(tx)
   }
 
