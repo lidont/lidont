@@ -64,9 +64,9 @@ export const createStore = (createState) =>
 export const log = (config) => (set, get, api) =>
 config(
   (...args) => {
-    console.log('  applying', args)
+    console.log("State Change:  ", args )
     set(...args)
-    console.log('  new state', get())
+    // console.log('  new state', get())
   },
   get,
   api

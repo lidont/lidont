@@ -49,6 +49,41 @@ html[data-theme="dark"] {
 
 @keyframes glowing {
   0% {
+    background: linear-gradient(
+      135deg,
+      #a85ca6 20%,
+      #ef8366 20% 40%,
+      #fded5a 40% 60%,
+      #53ba67 60% 80%,
+      #02b5e0 80%
+    );
+  }
+
+  50% {
+    background: linear-gradient(
+      135deg,
+      #a85ca6 15%,
+      #ef8366 15% 30%,
+      #fded5a 30% 70%,
+      #53ba67 70% 85%,
+      #02b5e0 85%
+    );
+  }
+
+  100% {
+    background: linear-gradient(
+      135deg,
+      #a85ca6 10%,
+      #ef8366 10% 20%,
+      #fded5a 20% 80%,
+      #53ba67 80% 90%,
+      #02b5e0 90%
+    );
+  }
+}
+
+@keyframes glowingrainbow {
+  0% {
     background-position: 0 0;
   }
   50% {
@@ -75,6 +110,7 @@ html {
   font-size: 16px;
   line-height: 1.15;
   text-size-adjust: 100%;
+  background: radial-gradient(ellipse at center,rgba(0,0,0,.1) 0%,rgba(196,76,72,.1) 30%,#b7314670 100%);
 }
 
 *,
@@ -112,7 +148,7 @@ main {
 }
 
 a, span, p, sub, label {
-  color: var(--color-light);
+  color: var(--color-dark);
 }
 
 a {
@@ -132,17 +168,12 @@ sub {
   line-height: 1rem;
 }
 
-span {
-  font-size: 1rem;
-  line-height: 1.5rem;
-}
-
 hr {
   border: none;
   background-color: transparent;
   height: 1px;
   margin: 1rem 0;
-  box-shadow: #6776b9 0px 0px 99px 10px;
+  box-shadow: #df552b 0px 0px 99px 10px;
   margin-bottom: 0px;
 }
 
@@ -158,6 +189,7 @@ input {
   border: none;
   transition: all 0.2s ease;
   display: block;
+  height: 40px;
   width: 100%;
   color: var(--color-light);
   background-color: var(--color-dark);
@@ -232,6 +264,10 @@ input[type=number] {
   flex: 5;
 }
 
+.pointer {
+  cursor: pointer;
+}
+
 
 /* 6 Components - (the meat, buttons etc.) */
 
@@ -281,8 +317,14 @@ input[type=number] {
   line-height: 2rem;
 }
 
+.img-icon {
+  margin: 0 auto;
+  height: 100%;
+  max-height: 40px;
+}
+
 .button {
-  margin: 1.5rem 0rem;
+  margin: 0rem 0rem;
   padding: 0.5rem 0.25rem;
   display: flex;
   width: 220px;
@@ -347,7 +389,6 @@ input[type=number] {
   width: calc(100% + 10px);
   height: calc(100% + 10px);
   opacity: 0;
- /* transition: opacity 0.3s ease-in-out;*/
   border-radius: 10px;
 }
 
@@ -361,6 +402,7 @@ input[type=number] {
 
 .button:hover:before {
   opacity: 1;
+  animation: glowing 0.2s forwards;
 }
 
 .button:after {
@@ -412,6 +454,10 @@ input[type=number] {
   font-size: 2rem;
 }
 
+.img-icon {
+  margin: 0rem 0.5rem;
+}
+
 
 /* 7 util - (IDs etc, here you can use !important and dirty hacks)*/
 
@@ -424,4 +470,13 @@ input[type=number] {
 
 .force-full-width {
   width: 100%;
+}
+
+rainbow {
+  line-height: 0;
+  font-weight: bold;
+}
+
+.text-rainbow {
+  font-size: 2rem;
 }
