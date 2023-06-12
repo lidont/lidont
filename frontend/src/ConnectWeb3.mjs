@@ -3,7 +3,7 @@ import {
   JsonRpcProvider,
   AbiCoder,
 } from "../node_modules/ethers/dist/ethers.js";
-import Abi from "./abi.json";
+import { abi as Abi } from "./abi.mjs";
 
 export class ConnectWeb3 {
   constructor(contractAddr) {

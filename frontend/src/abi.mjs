@@ -1,3 +1,4 @@
+export const abi = JSON.parse(`
 [
   {
     "name": "Transfer",
@@ -271,4 +272,5 @@
     "inputs": [{ "name": "arg0", "type": "address" }],
     "outputs": [{ "name": "", "type": "bool" }]
   }
-]
+]`
+)
