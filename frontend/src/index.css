@@ -11,7 +11,7 @@
 :root {
   --radius: 0.66rem;
 
-  --bg-radial: radial-gradient(ellipse at center,rgba(0,0,0,.1) 0%,rgba(196,76,72,.1) 30%,rgb(203, 94, 51) 100%);
+  --bg-radial: linear-gradient( 135deg, #6776b9 10%, rgb(103, 118, 185, 0.1) 10% 20%, rgb(103, 118, 185, 0) 20% 80%, rgb(103, 118, 185, 0.1) 80% 90%, #6776b9 90% );
 
   --text-color: #121416d8;
   --link-color: #53378e;
@@ -299,6 +299,7 @@ input[type=number] {
   font-size: 1rem;
 }
 
+/*
 .button:before {
   content: "";
   background: linear-gradient(
@@ -326,6 +327,29 @@ input[type=number] {
   transition: opacity 0.3s ease-in-out;
   border-radius: 10px;
 }
+*/
+
+.button:before {
+  content: "";
+  background: linear-gradient(
+    135deg,
+    #a85ca6 20%,
+    #ef8366 20% 40%,
+    #fded5a 40% 60%,
+    #53ba67 60% 80%,
+    #02b5e0 80%
+  );
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  background-size: 100%;
+  z-index: -1;
+  width: calc(100% + 10px);
+  height: calc(100% + 10px);
+  opacity: 0;
+ /* transition: opacity 0.3s ease-in-out;*/
+  border-radius: 10px;
+}
 
 .button:active {
   color: #000;
@@ -339,13 +363,13 @@ input[type=number] {
   opacity: 1;
 }
 
-.button--filled:after {
+.button:after {
   z-index: -1;
   content: "";
   position: absolute;
   width: 100%;
   height: 100%;
-  background: #111;
+  background: #6776b9;
   left: 0;
   top: 0;
   border-radius: 10px;
