@@ -70,16 +70,13 @@ export const store = createStore(
       ? new ethers.BrowserProvider(window.ethereum)
       : new ethers.InfuraProvider("mainnet", "ID"),
 
-    lidontWeb3API: undefined,
+    lidontWeb3API: new lidontWeb3API(detailsByChainId[chainIdDefault].lidont),
 
     // compound actions
     async INIT(){
       const { provider, addConnectNetwork, connectWallet, updateBalance, updateErc20Balance } = getState()
       await addConnectNetwork(chainIdDefault)
       await connectWallet()
-
-      // connect smart contract
-      setState({ lidontWeb3API: new lidontWeb3API(detailsByChainId[chainIdDefault].lidont, provider)})
 
       //eth
       await updateBalance() 
