@@ -1,13 +1,16 @@
-import { Contract, JsonRpcProvider, AbiCoder } from '../node_modules/ethers/dist/ethers.js';
-
+import {
+  Contract,
+  JsonRpcProvider,
+  AbiCoder,
+} from "../node_modules/ethers/dist/ethers.js";
+import Abi from "./abi.json";
 
 export class ConnectWeb3 {
-
   constructor(contractAddr) {
     if (!contractAddr) {
-      throw new Error("param is missing from constructor")
+      throw new Error("param is missing from constructor");
     }
-    this.contract = new Contract(contractAddr, /*Abi*/)
+    this.contract = new Contract(contractAddr, Abi);
   }
 
   connectProvider(provider) {
@@ -24,49 +27,95 @@ export class ConnectWeb3 {
     this.provider.removeAllListeners();
   }
 
-  // SC Functions & reads
+
+  // Writes
   //
 
-  async swap(signer, amount, stake = false) {
-    const pair = new Contract(pairAddr, Abi, signer);
-    const distributorAddr = await pair.distributor();
-    const distributor = new Contract(distributorAddr, Abi, signer);
+  async approve(signer, spender, value) {
+    const tx = await this.contract.connect(signer).approve(spender, value);
+    this.addTx(tx)
   }
 
-  async fetchDuration(pairAddr) {
-    if (!ethers.utils.isAddress(pairAddr)) throw "Invalid pairAddr";
-    const pair = new Contract(pairAddr, Abi, this.provider);
-    const bondAddr = await pair.bond();
-    const bond = new Contract(bondAddr, Abi, this.provider);
-    return await bond.bondDuration();
+  async swap(signer, stETHAmount, stake) {
+    const who = signer.getAddress()
+    const tx = await this.contract.connect(signer).swap(who, stETHAmount, stake);
+    this.addTx(tx)
+  }
+
+  async stake(signer, rETHAmount) {
+    const tx = await this.contract.connect(signer).stake(rETHAmount);
+    this.addTx(tx)
+  }
+
+  async unstake(signer, rETHAmount) {
+    // const amount = AbiCoder.defaultAbiCoder().encode(["uint"], [rETHAmount])
+    // const amount = ethers.formatUnits()
+    const tx = await this.contract.connect(signer).unstake(rETHAmount);
+    this.addTx(tx)
+  }
+
+  async claimEmission(signer) {
+    const tx = await this.contract.connect(signer).claimEmission();
+    this.addTx(tx)
+  }
+
+  async claimMinipool(signer, nodeAddress, nodeIndex, index) {
+    const tx = await this.contract
+      .connect(signer)
+      .claimMinipool(nodeAddress, nodeIndex, index);
+  }
+
+  async initiateWithdrawal(signer, stETHAmount) {
+    const tx = await this.contract.connect(signer).initiateWithdrawal(stETHAmount);
+  }
+
+  async finalizeWithdrawal(signer, requestIds, hints) {
+    const tx = await this.contract
+      .connect(signer)
+      .finaliseWithdrawal(requestIds, hints);
+  }
+
+  async mintRocketEther(signer, ethAmount) {
+    const tx = await this.contract.connect(signer).mintRocketEther(ethAmount)
+    this.addTx(tx)
   }
 
 
-
-  async stake(signer,amount,duration) {
-    if (duration < 0 || duration > await (await this.getMaxLockingDuration()).toNumber()) throw "Invalid locking duration";
-    this.addTx(await this.contract.connect(signer).stake(amount, AbiCoder.defaultAbiCoder().encode(["uint"], [duration])));
+  // Reads
+  //
+  async getStake(signer, who) {
+    return await this.contract.connect(signer).getStake(who);
   }
 
-  async unstake(signer,amount,lockID) {
-    const tx = await this.contract.connect(signer).unstake(amount, AbiCoder.defaultAbiCoder().encode(["uint"], [lockID]));
-    this.addTx(tx);
+  async getAllowance(signer, owner, spender) {
+    return await this.contract.connect(signer).allowance(owner, spender);
   }
 
-  async claimRewards(signer) {
-    const reward = await this.getRewardFor(signer);
-    this.addTx(await this.contract.connect(signer).withdraw(reward));
+  async getStakedRETH(signer, address) {
+    // stake, rewardDebt, lastClaimBlock
+    return await this.contract.connect(signer).stakedReth(address);
   }
 
+  async getRewardMinipoolsFromIndex(signer) {
+    return await this.contract.connect(signer).rewardMinipoolsFromIndex();
+  }
+
+  async isMinipoolClaimed(signer, address) {
+    return await this.contract.connect(signer).minipoolClaimed(address);
+  }
 
 
   // Transaction Queue
   //
 
   async updatePendingTransactions() {
-    this.pending = await Promise.all(this.pending.map(async tx => {
-      return tx.confirmations == 0 ? await this.provider.getTransaction(tx.hash) : tx;
-    }));
+    this.pending = await Promise.all(
+      this.pending.map(async (tx) => {
+        return tx.confirmations == 0
+          ? await this.provider.getTransaction(tx.hash)
+          : tx;
+      })
+    );
   }
 
   async addTx(tx) {
@@ -74,19 +123,9 @@ export class ConnectWeb3 {
   }
 
   purgeMinedTransactions() {
-    this.pending = this.pending.filter(tx => tx.confirmations == 0);
-  }
-
-
-  // Helper
-  //
-  async getTokenDecimals(tokenAddr) {
-    const token = new Contract(tokenAddr, ERC20Abi, this.provider)
-    return await token.decimals();
+    this.pending = this.pending.filter((tx) => tx.confirmations == 0);
   }
 }
-
-
 
 export const Erc20Abi = `[
     {
@@ -146,4 +185,4 @@ export const Erc20Abi = `[
       "payable": false,
       "type": "function"
     }
-  ]`
+  ]`;
