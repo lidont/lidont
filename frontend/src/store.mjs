@@ -50,6 +50,9 @@ export const store = createStore(
     balances: {
 
     },
+    balancesBySymbol: {
+
+    },
 
     // forms 
     // for <input-connected> inputs are mapped to <input name=???> name components & forms
@@ -63,6 +66,8 @@ export const store = createStore(
     async connectNetworkAndWallet(){
       await this.addConnectNetwork(chainIdDefault)
       await this.connectWallet()
+      await this.updateBalance()
+      //await this.updateTokenBalances()
     },
 
     async connectWallet() {
@@ -197,19 +202,36 @@ export const store = createStore(
         return console.log(e);
       }
 
-      const entry = balances[address];
-      entry = entry || {};
-      const contract = new ethers.Contract(address, Erc20Abi, provider);
-      entry.name = await contract.name();
-      entry.symbol = await contract.symbol();
-      entry.decimals = await contract.decimals();
-      entry.balance = await contract.balanceOf(signerAddr);
-      entry.balanceFormatted = await ethers.utils.formatUnits(
-        entry.balance,
-        entry.decimals
-      );
-      return entry;
+      const details = await getTokenDetails()
+
+      const balancesNew = getState().balances
+      balancesNew[address] = details
+      setState({balances: balancesNew})
+
+      const balancesBySymbolNew = getState().balancesBySymbol
+      balancesBySymbolNew[address] = details
+      setState({balancesBySymbol: balancesBySymbolNew})
+
+      return details;
     },
+
+    async getTokenDetails(tokenAddr) {
+      if(!ethers.utils.isAddress(tokenAddr)) throw "Invalid tokenAddr";
+      const contract = new Contract(tokenAddr, ERC20Abi, this.provider);
+      const signerAddr = signer.getAddress()
+      const [symbol, name, decimals, balance] = [
+          await contract.symbol(),
+          await contract.name(),
+          await contract.decimals(),
+          await contract.balanceOf(signerAddr)
+      ]
+      const balanceFormatted = await ethers.utils.formatUnits(balance, decimals);
+      
+      return {symbol, name, decimals, balance, balanceFormatted}
+  }
+
+ 
+
   }))
 );
 
