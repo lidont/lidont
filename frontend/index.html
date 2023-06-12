@@ -23,14 +23,18 @@
             <div class="card">
                 <div class="flex flex-between">
                     <rainbow>SWAP</rainbow>
-                    <sub>Balance: <balance-erc20 data-symbol="stETH"></balance-erc20> stETH</sub>
+                    <div>
+                        <sub>Balance: <balance-erc20 data-symbol="stETH"></balance-erc20> stETH</sub>
+                        <sub>Allowance: <wait-for data-stateKey="stETHAllowance"></wait-for> stETH</sub>
+                    </div>
                 </div>
                 <sub>stETH to rETH</sub>
                 <div class="flex-center">
-                    <icon-comp icon="stETH"></icon-comp><span>  ▶  </span><icon-comp icon="rETH"></icon-comp>
+                    <icon-comp icon="stETH"></icon-comp><span>&nbsp;▶ </span><icon-comp icon="rETH"></icon-comp>
                 </div>
-                <div class="stack flex-right">
-                    <input-connected class="flex-center flex-5" type="number" placeholder="stETH amount to swap" name="stETHAmount"></input-connected>
+                <div class="stack flex-center">
+                    <input-connected class="flex-7" type="number" placeholder="stETH amount to swap" name="stETHAmount"></input-connected>
+                    <input-connected class="flex-center" label="stake?" type="checkbox"  name="alsoStake"></input-connected>
                     <button-connected class="flex-right" data-action="swap">Swap stETH</button-connected>
                 </div>
                 
@@ -41,24 +45,31 @@
             <div class="card">
                 <div class="flex flex-between">
                     <rainbow>STAKE</rainbow>
-                    <sub>Balance: <balance-erc20 data-symbol="rETH"></balance-erc20> rETH</sub>
+                    <div>
+                        <sub>Balance: <balance-erc20 data-symbol="rETH"></balance-erc20> rETH</sub>
+                        <sub>Allowance: <wait-for data-stateKey="rETHAllowance"></wait-for> rETH</sub>
+                    </div>
                 </div>
                 <sub>rETH to earn lidont</sub>
                 <div class="flex-center">
-                    <icon-comp icon="rETH"></icon-comp>  ▶  <span> 🪙 </span>
+                    <icon-comp icon="rETH"></icon-comp>  ♾️  <span style="font-size: 2.66rem; line-height: 2.33rem"> 🪙 </span>
                 </div>
-                <div class="stack">
-                    
-                    <input-connected class="flex-center flex-5" type="number" placeholder="rETH amount to stake" name="rETHAmount"></input-connected>
-                    <button-connected class="flex-right" data-action="swap">Stake rETH</button-connected>
+                <div class="stack flex-center">
+                    <input-connected class="flex-7" type="number" placeholder="rETH amount to stake" name="rETHAmount"></input-connected>
+                    <button-connected class="flex-right" data-action="stake">Stake rETH</button-connected>
                 </div>
+                <div class="stack flex-center">
+                    <sub>Staked:<wait-for data-stateKey="rETHStakedFormatted"></wait-for> rETH</sub></sub>
+                    <button-connected class="flex-right" data-action="unstake">Unstake rETH</button-connected>
+                </div>
+                
             </div>
 
 
             <hr />
             <div class="card">
                 <div class="flex flex-between">
-                    <rainbow>CLAIM</rainbow>
+                    <rainbow>CLAIM LIDONT</rainbow>
                     <sub>Balance: <balance-erc20 data-symbol="LIDONT"></balance-erc20> LIDONT</sub>
                 </div>
                 <sub>lidont emission rewards</sub>
@@ -68,6 +79,20 @@
             </div>
 
 
+            
+            <hr />
+            <div class="card">
+                <div class="flex flex-between">
+                    <rainbow>MINIPOOL REWARDS</rainbow>
+                    <sub>Balance: <balance-erc20 data-symbol="LIDONT"></balance-erc20> LIDONT</sub>
+                </div>
+                <sub>lidont minipool rewards</sub>
+                <div class="flex flex-around">
+                    <button-connected data-action="claimRewards">Claim Rewards</button-connected>
+                </div>
+            </div>
+
+            <logger-radio>
             <div class="flex flex-around"><h2>DON'T DESTROY ETHEREUM</h2></div>
         </div>
     </main>

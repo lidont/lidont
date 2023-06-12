@@ -1,5 +1,5 @@
 import * as ethers from "../node_modules/ethers/dist/ethers.js";
-import { createStore, log } from "./util.mjs";
+import { createStore, RADIO, log} from "./util.mjs";
 import { ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
@@ -66,24 +66,42 @@ export const store = createStore(
     // for <input-connected> inputs are mapped to <input name=???> name components & forms
     inputs: {},
 
+    stETHAllowance: undefined,
+    rETHAllowance: undefined,
+    rETHStaked: undefined,
+    rETHStakedFormatted: undefined,
+
     provider: window.ethereum
       ? new ethers.BrowserProvider(window.ethereum)
       : new ethers.InfuraProvider("mainnet", "ID"),
 
     lidontWeb3API: new lidontWeb3API(detailsByChainId[chainIdDefault].lidont),
+    pending: undefined,
 
     // compound actions
     async INIT(){
-      const { provider, addConnectNetwork, connectWallet, updateBalance, updateErc20Balance } = getState()
+      const { lidontWeb3API, getStake, provider, addConnectNetwork, connectWallet, updateBalance, updateErc20Balance } = getState()
       await addConnectNetwork(chainIdDefault)
       await connectWallet()
-
+      // web3 contract lidont
+      lidontWeb3API.connectProvider(provider)
       //eth
       await updateBalance() 
       //erc20
       await updateErc20Balance(detailsByChainId[chainIdDefault].steth)
       await updateErc20Balance(detailsByChainId[chainIdDefault].reth)
       await updateErc20Balance(detailsByChainId[chainIdDefault].lidont)
+
+      // get staked rETH
+      await getStake()
+
+      let prev = undefined
+      store.subscribe( () => {
+        if(prev === lidontWeb3API.pending) return
+        prev = lidontWeb3API.pending
+        setState({ pending: lidontWeb3API.pending })
+      })
+
     },
 
     // actions
@@ -91,8 +109,62 @@ export const store = createStore(
       const { provider, inputs, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.stETHAmount, 18)
-      const alsoStake = true
+      const alsoStake = !!inputs.alsoStake
+
+      // check stETH spending allowance
+      const ownAddress = await signer.getAddress()
+      const stETHAddress = detailsByChainId[chainIdDefault].steth
+      const lidontAddress = detailsByChainId[chainIdDefault].lidont
+      const stETH = new ethers.Contract(stETHAddress, ERC20Abi, signer);
+      const allowance = await stETH.allowance(ownAddress, lidontAddress)
+      setState({stETHAllowance: allowance})
+
+      if(allowance < amount){
+        RADIO.emit("msg", "stETH allowance: "+allowance+" approving "+amount)
+        await stETH.approve(lidontAddress, amount)
+      }
+
+      RADIO.emit("msg", "swapping. "+allowance+" sufficient for: "+amount)
       await lidontWeb3API.swap(signer, amount, alsoStake)
+    },
+
+    async getStake(){
+      const { provider, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const me = await signer.getAddress()
+      const stake = await lidontWeb3API.getStake(signer, me)
+      setState({ rETHStaked: stake })
+      setState({ rETHStakedFormatted: ethers.formatUnits(stake, 18) })
+    },
+
+    async stake(){
+      const { provider, inputs, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const amount = ethers.parseUnits(inputs.rETHAmount, 18)
+
+      // check stETH spending allowance
+      const ownAddress = await signer.getAddress()
+      const rETHAddress = detailsByChainId[chainIdDefault].reth
+      const lidontAddress = detailsByChainId[chainIdDefault].lidont
+      const rETH = new ethers.Contract(rETHAddress, ERC20Abi, signer);
+      const allowance = await rETH.allowance(ownAddress, lidontAddress)
+      setState({rETHAllowance: allowance})
+
+      if(allowance < amount){
+        RADIO.emit("msg", "rETH allowance: "+allowance+" approving "+amount)
+        await rETH.approve(lidontAddress, amount)
+      }
+
+      RADIO.emit("msg", "rETH staking. "+allowance+" sufficient for: "+amount)
+      await lidontWeb3API.stake(signer, amount)
+    },
+
+    async unstake(){
+      const { provider, inputs, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const amount = ethers.parseUnits(inputs.rETHAmount, 18)
+      RADIO.emit("msg", "rETH unstaking: "+amount)
+      await lidontWeb3API.unstake(signer, amount)
     },
 
     async connectWallet() {

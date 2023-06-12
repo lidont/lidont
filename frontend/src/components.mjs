@@ -1,7 +1,9 @@
 import { store } from "./store.mjs";
-import { formatDisplayAddr } from "./util.mjs";
+import { formatDisplayAddr, RADIO } from "./util.mjs";
  
 
+// icons
+//
 customElements.define("icon-comp", class extends HTMLElement {
   constructor() {
     super();
@@ -20,6 +22,26 @@ customElements.define("icon-comp", class extends HTMLElement {
 );
 
 
+// reacts to window.RADIO msg channel
+//
+customElements.define("logger-radio", class extends HTMLElement {
+  constructor() {
+    super();
+  }
+  connectedCallback(){
+    RADIO.on("msg", (msg) => { this.render(msg) })
+  }
+  render(msgObj){
+    this.innerHTML = `<div>
+      <sub>${msgObj}</sub>
+    <div/>`;
+  }
+}
+);
+
+
+// a button that tries to execute a function from the state store
+//
 customElements.define("button-connected",class extends HTMLElement {
     constructor() { super();
       this.innerHTML = `<button class="button"><span class="force-center">${this.innerText}</span></button>`;
@@ -40,6 +62,8 @@ customElements.define("button-connected",class extends HTMLElement {
 );
 
 
+// execute custom action and conditional rendering
+//
 customElements.define("button-connect-wallet", class extends HTMLElement {
     constructor() {
       super();
@@ -65,26 +89,42 @@ customElements.define("button-connect-wallet", class extends HTMLElement {
 );
 
 
+// store this input value in the store
+//
 customElements.define("input-connected", class extends HTMLElement {
     constructor() {
       super();
+      const name = this.getAttribute("name")
       const type = this.getAttribute("type")
+      const label = this.getAttribute("label")
       const placeholder = this.getAttribute("placeholder")
-      console.log(placeholder)
-      this.innerHTML = `<input ${type ? `type=${type}` : ''} ${placeholder ? `placeholder=${JSON.stringify(placeholder)}` : ''}/>`;
+      this.innerHTML = `<div><input ${type ? `type=${type}` : ''} ${placeholder ? `placeholder=${JSON.stringify(placeholder)}` : ''}/>${label ? `<sub>${label}</sub>`: ''}</div>`;
 
-      this.addEventListener("keyup", (event) => {
-        const name = this.getAttribute("name")
-        const newState = store.getState().inputs
-        newState[name] = event.target.value
-        store.setState({inputs: newState});
-      });
+      if(type === "number"){
+        this.addEventListener("keyup", (event) => {
+          
+          const newState = store.getState().inputs
+          newState[name] = event.target.value
+          store.setState({inputs: newState});
+        });
+      }
 
-    }
-  }
-);
+      if(type === "checkbox"){
+        this.addEventListener('change', function() {
+          const isChecked = store.getState().inputs[name]
+          const newState = store.getState().inputs
+          newState[name] = !isChecked
+          store.setState({inputs: newState});
+        })
+      }
+
+   }
+});
 
 
+
+// wait until a specific erc20 balance from the balances {} is available and display its value
+//
 customElements.define("balance-erc20", class extends HTMLElement {
     constructor() { super() }
     render(balance){
@@ -108,6 +148,8 @@ customElements.define("balance-erc20", class extends HTMLElement {
 );
 
 
+// wait until "balanceFormatted" is available and display it
+//
 customElements.define("balance-ether", class extends HTMLElement {
   constructor() {  super()  }
   render(balance){ 
@@ -129,7 +171,9 @@ customElements.define("balance-ether", class extends HTMLElement {
 });
 
 
-customElements.define("wait-for-connected", class extends HTMLElement {
+// wait until a state key is not undefined, then disaplay that value
+//
+customElements.define("wait-for", class extends HTMLElement {
   constructor() {
     super();
     const stateKey = this.getAttribute("data-stateKey")
@@ -144,7 +188,7 @@ customElements.define("wait-for-connected", class extends HTMLElement {
       }
     })
   }
-  render(address){
+  render(){
     const stateKey = this.getAttribute("data-stateKey")
     const state = store.getState()
     const isDefined = !!state[stateKey]
@@ -153,43 +197,3 @@ customElements.define("wait-for-connected", class extends HTMLElement {
   connectedCallback() { this.render(); }
   attributeChangedCallback() { this.render(); }
 });
-
-
-
-
-/*
-
-<input id="inputEl" placeholder="Enter a number..." type="text" />
-<span id="val"></span>
-<button id="incrementVal">Increment</button>
-// JavaScript
-const data = {
-  value: ''
-};
-const el = document.getElementById('inputEl');
-Object.defineProperty(data, 'prop', {
-  get: function() {
-    console.log('Getter called');
-    return this.value;
-  },
-  set: function(value) {
-    console.log('Setter called');
-    this.value = value;
-    el.value = value;
-    printVal();
-  }
-});
-// attaching the event listener on keyup events
-el.addEventListener('keyup', (event) => {
-  data.prop = event.target.value;
-});
-function printVal() {
-  const el = document.getElementById('val');
-  el.innerText = data.prop;
-}
-const btn = document.getElementById('incrementVal');
-btn.addEventListener('click', () => {
- data.prop = Number(data.prop) + 1;
-});
-
-*/

@@ -1,12 +1,6 @@
 import * as ethers from "../node_modules/ethers/dist/ethers.js";
 import { abi as Abi } from "./abi.mjs";
 
-/*
-const iface = new ethers.Interface(Abi);
-const ABI = iface.format(true);
-console.log(ABI)
-*/
-
 
 export class lidontWeb3API {
   constructor(contractAddr) {
@@ -15,6 +9,8 @@ export class lidontWeb3API {
     }
     this.contractAddr = contractAddr
     this.contract = new ethers.Contract(contractAddr, Abi);
+    // pending txs
+    this.pending = []
   }
 
   connectProvider(provider) {
@@ -35,54 +31,59 @@ export class lidontWeb3API {
   // Writes
   //
 
-  async approve(signer, spender, value) {
-    const tx = await this.contract.connect(signer).approve(spender, value);
-    this.addTx(tx)
-  }
-
   async swap(signer, stETHAmount, stake) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    debugger
-    const tx = await contract.swap(who, stETHAmount, stake);
+    const tx = await contract.getFunction("swap").call(who, stETHAmount, stake);
     this.addTx(tx)
   }
 
   async stake(signer, rETHAmount) {
-    const tx = await this.contract.connect(signer).stake(rETHAmount);
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    const tx = await contract.getFunction("stake").call(who, rETHAmount);
     this.addTx(tx)
   }
 
   async unstake(signer, rETHAmount) {
-    // const amount = AbiCoder.defaultAbiCoder().encode(["uint"], [rETHAmount])
-    // const amount = ethers.formatUnits()
-    const tx = await this.contract.connect(signer).unstake(rETHAmount);
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    const tx = await contract.getFunction("unstake").call(who, rETHAmount);
     this.addTx(tx)
   }
 
   async claimEmission(signer) {
-    const tx = await this.contract.connect(signer).claimEmission();
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    const tx = await contract.getFunction("claimEmission").call(who);
     this.addTx(tx)
   }
 
   async claimMinipool(signer, nodeAddress, nodeIndex, index) {
-    const tx = await this.contract
-      .connect(signer)
-      .claimMinipool(nodeAddress, nodeIndex, index);
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    const tx = await contract.getFunction("claimMinipool").call(who, nodeAddress, nodeIndex, index);
+    this.addTx(tx)
   }
 
   async initiateWithdrawal(signer, stETHAmount) {
-    const tx = await this.contract.connect(signer).initiateWithdrawal(stETHAmount);
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    const tx = await contract.getFunction("initiateWithdrawal").call(who, stETHAmount);
+    this.addTx(tx)
   }
 
   async finalizeWithdrawal(signer, requestIds, hints) {
-    const tx = await this.contract
-      .connect(signer)
-      .finaliseWithdrawal(requestIds, hints);
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    const tx = await contract.getFunction("finalizeWithdrawal").call(who, requestIds, hints);
+    this.addTx(tx)
   }
 
   async mintRocketEther(signer, ethAmount) {
-    const tx = await this.contract.connect(signer).mintRocketEther(ethAmount)
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    const tx = await contract.getFunction("mintRocketEther").call(who, ethAmount);
     this.addTx(tx)
   }
 
@@ -94,6 +95,7 @@ export class lidontWeb3API {
   }
 
   async getAllowance(signer, owner, spender) {
+    const who = await signer.getAddress()
     return await this.contract.connect(signer).allowance(owner, spender);
   }
 
@@ -113,7 +115,6 @@ export class lidontWeb3API {
 
   // Transaction Queue
   //
-
   async updatePendingTransactions() {
     this.pending = await Promise.all(
       this.pending.map(async (tx) => {
@@ -133,62 +134,12 @@ export class lidontWeb3API {
   }
 }
 
-export const ERC20Abi = `[
-    {
-      "constant": true,
-      "inputs": [],
-      "name": "name",
-      "outputs": [
-        {
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "payable": false,
-      "type": "function"
-    },
-    {
-      "constant": true,
-      "inputs": [],
-      "name": "decimals",
-      "outputs": [
-        {
-          "name": "",
-          "type": "uint8"
-        }
-      ],
-      "payable": false,
-      "type": "function"
-    },
-    {
-      "constant": true,
-      "inputs": [
-        {
-          "name": "_owner",
-          "type": "address"
-        }
-      ],
-      "name": "balanceOf",
-      "outputs": [
-        {
-          "name": "balance",
-          "type": "uint256"
-        }
-      ],
-      "payable": false,
-      "type": "function"
-    },
-    {
-      "constant": true,
-      "inputs": [],
-      "name": "symbol",
-      "outputs": [
-        {
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "payable": false,
-      "type": "function"
-    }
-  ]`;
+export const ERC20Abi = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+  "function totalSupply() view returns (uint256)",
+  "function balanceOf(address arg0) view returns (uint256)",
+  "function allowance(address arg0, address arg1) view returns (uint256)",
+  "function approve(address _spender, uint256 _value) returns (bool)"
+];
