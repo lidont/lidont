@@ -12,48 +12,62 @@
     <main>
         <div class="container">
             <div class="nav">
-                <div class="icon flex-left">🍔</div>
+                <div class="icon flex-left pointer" onclick="RAINBOWS()">🍔</div>
                 <button-connect-wallet class="flex-right"></button-connect-wallet>
             </div>
+            <sub class="flex-right"><balance-ether data-stateKey="balanceFormatted"></balance-ether> ETH</sub>
             <div class="flex-center"><img class="logo" src="logo2.png" /></div>
-            <hr />
-            <div class="card">
-                <div class="flex flex-between">
-                    <sub>Claim $LIDONT</sub>
-                    <sub>Balance: <wait-for-connected data-stateKey="address"></wait-for-connected> LIDONT</sub>
-                </div>
-                <div class="flex flex-around">
 
-                    <button-connected data-action="claimRewards">Claim Rewards</button-connected>
-                   
-                </div>
-            </div>
+
             <hr/>
             <div class="card">
                 <div class="flex flex-between">
-                    <sub>Swap stETH</sub>
-                    <sub>Balance: <wait-for-connected data-stateKey="address"></wait-for-connected> stETH</sub>
+                    <rainbow>SWAP</rainbow>
+                    <sub>Balance: <balance-erc20 data-symbol="stETH"></balance-erc20> stETH</sub>
                 </div>
-
+                <sub>stETH to rETH</sub>
+                <div class="flex-center">
+                    <icon-comp icon="stETH"></icon-comp><span>  ▶  </span><icon-comp icon="rETH"></icon-comp>
+                </div>
                 <div class="stack flex-right">
-                    <label class="flex-left"><icon-comp type="reth"/></label>
-                    <input-connected class="flex-center flex-5" name="amountSTETH"></input-connected>
-                    <div class="flex-right"></div>
+                    <input-connected class="flex-center flex-5" type="number" placeholder="stETH amount to swap" name="stETHAmount"></input-connected>
+                    <button-connected class="flex-right" data-action="swap">Swap stETH</button-connected>
                 </div>
+                
             </div>
+    
+
             <hr />
             <div class="card">
                 <div class="flex flex-between">
-                    <sub>Stake rETH to earn $LIDONT</sub>
-                    <sub>Balance: <wait-for-connected data-stateKey="address"></wait-for-connected> rETH</sub>
+                    <rainbow>STAKE</rainbow>
+                    <sub>Balance: <balance-erc20 data-symbol="rETH"></balance-erc20> rETH</sub>
                 </div>
-
+                <sub>rETH to earn lidont</sub>
+                <div class="flex-center">
+                    <icon-comp icon="rETH"></icon-comp>  ▶  <span> 🪙 </span>
+                </div>
                 <div class="stack">
-                    <label class="flex-left"><icon-comp type="steth"/></label>
-                    <input-connected class="flex-center flex-5" name="amountRETH"></input-connected>
-                    <div class="flex-right"></div>
+                    
+                    <input-connected class="flex-center flex-5" type="number" placeholder="rETH amount to stake" name="rETHAmount"></input-connected>
+                    <button-connected class="flex-right" data-action="swap">Stake rETH</button-connected>
                 </div>
             </div>
+
+
+            <hr />
+            <div class="card">
+                <div class="flex flex-between">
+                    <rainbow>CLAIM</rainbow>
+                    <sub>Balance: <balance-erc20 data-symbol="LIDONT"></balance-erc20> LIDONT</sub>
+                </div>
+                <sub>lidont emission rewards</sub>
+                <div class="flex flex-around">
+                    <button-connected data-action="claimRewards">Claim Rewards</button-connected>
+                </div>
+            </div>
+
+
             <div class="flex flex-around"><h2>DON'T DESTROY ETHEREUM</h2></div>
         </div>
     </main>

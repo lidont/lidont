@@ -1,23 +1,31 @@
 import * as ethers from "../node_modules/ethers/dist/ethers.js";
 import { createStore, log } from "./util.mjs";
-import { Erc20Abi } from "./ConnectWeb3.mjs";
+import { ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
-const chainById = {
+// addresses
+//
+export const detailsByChainId = {
   1: {
       lidont: "",
+      reth: "",
+      steth: "",
       SCAN: 'https://etherscan.io/',
       NAME: "Ethereum Mainnet",
       ICON: "eth.png"
   },
   5: {
       lidont: "0xfaabbe302750635e3f918385a1aeb4a9eb45977a",
+      reth: "0x178E141a0E3b34152f73Ff610437A7bf9B83267A",
+      steth: "0x1643E812aE58766192Cf7D2Cf9567dF2C37e9B7F",
       SCAN: 'https://goerli.etherscan.io/',
       NAME: "Ethereum Goerli",
       ICON: "eth.png"
   },
   31337: {
-      lidont: "0x",
+      lidont: "",
+      reth: "",
+      steth: "",
       SCAN: '',
       RPC: '',
       NAME: "Testnet",
@@ -46,7 +54,7 @@ export const store = createStore(
     address: null,
     balance: null,
     balanceFormatted: null,
-    erc20OfInterest: ["LIDONT", "rETH", "stETH"],
+
     balances: {
 
     },
@@ -62,12 +70,32 @@ export const store = createStore(
       ? new ethers.BrowserProvider(window.ethereum)
       : new ethers.InfuraProvider("mainnet", "ID"),
 
+    lidontWeb3API: undefined,
+
     // compound actions
-    async connectNetworkAndWallet(){
-      await this.addConnectNetwork(chainIdDefault)
-      await this.connectWallet()
-      await this.updateBalance()
-      //await this.updateTokenBalances()
+    async INIT(){
+      const { provider, addConnectNetwork, connectWallet, updateBalance, updateErc20Balance } = getState()
+      await addConnectNetwork(chainIdDefault)
+      await connectWallet()
+
+      // connect smart contract
+      setState({ lidontWeb3API: new lidontWeb3API(detailsByChainId[chainIdDefault].lidont, provider)})
+
+      //eth
+      await updateBalance() 
+      //erc20
+      await updateErc20Balance(detailsByChainId[chainIdDefault].steth)
+      await updateErc20Balance(detailsByChainId[chainIdDefault].reth)
+      await updateErc20Balance(detailsByChainId[chainIdDefault].lidont)
+    },
+
+    // actions
+    async swap(){
+      const { provider, inputs, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const amount = ethers.parseUnits(inputs.stETHAmount, 18)
+      const alsoStake = true
+      await lidontWeb3API.swap(signer, amount, alsoStake)
     },
 
     async connectWallet() {
@@ -122,9 +150,9 @@ export const store = createStore(
                 params: [
                   {
                     chainId: intToHex(networkId),
-                    chainName: chainById[networkId].NAME,
-                    rpcUrls: [chainById[networkId].RPC],
-                    blockExplorerUrls: [chainById[networkId].SCAN],
+                    chainName: detailsByChainId[networkId].NAME,
+                    rpcUrls: [detailsByChainId[networkId].RPC],
+                    blockExplorerUrls: [detailsByChainId[networkId].SCAN],
                   },
                 ],
               });
@@ -142,25 +170,27 @@ export const store = createStore(
 
     async onAccountChange(accounts) {
       console.log("Account Changed", accounts);
+      /*
       this.address = accounts[0];
-      this.balance = ethers.utils.parseEther("0");
+      this.balance = ethers.parseEther("0");
       this.balances = {};
       this.last_blockheight = 0;
       if (accounts.length == 0) {
         await this.connectWallet();
       }
+      */
     },
 
     async onNetworkChange(chainId) {
       console.log("ChainChanged");
-      this.addresses = chainById[chainId];
-      this.unsupported_network = false;
-      if (this.addresses == undefined) this.unsupported_network = true;
+      //this.addresses = detailsByChainId[chainId];
+      //this.unsupported_network = false;
+      //if (this.addresses == undefined) this.unsupported_network = true;
     },
 
     async changeChains(chainIdString) {
-      const chainId = ethers.utils.hexValue(parseInt(chainIdString));
-      const provider = this.provider;
+      const chainId = ethers.hexValue(parseInt(chainIdString));
+      const provider = getState().provider;
       const success = provider.send("wallet_switchEthereumChain", [
         { chainId },
       ]);
@@ -168,21 +198,14 @@ export const store = createStore(
     },
 
     async signMessage(message) {
-      const provider = this.provider;
+      const provider = getState().provider;
       const signer = provider.getSigner();
       return await signer.signMessage(message);
     },
 
     async updateBalance() {
-      let signer;
       const { provider, address } = getState();
-
-      try {
-        signer = await provider.getSigner();
-      } catch (e) {
-        return console.log(e);
-      }
-
+      const signer = await provider.getSigner();
       const balance = await provider.getBalance(address);
       setState({ balance });
       const balanceFormatted = ethers.formatEther(balance);
@@ -196,41 +219,41 @@ export const store = createStore(
       let signerAddr;
 
       try {
-        signer = provider.getSigner();
-        signerAddr = signer.getAddress();
+        signer = await getState().provider.getSigner();
+        signerAddr = await signer.getAddress();
       } catch (e) {
         return console.log(e);
       }
 
-      const details = await getTokenDetails()
+      const details = await getState().getTokenDetails(address)
 
       const balancesNew = getState().balances
       balancesNew[address] = details
       setState({balances: balancesNew})
 
       const balancesBySymbolNew = getState().balancesBySymbol
-      balancesBySymbolNew[address] = details
+      balancesBySymbolNew[details.symbol] = details
       setState({balancesBySymbol: balancesBySymbolNew})
 
       return details;
     },
 
     async getTokenDetails(tokenAddr) {
-      if(!ethers.utils.isAddress(tokenAddr)) throw "Invalid tokenAddr";
-      const contract = new Contract(tokenAddr, ERC20Abi, this.provider);
-      const signerAddr = signer.getAddress()
+      const { provider } = getState()
+      if(!ethers.isAddress(tokenAddr)) throw "Invalid tokenAddr";
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(tokenAddr, ERC20Abi, provider);
+      const signerAddr = await signer.getAddress()
       const [symbol, name, decimals, balance] = [
           await contract.symbol(),
           await contract.name(),
           await contract.decimals(),
           await contract.balanceOf(signerAddr)
       ]
-      const balanceFormatted = await ethers.utils.formatUnits(balance, decimals);
+      const balanceFormatted = await ethers.formatUnits(balance, decimals);
       
       return {symbol, name, decimals, balance, balanceFormatted}
   }
-
- 
 
   }))
 );

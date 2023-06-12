@@ -1,16 +1,18 @@
-import {
-  Contract,
-  JsonRpcProvider,
-  AbiCoder,
-} from "../node_modules/ethers/dist/ethers.js";
+import * as ethers from "../node_modules/ethers/dist/ethers.js";
 import { abi as Abi } from "./abi.mjs";
 
-export class ConnectWeb3 {
+const iface = new ethers.Interface(Abi);
+const ABI = iface.format(false);
+
+console.log(ABI)
+
+
+export class lidontWeb3API {
   constructor(contractAddr) {
     if (!contractAddr) {
       throw new Error("param is missing from constructor");
     }
-    this.contract = new Contract(contractAddr, Abi);
+    this.contract = new ethers.Contract(contractAddr, Abi);
   }
 
   connectProvider(provider) {
@@ -19,7 +21,7 @@ export class ConnectWeb3 {
   }
 
   connectURL(url) {
-    this.provider = new JsonRpcProvider(url);
+    this.provider = new ethers.JsonRpcProvider(url);
     this.contract = this.contract.connect(this.provider);
   }
 
@@ -37,8 +39,10 @@ export class ConnectWeb3 {
   }
 
   async swap(signer, stETHAmount, stake) {
-    const who = signer.getAddress()
-    const tx = await this.contract.connect(signer).swap(who, stETHAmount, stake);
+    const who = await signer.getAddress()
+    debugger
+    const swapFunc = this.contract.getFunction("swap")
+    const tx =  await swapFunc(who, stETHAmount, stake);
     this.addTx(tx)
   }
 
@@ -127,7 +131,7 @@ export class ConnectWeb3 {
   }
 }
 
-export const Erc20Abi = `[
+export const ERC20Abi = `[
     {
       "constant": true,
       "inputs": [],
