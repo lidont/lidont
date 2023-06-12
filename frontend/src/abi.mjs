@@ -8,10 +8,11 @@ export const abi = [
   "event ClaimMinipool(address indexed who, address indexed node, address indexed minipool)",
   "event ClaimEmission(address indexed who, uint256 indexed lidont)",
   "event WithdrawalRequest(uint256[] requestIds, uint256 indexed amount)",
-  
   "function getStake(address who) view returns (uint256)",
 
+  "function transfer(address _to, uint256 _value) returns (bool)",
   "function approve(address _spender, uint256 _value) returns (bool)",
+  "function transferFrom(address _from, address _to, uint256 _value) returns (bool)",
 
   "function swap(uint256 stETHAmount, bool stake)",
   "function stake(uint256 rETHAmount)",
@@ -28,7 +29,7 @@ export const abi = [
   "function totalSupply() view returns (uint256)",
   "function balanceOf(address arg0) view returns (uint256)",
   "function allowance(address arg0, address arg1) view returns (uint256)",
-
+  "function stakedReth(address arg0) view returns (tuple(unit256 stake, uint256 rewardDebt, uint256 lastClaimBlock))",
   "function rewardMinipoolsFromIndex() view returns (uint256)",
   "function minipoolClaimed(address arg0) view returns (bool)",
 ];

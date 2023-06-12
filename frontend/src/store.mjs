@@ -167,6 +167,34 @@ export const store = createStore(
       await lidontWeb3API.unstake(signer, amount)
     },
 
+    async getStake(){
+      const { provider, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const me = await signer.getAddress()
+      const stake = await lidontWeb3API.getStake(signer, me)
+      const stakedRETH = await lidontWeb3API.getStakedRETH(signer, me)
+      console.log(stake, stakedRETH)
+      debugger
+      setState({ rETHStaked: stake })
+      setState({ rETHStakedFormatted: ethers.formatUnits(stake, 18) })
+    },
+
+    async claimEmission(){
+      const { provider, inputs, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const amount = ethers.parseUnits(inputs.rETHAmount, 18)
+      RADIO.emit("msg", "rETH unstaking: "+amount)
+      await lidontWeb3API.claimEmission(signer, amount)
+    },
+
+    async claimMinipool(){
+      const { provider, inputs, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const amount = ethers.parseUnits(inputs.rETHAmount, 18)
+      RADIO.emit("msg", "rETH unstaking: "+amount)
+      await lidontWeb3API.claimMinipool(signer, amount)
+    },
+
     async connectWallet() {
       const { address, loading } = getState();
       const { ethereum } = window;
