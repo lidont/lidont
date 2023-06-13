@@ -81,11 +81,26 @@ export const store = createStore(
 
     // compound actions
     async INIT(){
-      const { lidontWeb3API, getStake, provider, addConnectNetwork, connectWallet, updateBalance, updateErc20Balance } = getState()
+      const { RELOAD, lidontWeb3API, provider, addConnectNetwork, connectWallet } = getState()
       await addConnectNetwork(chainIdDefault)
       await connectWallet()
       // web3 contract lidont
       lidontWeb3API.connectProvider(provider)
+
+      let prev = undefined
+      store.subscribe( () => {
+        if(prev === lidontWeb3API.pending) return
+        prev = lidontWeb3API.pending
+        setState({ pending: lidontWeb3API.pending })
+      })
+
+      window.RADIO.emit("msg", "fetching data...")
+      await RELOAD()
+
+    },
+
+    async RELOAD(){
+      const { getStake, updateBalance, updateErc20Balance } = getState()
       //eth
       await updateBalance() 
       //erc20
@@ -95,14 +110,6 @@ export const store = createStore(
 
       // get staked rETH
       await getStake()
-
-      let prev = undefined
-      store.subscribe( () => {
-        if(prev === lidontWeb3API.pending) return
-        prev = lidontWeb3API.pending
-        setState({ pending: lidontWeb3API.pending })
-      })
-
     },
 
     // actions
