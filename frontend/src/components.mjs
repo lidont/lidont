@@ -30,8 +30,9 @@ customElements.define("logger-radio", class extends HTMLElement {
   }
   connectedCallback(){
     RADIO.on("msg", (msg) => { this.render(msg) })
+    RADIO.on("err", (msg) => { this.render(msg, true) })
   }
-  render(msgObj){
+  render(msgObj, error){
     this.innerHTML = `<div>
       <sub>${msgObj}</sub>
     <div/>`;
@@ -148,7 +149,7 @@ customElements.define("balance-erc20", class extends HTMLElement {
 );
 
 
-// wait until "balanceFormatted" is available and display it
+// wait until "balanceFormatted" is available and display it formatted to 2 decimals
 //
 customElements.define("balance-ether", class extends HTMLElement {
   constructor() {  super()  }
@@ -171,7 +172,7 @@ customElements.define("balance-ether", class extends HTMLElement {
 });
 
 
-// wait until a state key is not undefined, then disaplay that value
+// wait until a state key is not undefined, then display that value
 //
 customElements.define("wait-for-value", class extends HTMLElement {
   constructor() {
