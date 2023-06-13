@@ -29,7 +29,6 @@ customElements.define("logger-radio", class extends HTMLElement {
     super();
   }
   connectedCallback(){
-    RADIO.on("msg", (msg) => { this.render(msg) })
     RADIO.on("err", (msg) => { this.render(msg, true) })
   }
   render(msgObj, error){
@@ -99,7 +98,7 @@ customElements.define("input-connected", class extends HTMLElement {
       const type = this.getAttribute("type")
       const label = this.getAttribute("label")
       const placeholder = this.getAttribute("placeholder")
-      this.innerHTML = `<div><input ${type ? `type=${type}` : ''} ${placeholder ? `placeholder=${JSON.stringify(placeholder)}` : ''}/>${label ? `<sub>${label}</sub>`: ''}</div>`;
+      this.innerHTML = `<div><input checked ${type ? `type=${type}` : ''} ${placeholder ? `placeholder=${JSON.stringify(placeholder)}` : ''}/>${label ? `<sub>${label}</sub>`: ''}</div>`;
 
       if(type === "number"){
         this.addEventListener("keyup", (event) => {

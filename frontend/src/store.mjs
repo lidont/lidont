@@ -15,7 +15,7 @@ export const detailsByChainId = {
       ICON: "eth.png"
   },
   5: {
-      lidont: "0xfaabbe302750635e3f918385a1aeb4a9eb45977a",
+      lidont: "0xb6551fa3c8acd4ad436f415c4867809ff7683693",
       reth: "0x178E141a0E3b34152f73Ff610437A7bf9B83267A",
       steth: "0x1643E812aE58766192Cf7D2Cf9567dF2C37e9B7F",
       SCAN: 'https://goerli.etherscan.io/',
@@ -64,7 +64,9 @@ export const store = createStore(
 
     // forms 
     // for <input-connected> inputs are mapped to <input name=???> name components & forms
-    inputs: {},
+    inputs: {
+      checkboxAlsoStake: true,
+    },
 
     stETHAllowance: undefined,
     rETHAllowance: undefined,
@@ -79,11 +81,26 @@ export const store = createStore(
 
     // compound actions
     async INIT(){
-      const { lidontWeb3API, getStake, provider, addConnectNetwork, connectWallet, updateBalance, updateErc20Balance } = getState()
+      const { RELOAD, lidontWeb3API, provider, addConnectNetwork, connectWallet } = getState()
       await addConnectNetwork(chainIdDefault)
       await connectWallet()
       // web3 contract lidont
       lidontWeb3API.connectProvider(provider)
+
+      let prev = undefined
+      store.subscribe( () => {
+        if(prev === lidontWeb3API.pending) return
+        prev = lidontWeb3API.pending
+        setState({ pending: lidontWeb3API.pending })
+      })
+
+      window.RADIO.emit("msg", "fetching data...")
+      await RELOAD()
+
+    },
+
+    async RELOAD(){
+      const { getStake, updateBalance, updateErc20Balance } = getState()
       //eth
       await updateBalance() 
       //erc20
@@ -93,14 +110,6 @@ export const store = createStore(
 
       // get staked rETH
       await getStake()
-
-      let prev = undefined
-      store.subscribe( () => {
-        if(prev === lidontWeb3API.pending) return
-        prev = lidontWeb3API.pending
-        setState({ pending: lidontWeb3API.pending })
-      })
-
     },
 
     // actions

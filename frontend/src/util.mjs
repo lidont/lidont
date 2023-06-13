@@ -85,35 +85,6 @@ export function waitForSeconds(seconds) {
     return P;
   }
   
-  /* waits for callback to not Error/ return false and return true, returns promise
-   * await waitFor( async () => {
-   *  const request = await asyncRequest()
-   *  return request.status === 200
-   * })
-   */
-  export function waitForCallback(cb) {
-  
-      async function recur(){
-          try {
-              const done = await cb()
-              if(!done){
-                  throw Error()
-              }
-              return
-            } catch (e) {
-              //console.log(e)
-              await waitForSeconds(0.2) //retry delay
-              await recur()
-            }
-      }
-  
-      const P = new Promise( async (resolve, reject) => {
-          await recur()
-          return resolve()
-      });
-    
-    return P;
-  }
 
 
 // event emitter
@@ -156,6 +127,39 @@ export function toggleTheme () {
     document.documentElement.setAttribute('data-theme', targetTheme)
     localStorage.setItem('theme', targetTheme);
 };
+
+
+
+
+/* waits for callback to not Error and return true, returns promise
+ * await waitForCallback( async () => {
+ *  const request = await somethingAsync()
+ *  return request.status === 200 // return true to resolve
+ * })
+ */
+export function waitForCallback(cb) {
+  async function recur(){
+      try {
+          const done = await cb()
+          if(!done){
+              throw Error()
+          }
+          return
+        } catch (e) {
+          console.log(e)
+          await waitForSeconds(0.2)
+          await recur()
+        }
+  }
+
+  const P = new Promise( async (resolve, reject) => {
+      await recur()
+      return resolve()
+  });
+
+return P;
+}
+
 
 
 // utils
