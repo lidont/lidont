@@ -68,8 +68,7 @@ export const store = createStore(
 
     stETHAllowance: undefined,
     rETHAllowance: undefined,
-    rETHStaked: undefined,
-    rETHStakedFormatted: undefined,
+    rETHStakedDetails: {},
 
     provider: window.ethereum
       ? new ethers.BrowserProvider(window.ethereum)
@@ -128,15 +127,6 @@ export const store = createStore(
       await lidontWeb3API.swap(signer, amount, alsoStake)
     },
 
-    async getStake(){
-      const { provider, lidontWeb3API } = getState();
-      const signer = await provider.getSigner();
-      const me = await signer.getAddress()
-      const stake = await lidontWeb3API.getStake(signer, me)
-      setState({ rETHStaked: stake })
-      setState({ rETHStakedFormatted: ethers.formatUnits(stake, 18) })
-    },
-
     async stake(){
       const { provider, inputs, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
@@ -171,28 +161,56 @@ export const store = createStore(
       const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
-      const stake = await lidontWeb3API.getStake(signer, me)
-      const stakedRETH = await lidontWeb3API.getStakedRETH(signer, me)
-      console.log(stake, stakedRETH)
-      debugger
-      setState({ rETHStaked: stake })
-      setState({ rETHStakedFormatted: ethers.formatUnits(stake, 18) })
+      const rETHStakedDetails = await lidontWeb3API.getStakedRETH(signer, me)
+      const details = Object.assign({}, rETHStakedDetails)
+      
+      details.stake = rETHStakedDetails[0]
+      details.stakeFormatted = ethers.formatUnits(rETHStakedDetails[0], 18)
+      details.rewardDebt = rETHStakedDetails[1]
+      details.rewardDebtFormatted = ethers.formatUnits(rETHStakedDetails[1], 18)
+      details.lastClaimBlock = rETHStakedDetails[2]
+
+      setState({ rETHStakedDetails: details  })
     },
 
     async claimEmission(){
       const { provider, inputs, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
-      const amount = ethers.parseUnits(inputs.rETHAmount, 18)
-      RADIO.emit("msg", "rETH unstaking: "+amount)
-      await lidontWeb3API.claimEmission(signer, amount)
+      RADIO.emit("msg", "claiming emission rewards")
+      await lidontWeb3API.claimEmission(signer)
     },
 
     async claimMinipool(){
       const { provider, inputs, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
-      const amount = ethers.parseUnits(inputs.rETHAmount, 18)
-      RADIO.emit("msg", "rETH unstaking: "+amount)
-      await lidontWeb3API.claimMinipool(signer, amount)
+      RADIO.emit("msg", "claiming minipool rewards")
+      const nodeAddress = null
+      const nodeIndex = null
+      const index = null
+      await lidontWeb3API.claimMinipool(signer, nodeAddress, nodeIndex, index)
+    },
+
+    async initiateWithdrawal(){
+      const { provider, inputs, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      RADIO.emit("msg", "initiating withdrawal")
+      await lidontWeb3API.initiateWithdrawal(signer, stETHAmount)
+    },
+
+    async finalizeWithdrawal(){
+      const { provider, inputs, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      RADIO.emit("msg", "finalizing withdrawal")
+      const requestids = null
+      const hints = null
+      await lidontWeb3API.finalizeWithdrawal(signer, requestIds, hints)
+    },
+
+    async mintRocketEther(){
+      const { provider, inputs, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      RADIO.emit("msg", "minting RocketEther")
+      await lidontWeb3API.mintRocketEther(signer, ethAmount)
     },
 
     async connectWallet() {

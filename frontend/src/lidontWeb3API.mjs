@@ -100,11 +100,9 @@ export class lidontWeb3API {
   }
 
   async getStakedRETH(signer, address) {
-    const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
     // stake, rewardDebt, lastClaimBlock
-    await contract.getFunction("stakedReth").call(who, address);
-    return // await this.contract.connect(signer).stakedReth(address);
+    return await contract.stakedReth(address);
   }
 
   async getRewardMinipoolsFromIndex(signer) {
