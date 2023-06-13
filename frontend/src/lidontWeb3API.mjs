@@ -1,5 +1,6 @@
 import * as ethers from './ethers.min.js';
 import { abi as Abi } from "./abi.mjs";
+import { waitForCallback, waitForSeconds } from './util.mjs';
 
 
 export class lidontWeb3API {
@@ -133,7 +134,36 @@ export class lidontWeb3API {
   purgeMinedTransactions() {
     this.pending = this.pending.filter((tx) => tx.confirmations == 0);
   }
+
+  async waitUntilTxConfirmed(tx, confirmationsneeded = 1){
+
+    async function recur(tx){
+      // get tx data and check
+      const confirmations = tx.confirmations // get transaction bla
+      if(confirmations >= confirmationsNeeded){
+        return
+      }
+      await waitForSeconds(0.5)
+      await recur()
+    }
+
+    const P = new Promise(async (resolve,reject) => {
+      await recur()
+      return resolve()
+    })
+
+    return P
+  }
+
+  async waitUntilTx(){
+    await waitForCallback( async => {
+      
+    })
+    return console.log("done")
+  }
 }
+
+
 
 export const ERC20Abi = [
   "function name() view returns (string)",

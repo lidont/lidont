@@ -15,7 +15,7 @@ export const detailsByChainId = {
       ICON: "eth.png"
   },
   5: {
-      lidont: "0xfaabbe302750635e3f918385a1aeb4a9eb45977a",
+      lidont: "0xb6551fa3c8acd4ad436f415c4867809ff7683693",
       reth: "0x178E141a0E3b34152f73Ff610437A7bf9B83267A",
       steth: "0x1643E812aE58766192Cf7D2Cf9567dF2C37e9B7F",
       SCAN: 'https://goerli.etherscan.io/',
