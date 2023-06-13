@@ -129,12 +129,6 @@ export function toggleTheme () {
 };
 
 
-// utils
-//
-
-export function formatDisplayAddr(addr){
-  return addr.slice(0, 4) +'...'+ addr.slice(Math.max(addr.length - 4, 0))
-}
 
 
 /* waits for callback to not Error and return true, returns promise
@@ -164,4 +158,13 @@ export function waitForCallback(cb) {
   });
 
 return P;
+}
+
+
+
+// utils
+//
+
+export function formatDisplayAddr(addr){
+  return addr.slice(0, 4) +'...'+ addr.slice(Math.max(addr.length - 4, 0))
 }

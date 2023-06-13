@@ -454,6 +454,7 @@ logger-radio > div > sub{
   margin-bottom: 2rem;
   border-radius: var(--radius);
   box-shadow: 0px 0px 1px 0px var(--color-darkGrey), 0 0 200px rgba(170, 170, 170, 0.50) inset;
+
 }
 
 .card p:last-child {
