@@ -117,7 +117,7 @@ export const store = createStore(
       const { provider, inputs, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.stETHAmount, 18)
-      const alsoStake = !!inputs.alsoStake
+      const alsoStake = inputs.checkboxAlsoStake
 
       // check stETH spending allowance
       const ownAddress = await signer.getAddress()
