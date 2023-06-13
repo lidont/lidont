@@ -23,10 +23,10 @@
             <hr/>
             <div class="card">
                 <div class="flex flex-between">
-                    <rainbow>SWAP</rainbow>
+                    <span>SWAP</span>
                     <div>
                         <sub>Balance: <balance-erc20 data-symbol="stETH"></balance-erc20> stETH</sub>
-                        <sub>Allowance: <wait-for data-stateKey="stETHAllowance"></wait-for> stETH</sub>
+                        <sub>Allowance: <wait-for-value data-stateKey="stETHAllowance"></wait-for-value> stETH</sub>
                     </div>
                 </div>
                 <sub>stETH to rETH</sub>
@@ -45,10 +45,10 @@
             <hr />
             <div class="card">
                 <div class="flex flex-between">
-                    <rainbow>STAKE</rainbow>
+                    <span>STAKE</span>
                     <div>
                         <sub>Balance: <balance-erc20 data-symbol="rETH"></balance-erc20> rETH</sub>
-                        <sub>Allowance: <wait-for data-stateKey="rETHAllowance"></wait-for> rETH</sub>
+                        <sub>Allowance: <wait-for-value data-stateKey="rETHAllowance"></wait-for-value> rETH</sub>
                     </div>
                 </div>
                 <sub>rETH to earn lidont</sub>
@@ -60,7 +60,7 @@
                     <button-connected class="flex-right" data-action="stake">Stake rETH</button-connected>
                 </div>
                 <div class="stack flex-center">
-                    <sub>Staked:<wait-for data-stateKey="rETHStakedFormatted"></wait-for> rETH</sub></sub>
+                    <sub>Staked:<wait-for-object-value data-stateKey="rETHStakedDetails" data-objectKey="stakeFormatted"></wait-for-object-value> rETH</sub>
                     <button-connected class="flex-right" data-action="unstake">Unstake rETH</button-connected>
                 </div>
                 
@@ -70,12 +70,15 @@
             <hr />
             <div class="card">
                 <div class="flex flex-between">
-                    <rainbow>CLAIM LIDONT</rainbow>
+                    <span>EMISSION</span>
                     <sub>Balance: <balance-erc20 data-symbol="LIDONT"></balance-erc20> LIDONT</sub>
                 </div>
                 <sub>lidont emission rewards</sub>
                 <div class="flex flex-around">
-                    <button-connected data-action="claimRewards">Claim Rewards</button-connected>
+                    <button-connected data-action="claimEmission">Claim Emission</button-connected>
+                </div>  
+                <div class="flex flex-left">
+                    <sub>Claimable: <wait-for-object-value data-node="rainbow" data-stateKey="rETHStakedDetails" data-objectKey="rewardDebtFormatted"></wait-for-object-value></sub>
                 </div>
             </div>
 
@@ -83,12 +86,11 @@
             <hr />
             <div class="card">
                 <div class="flex flex-between">
-                    <rainbow>MINIPOOL REWARDS</rainbow>
-                    <sub>Balance: <balance-erc20 data-symbol="LIDONT"></balance-erc20> LIDONT</sub>
+                    <span>MINIPOOL</span>
                 </div>
                 <sub>lidont minipool rewards</sub>
                 <div class="flex flex-around">
-                    <button-connected data-action="claimRewards">Claim Rewards</button-connected>
+                    <button-connected data-action="claimMinipool">Claim Rewards</button-connected>
                 </div>
             </div>
 

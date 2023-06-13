@@ -173,10 +173,11 @@ customElements.define("balance-ether", class extends HTMLElement {
 
 // wait until a state key is not undefined, then disaplay that value
 //
-customElements.define("wait-for", class extends HTMLElement {
+customElements.define("wait-for-value", class extends HTMLElement {
   constructor() {
     super();
     const stateKey = this.getAttribute("data-stateKey")
+
     let prevValue = null
     store.subscribe( () => {
       const stateValue = store.getState()[stateKey]
@@ -193,6 +194,38 @@ customElements.define("wait-for", class extends HTMLElement {
     const state = store.getState()
     const isDefined = !!state[stateKey]
     this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : state[stateKey]}`;
+  }
+  connectedCallback() { this.render(); }
+  attributeChangedCallback() { this.render(); }
+});
+
+
+// wait until a state key is not undefined, then disaplay that value
+//
+customElements.define("wait-for-object-value", class extends HTMLElement {
+  constructor() {
+    super();
+    const stateKey = this.getAttribute("data-stateKey")
+    const objectKey = this.getAttribute("data-objectKey")
+
+    let prevValue = null
+    store.subscribe( () => {
+      const stateValue = store.getState()[stateKey][objectKey]
+      const isEqual = prevValue === stateValue
+      if(isEqual){ return }
+      if(!isEqual){ 
+        prevValue = stateValue
+        return this.render(stateValue)
+      }
+    })
+  }
+  render(value){
+    let node = "div"
+    const propNode = this.getAttribute("data-node")
+    if(propNode){ node = propNode }
+    const isDefined = !!value
+    this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : `<${node}>${parseFloat(value).toFixed(3)}</${node}>`}`;
+    if(isDefined) window.RAINBOWS()
   }
   connectedCallback() { this.render(); }
   attributeChangedCallback() { this.render(); }
