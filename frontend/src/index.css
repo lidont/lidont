@@ -173,7 +173,7 @@ hr {
   background-color: transparent;
   height: 1px;
   margin: 1rem 0;
-  box-shadow: #df552b 0px 0px 99px 10px;
+  box-shadow: #ffffff 0px 0px 128px 32px;
   margin-bottom: 0px;
 }
 
@@ -204,6 +204,10 @@ input::-webkit-inner-spin-button {
 
 input[type=number] {
     -moz-appearance:textfield; /* Firefox */
+}
+
+input[type=checkbox] {
+  max-height: 16px;
 }
 
 
@@ -452,7 +456,7 @@ logger-radio > div > sub{
   padding: 1rem 1rem;
   margin-bottom: 2rem;
   border-radius: var(--radius);
-  box-shadow: 0px 0px 1px 0px var(--color-darkGrey), 0 0 200px rgba(170, 170, 170, 0.33) inset;
+  box-shadow: 0px 0px 1px 0px var(--color-darkGrey), 0 0 200px rgba(170, 170, 170, 0.50) inset;
 }
 
 .card p:last-child {
@@ -509,7 +513,7 @@ rainbow {
 }
 
 .text-rainbow {
-  font-size: 2rem;
+  font-size: 2.5rem;
 }
 
 .hidden {
