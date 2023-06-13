@@ -119,7 +119,7 @@ html {
   box-sizing: inherit;
 }
 
-/* 4 Elements (body, section, etc. everythoing native) */
+/* 4 Elements (body, section, etc. everything native) */
 
 body,
 html {
@@ -226,9 +226,6 @@ logger-radio > div > sub{
 /* 5 Objects (you are allowed to use classes from here on) 
 
 
-
-
-
 */
 
 
@@ -304,7 +301,7 @@ logger-radio > div > sub{
 }
 
 
-/* 6 Components - (the meat, buttons etc.) */
+/* 6 Components - (actual components, the meat, buttons etc.) */
 
 .container {
   max-width: 800px;
