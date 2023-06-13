@@ -1,4 +1,4 @@
-import * as ethers from '../node_modules/ethers/dist/ethers.js';
+import * as ethers from './ethers.min.js';
 import { RADIO } from "./util.mjs"
 
 window.DEBUG = true
@@ -13,8 +13,6 @@ import './components.mjs'
 
 
 window.RADIO.emit("msg", "App Loaded!")
-
-
 
 
 

@@ -224,7 +224,7 @@ customElements.define("wait-for-object-value", class extends HTMLElement {
     const propNode = this.getAttribute("data-node")
     if(propNode){ node = propNode }
     const isDefined = !!value
-    this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : `<${node}>${parseFloat(value).toFixed(3)}</${node}>`}`;
+    this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : `<${node}>${value}</${node}>`}`;
     if(isDefined) window.RAINBOWS()
   }
   connectedCallback() { this.render(); }

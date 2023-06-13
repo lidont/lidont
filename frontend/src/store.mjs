@@ -1,4 +1,4 @@
-import * as ethers from "../node_modules/ethers/dist/ethers.js";
+import * as ethers from './ethers.min.js';
 import { createStore, RADIO, log} from "./util.mjs";
 import { ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 

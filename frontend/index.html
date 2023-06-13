@@ -9,11 +9,11 @@
 </head>
 
 <body>
-    <div class="hidden">0.0.1</div>
+    <div class="hidden">1.0.0</div>
     <main>
         <div class="container">
             <div class="nav">
-                <div class="icon flex-left pointer" onclick="RAINBOWS()">🍔</div>
+                <div class="icon flex-left pointer" data-action="openMenu">🍔</div>
                 <button-connect-wallet class="flex-right"></button-connect-wallet>
             </div>
             <sub class="flex-right"><balance-ether data-stateKey="balanceFormatted"></balance-ether> ETH</sub>
@@ -77,7 +77,8 @@
                 <div class="flex flex-around">
                     <button-connected data-action="claimEmission">Claim Emission</button-connected>
                 </div>  
-                <div class="flex flex-left">
+                <br/>
+                <div class="flex flex-right">
                     <sub>Claimable: <wait-for-object-value data-node="rainbow" data-stateKey="rETHStakedDetails" data-objectKey="rewardDebtFormatted"></wait-for-object-value></sub>
                 </div>
             </div>
