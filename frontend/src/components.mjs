@@ -200,7 +200,7 @@ customElements.define("wait-for-value", class extends HTMLElement {
 });
 
 
-// wait until a state key is not undefined, then disaplay that value
+// wait until a state key in an object is not undefined, then display that value
 //
 customElements.define("wait-for-object-value", class extends HTMLElement {
   constructor() {

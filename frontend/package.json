@@ -8,8 +8,5 @@
     },
     "dependencies": {
         "ethers": "6.5.1"
-    },
-    "devDependencies": {
-        "vite": "4.3.9"
     }
 }
