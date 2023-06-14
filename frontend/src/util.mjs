@@ -129,8 +129,6 @@ export function toggleTheme () {
 };
 
 
-
-
 /* waits for callback to not Error and return true, returns promise
  * await waitForCallback( async () => {
  *  const request = await somethingAsync()
@@ -167,4 +165,24 @@ return P;
 
 export function formatDisplayAddr(addr){
   return addr.slice(0, 4) +'...'+ addr.slice(Math.max(addr.length - 4, 0))
+}
+
+
+//  https://stackoverflow.com/a/6491621
+//  const myObj = {my: 1, myArray: [1,{value: 2},3], two: { deep: { object: { myKey: 1}} } }
+//  myObj.byString("myArray[1].value"); myObj.byString("deep.object.myKey")
+//
+Object.byString = function(o, s) {
+  s = s.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
+  s = s.replace(/^\./, '');           // strip a leading dot
+  var a = s.split('.');
+  for (var i = 0, n = a.length; i < n; ++i) {
+      var k = a[i];
+      if (k in o) {
+          o = o[k];
+      } else {
+          return;
+      }
+  }
+  return o;
 }
