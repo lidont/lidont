@@ -16,7 +16,7 @@
                 <div class="icon flex-left pointer" data-action="openMenu">🍔</div>
                 <button-connect-wallet class="flex-right"></button-connect-wallet>
             </div>
-            <sub class="flex-right"><balance-ether data-stateKey="balanceFormatted"></balance-ether> ETH</sub>
+            <sub class="flex-right"><value-connected data-format="formatDecimals" data-path="balance"></value-connected> ETH</sub>
             <div class="flex-center"><img class="logo" src="logo2.png" /></div>
 
 
@@ -25,8 +25,8 @@
                 <div class="flex flex-between">
                     <span>SWAP</span>
                     <div>
-                        <sub>Balance: <balance-erc20 data-symbol="stETH"></balance-erc20> stETH</sub>
-                        <sub>Allowance: <wait-for-value data-stateKey="stETHAllowance"></wait-for-value> stETH</sub>
+                        <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.stETH.balance"></value-connected>  stETH</sub>
+                        <sub>Allowance: <value-connected data-format="formatDecimals" data-path="stETHAllowance"></value-connected> stETH</sub>
                     </div>
                 </div>
                 <sub>stETH to rETH</sub>
@@ -47,8 +47,8 @@
                 <div class="flex flex-between">
                     <span>STAKE</span>
                     <div>
-                        <sub>Balance: <balance-erc20 data-symbol="rETH"></balance-erc20> rETH</sub>
-                        <sub>Allowance: <wait-for-value data-stateKey="rETHAllowance"></wait-for-value> rETH</sub>
+                        <sub>Balance: <value-connected data-format="toFixed" data-path="balancesBySymbol.rETH.balanceFormatted"></value-connected> rETH</sub>
+                        <sub>Allowance: <value-connected data-format="toFixed" data-path="rETHAllowance"></value-connected> rETH</sub>
                     </div>
                 </div>
                 <sub>rETH to earn lidont</sub>
@@ -60,7 +60,7 @@
                     <button-connected class="flex-right" data-action="stake">Stake rETH</button-connected>
                 </div>
                 <div class="stack flex-center">
-                    <sub>Staked:<wait-for-object-value data-stateKey="rETHStakedDetails" data-objectKey="stakeFormatted"></wait-for-object-value> rETH</sub>
+                    <sub>Staked:<value-connected data-format="toFixed" data-path="rETHStakedDetails.stakeFormatted"></value-connected> rETH</sub>
                     <button-connected class="flex-right" data-action="unstake">Unstake rETH</button-connected>
                 </div>
                 
@@ -71,7 +71,7 @@
             <div class="card">
                 <div class="flex flex-between">
                     <span>EMISSION</span>
-                    <sub>Balance: <balance-erc20 data-symbol="LIDONT"></balance-erc20> LIDONT</sub>
+                    <sub>Balance: <value-connected data-format="toFixed" data-path="balancesBySymbol.lidont.balanceFormatted"></value-connected> LIDONT</sub>
                 </div>
                 <sub>lidont emission rewards</sub>
                 <div class="flex flex-around">
@@ -79,7 +79,7 @@
                 </div>  
                 <br/>
                 <div class="flex flex-right">
-                    <sub>Claimable: <wait-for-object-value data-node="rainbow" data-stateKey="rETHStakedDetails" data-objectKey="rewardDebtFormatted"></wait-for-object-value></sub>
+                    <sub>Claimable: <value-connected data-node="rainbow" data-path="rETHStakedDetails.rewardDebtFormatted" ></value-connected></sub>
                 </div>
             </div>
 
