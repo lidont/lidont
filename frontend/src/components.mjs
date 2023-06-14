@@ -1,5 +1,6 @@
 import { store } from "./store.mjs";
-import { formatDisplayAddr, RADIO } from "./util.mjs";
+import * as ethers from "./ethers.min.js"
+import { formatDisplayAddr, RADIO, RAINBOWS } from "./util.mjs";
  
 
 // icons
@@ -122,116 +123,6 @@ customElements.define("input-connected", class extends HTMLElement {
 });
 
 
-
-// wait until a specific erc20 balance from the balances {} is available and display its value
-//
-customElements.define("balance-erc20", class extends HTMLElement {
-    constructor() { super() }
-    render(balance){
-      this.innerHTML = `${!balance ? '<div class="spinner"/>' : parseFloat(balance.balanceFormatted).toFixed(2)}`;
-    }
-    connectedCallback() { 
-      const symbol = this.getAttribute("data-symbol")
-      let prevValue = null
-
-      store.subscribe( () => {
-        const balance = store.getState()["balancesBySymbol"][symbol]
-        if(prevValue === balance) return
-        prevValue = balance
-        return this.render(balance)
-      })
-
-      this.render(); 
-    }
-    attributeChangedCallback() { this.render(); }
-  }
-);
-
-
-// wait until "balanceFormatted" is available and display it formatted to 2 decimals
-//
-customElements.define("balance-ether", class extends HTMLElement {
-  constructor() {  super()  }
-  render(balance){ 
-    this.innerHTML = `${!balance ? '<div class="spinner"/>' : parseFloat(balance).toFixed(2)}` 
-  }
-  connectedCallback() { 
-    const symbol = this.getAttribute("data-symbol")
-    let prevValue = null
-
-    store.subscribe( () => {
-      const balance = store.getState()["balanceFormatted"]
-      prevValue = balance
-      return this.render(balance)
-    })
-
-    this.render(); 
-  }
-  attributeChangedCallback() { this.render(); }
-});
-
-
-// wait until a state key is not undefined, then display that value
-//
-customElements.define("wait-for-value", class extends HTMLElement {
-  constructor() {
-    super();
-    const stateKey = this.getAttribute("data-stateKey")
-
-    let prevValue = null
-    store.subscribe( () => {
-      const stateValue = store.getState()[stateKey]
-      const isEqual = prevValue === stateValue
-      if(isEqual){ return }
-      if(!isEqual){ 
-        prevValue = stateValue
-        return this.render(stateValue)
-      }
-    })
-  }
-  render(){
-    const stateKey = this.getAttribute("data-stateKey")
-    const state = store.getState()
-    const isDefined = !!state[stateKey]
-    this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : state[stateKey]}`;
-  }
-  connectedCallback() { this.render(); }
-  attributeChangedCallback() { this.render(); }
-});
-
-
-// wait until a state key in an object is not undefined, then display that value
-//
-customElements.define("wait-for-object-value", class extends HTMLElement {
-  constructor() {
-    super();
-    const stateKey = this.getAttribute("data-stateKey")
-    const objectKey = this.getAttribute("data-objectKey")
-
-    let prevValue = null
-    store.subscribe( () => {
-      const stateValue = store.getState()[stateKey][objectKey]
-      const isEqual = prevValue === stateValue
-      if(isEqual){ return }
-      if(!isEqual){ 
-        prevValue = stateValue
-        return this.render(stateValue)
-      }
-    })
-  }
-  render(value){
-    let node = "div"
-    const propNode = this.getAttribute("data-node")
-    if(propNode){ node = propNode }
-    const isDefined = !!value
-    this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : `<${node}>${value}</${node}>`}`;
-    if(isDefined) window.RAINBOWS()
-  }
-  connectedCallback() { this.render(); }
-  attributeChangedCallback() { this.render(); }
-});
-
-
 // wait until a deep state value is defined by a string "my.deep.value"
 //
 customElements.define("value-connected", class extends HTMLElement {
@@ -242,7 +133,7 @@ customElements.define("value-connected", class extends HTMLElement {
     let prevValue = null
     store.subscribe( () => {
       const nowState = store.getState()
-      const stateValue = nowState.byString(path)
+      const stateValue = Object.byString(nowState, path) //!
       const isEqual = prevValue === stateValue
       if(isEqual){ return }
       if(!isEqual){ 
@@ -252,13 +143,20 @@ customElements.define("value-connected", class extends HTMLElement {
     })
   }
   render(stateValue){
+    let node = "div"
+    const propNode = this.getAttribute("data-node")
+    if(propNode){ node = propNode }
     const format = this.getAttribute("data-format")
     const isDefined = !!stateValue
-    this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : format ? this.formatter(format)(stateValue) : stateValue}`;
+    this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : format ? `<${node}>${this.formatter(format)(stateValue)}</${node}>` : `<${node}>${stateValue}</${node}>` }`;
+    if(node === "rainbow"){
+      RAINBOWS()
+    }
   }
   formatter(name){
     const formatters = {
-      "toFixed": (val) => val.toFixed(2)
+      "toFixed": (val) => parseFloat(val).toFixed(3),
+      "formatDecimals": (val) => parseFloat(ethers.formatUnits(val, 18)).toFixed(3),
     }
     return formatters[name]
   }
