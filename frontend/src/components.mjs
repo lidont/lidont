@@ -30,10 +30,15 @@ customElements.define("logger-radio", class extends HTMLElement {
     super();
   }
   connectedCallback(){
+    RADIO.on("msg", (msg) => { this.render(msg, false) })
     RADIO.on("err", (msg) => { this.render(msg, true) })
+    RADIO.on("spinner", (msg) => { this.render(msg, false, true) })
   }
-  render(msgObj, error){
-    this.innerHTML = `<div>
+  render(msgObj, error = false, spinner = false){
+
+    this.innerHTML = `
+    <div class="stack col">
+      <div>${spinner ? `<div class="spinner float-r"></div>`: ''}</div>
       <sub>${msgObj}</sub>
     <div/>`;
   }
@@ -147,7 +152,7 @@ customElements.define("value-connected", class extends HTMLElement {
     const propNode = this.getAttribute("data-node")
     if(propNode){ node = propNode }
     const format = this.getAttribute("data-format")
-    const isDefined = !!stateValue
+    const isDefined = stateValue !== undefined
     this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : format ? `<${node}>${this.formatter(format)(stateValue)}</${node}>` : `<${node}>${stateValue}</${node}>` }`;
     if(node === "rainbow"){
       RAINBOWS()

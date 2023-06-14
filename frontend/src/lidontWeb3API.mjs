@@ -37,6 +37,7 @@ export class lidontWeb3API {
     const contract = this.contract.connect(signer)
     const tx = await contract.getFunction("swap").call(who, stETHAmount, stake);
     this.addTx(tx)
+    return tx
   }
 
   async stake(signer, rETHAmount) {
@@ -44,6 +45,7 @@ export class lidontWeb3API {
     const contract = this.contract.connect(signer)
     const tx = await contract.getFunction("stake").call(who, rETHAmount);
     this.addTx(tx)
+    return tx
   }
 
   async unstake(signer, rETHAmount) {
@@ -51,6 +53,7 @@ export class lidontWeb3API {
     const contract = this.contract.connect(signer)
     const tx = await contract.getFunction("unstake").call(who, rETHAmount);
     this.addTx(tx)
+    return tx
   }
 
   async claimEmission(signer) {
@@ -58,6 +61,7 @@ export class lidontWeb3API {
     const contract = this.contract.connect(signer)
     const tx = await contract.getFunction("claimEmission").call(who);
     this.addTx(tx)
+    return tx
   }
 
   async claimMinipool(signer, nodeAddress, nodeIndex, index) {
@@ -65,6 +69,7 @@ export class lidontWeb3API {
     const contract = this.contract.connect(signer)
     const tx = await contract.getFunction("claimMinipool").call(who, nodeAddress, nodeIndex, index);
     this.addTx(tx)
+    return tx
   }
 
   async initiateWithdrawal(signer, stETHAmount) {
@@ -72,6 +77,7 @@ export class lidontWeb3API {
     const contract = this.contract.connect(signer)
     const tx = await contract.getFunction("initiateWithdrawal").call(who, stETHAmount);
     this.addTx(tx)
+    return tx
   }
 
   async finalizeWithdrawal(signer, requestIds, hints) {
@@ -127,40 +133,28 @@ export class lidontWeb3API {
     );
   }
 
+  async getTx(tx){
+    return await this.provider.getTransaction(tx.hash)
+  }
+
   async addTx(tx) {
-    this.pending.push(await this.provider.getTransaction(tx.hash));
+    const txData = await this.provider.getTransaction(tx.hash)
+    const newState = [].concat(this.pending)
+    newState.push(txData);
+    this.pending = newState
   }
 
   purgeMinedTransactions() {
     this.pending = this.pending.filter((tx) => tx.confirmations == 0);
   }
 
-  async waitUntilTxConfirmed(tx, confirmationsneeded = 1){
-
-    async function recur(tx){
-      // get tx data and check
-      const confirmations = tx.confirmations // get transaction bla
-      if(confirmations >= confirmationsNeeded){
-        return
-      }
-      await waitForSeconds(0.5)
-      await recur()
-    }
-
-    const P = new Promise(async (resolve,reject) => {
-      await recur()
-      return resolve()
+  async waitUntilTxConfirmed(tx){
+    return await waitForCallback( async () => {
+      const data = await this.getTx(tx)
+      if(data.blockNumber) return true
     })
-
-    return P
   }
-
-  async waitUntilTx(){
-    await waitForCallback( async => {
-      
-    })
-    return console.log("done")
-  }
+  
 }
 
 

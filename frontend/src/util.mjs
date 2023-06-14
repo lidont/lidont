@@ -144,8 +144,8 @@ export function waitForCallback(cb) {
           }
           return
         } catch (e) {
-          console.log(e)
-          await waitForSeconds(0.2)
+          // console.log(e)
+          await waitForSeconds(1)
           await recur()
         }
   }

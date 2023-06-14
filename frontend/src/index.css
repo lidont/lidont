@@ -214,8 +214,7 @@ input[type=checkbox] {
 logger-radio {
   position: fixed;
   right: 2rem;
-  bottom: 0px;
-  padding: 1rem;
+  bottom: -1rem;
 }
 
 logger-radio > div > sub{
@@ -298,6 +297,14 @@ logger-radio > div > sub{
 
 .pointer {
   cursor: pointer;
+}
+
+.float-l {
+  float: left;
+}
+
+.float-r {
+  float: right;
 }
 
 

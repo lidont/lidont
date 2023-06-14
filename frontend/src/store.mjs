@@ -1,5 +1,5 @@
 import * as ethers from './ethers.min.js';
-import { createStore, RADIO, log} from "./util.mjs";
+import { createStore, RADIO, log, waitForSeconds} from "./util.mjs";
 import { ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
@@ -52,6 +52,7 @@ export const store = createStore(
   log((setState, getState, api) => ({
     loading: false,
     address: null,
+
     balance: null,
     balanceFormatted: null,
 
@@ -100,7 +101,7 @@ export const store = createStore(
     },
 
     async RELOAD(){
-      const { getStake, updateBalance, updateErc20Balance } = getState()
+      const { getStake, updateBalance, updateErc20Balance, getAllowanceRETH, getAllowanceSTETH } = getState()
       //eth
       await updateBalance() 
       //erc20
@@ -110,11 +111,29 @@ export const store = createStore(
 
       // get staked rETH
       await getStake()
+
+      // allowances
+      await getAllowanceSTETH()
+      await getAllowanceRETH()
+    },
+
+    async getAllowanceSTETH(){
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+
+      // check stETH
+      const ownAddress = await signer.getAddress()
+      const stETHAddress = detailsByChainId[chainIdDefault].steth
+      const lidontAddress = detailsByChainId[chainIdDefault].lidont
+      const stETH = new ethers.Contract(stETHAddress, ERC20Abi, signer);
+      const allowance = await stETH.allowance(ownAddress, lidontAddress)
+      setState({stETHAllowance: allowance})
+      return allowance
     },
 
     // actions
     async swap(){
-      const { provider, inputs, lidontWeb3API } = getState();
+      const { provider, inputs, lidontWeb3API, RELOAD, getAllowanceSTETH } = getState();
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.stETHAmount, 18)
       const alsoStake = inputs.checkboxAlsoStake
@@ -124,20 +143,40 @@ export const store = createStore(
       const stETHAddress = detailsByChainId[chainIdDefault].steth
       const lidontAddress = detailsByChainId[chainIdDefault].lidont
       const stETH = new ethers.Contract(stETHAddress, ERC20Abi, signer);
-      const allowance = await stETH.allowance(ownAddress, lidontAddress)
-      setState({stETHAllowance: allowance})
+      const allowance = await getAllowanceSTETH()
 
       if(allowance < amount){
-        RADIO.emit("msg", "stETH allowance: "+allowance+" approving "+amount)
-        await stETH.approve(lidontAddress, amount)
+        RADIO.emit("spinner", "stETH allowance: "+allowance+" approving "+amount)
+        const tx = await stETH.getFunction("approve").call(ownAddress, lidontAddress, amount)
+        await lidontWeb3API.addTx(tx)
+        await lidontWeb3API.waitUntilTxConfirmed(tx)
+        await waitForSeconds(1)
+        await RELOAD()
       }
 
-      RADIO.emit("msg", "swapping. "+allowance+" sufficient for: "+amount)
-      await lidontWeb3API.swap(signer, amount, alsoStake)
+      RADIO.emit("spinner", "swapping. "+allowance+" sufficient for: "+amount)
+      const tx = await lidontWeb3API.swap(signer, amount, alsoStake)
+      await lidontWeb3API.waitUntilTxConfirmed(tx)
+      await waitForSeconds(1)
+      await RELOAD()
+    },
+
+    async getAllowanceRETH(){
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+
+      // check stETH
+      const ownAddress = await signer.getAddress()
+      const rETHAddress = detailsByChainId[chainIdDefault].reth
+      const lidontAddress = detailsByChainId[chainIdDefault].lidont
+      const rETH = new ethers.Contract(rETHAddress, ERC20Abi, signer);
+      const allowance = await rETH.allowance(ownAddress, lidontAddress)
+      setState({rETHAllowance: allowance})
+      return allowance
     },
 
     async stake(){
-      const { provider, inputs, lidontWeb3API } = getState();
+      const { provider, inputs, lidontWeb3API, getAllowanceRETH, RELOAD } = getState();
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.rETHAmount, 18)
 
@@ -146,23 +185,28 @@ export const store = createStore(
       const rETHAddress = detailsByChainId[chainIdDefault].reth
       const lidontAddress = detailsByChainId[chainIdDefault].lidont
       const rETH = new ethers.Contract(rETHAddress, ERC20Abi, signer);
-      const allowance = await rETH.allowance(ownAddress, lidontAddress)
-      setState({rETHAllowance: allowance})
-
+      const allowance = await getAllowanceRETH()
+      
       if(allowance < amount){
-        RADIO.emit("msg", "rETH allowance: "+allowance+" approving "+amount)
-        await rETH.approve(lidontAddress, amount)
+        RADIO.emit("spinner", "rETH allowance: "+allowance+" approving "+amount)
+        const tx = await rETH.getFunction("approve").call(ownAddress,lidontAddress, amount)
+        await lidontWeb3API.waitUntilTxConfirmed(tx)
+        await waitForSeconds(1)
+        await RELOAD()
       }
 
-      RADIO.emit("msg", "rETH staking. "+allowance+" sufficient for: "+amount)
-      await lidontWeb3API.stake(signer, amount)
+      RADIO.emit("spinner", "rETH staking. "+allowance+" sufficient for: "+amount)
+      const tx = await lidontWeb3API.stake(signer, amount)
+      await lidontWeb3API.waitUntilTxConfirmed(tx)
+      await waitForSeconds(1)
+      await RELOAD()
     },
 
     async unstake(){
       const { provider, inputs, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.rETHAmount, 18)
-      RADIO.emit("msg", "rETH unstaking: "+amount)
+      RADIO.emit("spinner", "rETH unstaking: "+amount)
       await lidontWeb3API.unstake(signer, amount)
     },
 
@@ -183,16 +227,19 @@ export const store = createStore(
     },
 
     async claimEmission(){
-      const { provider, inputs, lidontWeb3API } = getState();
+      const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
-      RADIO.emit("msg", "claiming emission rewards")
-      await lidontWeb3API.claimEmission(signer)
+      RADIO.emit("spinner", "claiming emission rewards")
+      const tx = await lidontWeb3API.claimEmission(signer)
+      await lidontWeb3API.waitUntilTxConfirmed(tx)
+      await waitForSeconds(1)
+      await RELOAD()
     },
 
     async claimMinipool(){
       const { provider, inputs, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
-      RADIO.emit("msg", "claiming minipool rewards")
+      RADIO.emit("spinner", "claiming minipool rewards")
       const nodeAddress = null
       const nodeIndex = null
       const index = null
