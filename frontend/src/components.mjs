@@ -230,3 +230,38 @@ customElements.define("wait-for-object-value", class extends HTMLElement {
   connectedCallback() { this.render(); }
   attributeChangedCallback() { this.render(); }
 });
+
+
+// wait until a deep state value is defined by a string "my.deep.value"
+//
+customElements.define("value-connected", class extends HTMLElement {
+  constructor() {
+    super();
+    const path = this.getAttribute("data-path")
+
+    let prevValue = null
+    store.subscribe( () => {
+      const nowState = store.getState()
+      const stateValue = nowState.byString(path)
+      const isEqual = prevValue === stateValue
+      if(isEqual){ return }
+      if(!isEqual){ 
+        prevValue = stateValue
+        return this.render(stateValue)
+      }
+    })
+  }
+  render(stateValue){
+    const format = this.getAttribute("data-format")
+    const isDefined = !!stateValue
+    this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : format ? this.formatter(format)(stateValue) : stateValue}`;
+  }
+  formatter(name){
+    const formatters = {
+      "toFixed": (val) => val.toFixed(2)
+    }
+    return formatters[name]
+  }
+  connectedCallback() { this.render(); }
+  attributeChangedCallback() { this.render(); }
+});
