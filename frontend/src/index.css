@@ -517,6 +517,10 @@ rainbow {
   font-weight: bold;
 }
 
+admin-section > .card{
+  background-color: rgba(224, 38, 38, 0.459);
+}
+
 .text-rainbow {
   font-size: 2.5rem;
 }

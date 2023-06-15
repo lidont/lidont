@@ -3,6 +3,9 @@ import * as ethers from "./ethers.min.js"
 import { formatDisplayAddr, RADIO, RAINBOWS } from "./util.mjs";
  
 
+// General Purpose Components
+//
+
 // icons
 //
 customElements.define("icon-comp", class extends HTMLElement {
@@ -22,35 +25,94 @@ customElements.define("icon-comp", class extends HTMLElement {
 }
 );
 
-
-// reacts to window.RADIO msg channel
+// store this input value in the store
 //
-customElements.define("logger-radio", class extends HTMLElement {
+customElements.define("input-connected", class extends HTMLElement {
   constructor() {
     super();
-  }
-  connectedCallback(){
-    RADIO.on("msg", (msg) => { this.render(msg, false) })
-    RADIO.on("err", (msg) => { this.render(msg, true) })
-    RADIO.on("spinner", (msg) => { this.render(msg, false, true) })
-  }
-  render(msgObj, error = false, spinner = false){
+    const name = this.getAttribute("name")
+    const type = this.getAttribute("type")
+    const label = this.getAttribute("label")
+    const placeholder = this.getAttribute("placeholder")
+    this.innerHTML = `<div><input checked ${type ? `type=${type}` : ''} ${placeholder ? `placeholder=${JSON.stringify(placeholder)}` : ''}/>${label ? `<sub>${label}</sub>`: ''}</div>`;
 
-    this.innerHTML = `
-    <div class="stack col">
-      <div>${spinner ? `<div class="spinner float-r"></div>`: ''}</div>
-      <sub>${msgObj}</sub>
-    <div/>`;
+    if(type === "number"){
+      this.addEventListener("keyup", (event) => {
+        
+        const newState = store.getState().inputs
+        newState[name] = event.target.value
+        store.setState({inputs: newState});
+      });
+    }
+
+    if(type === "checkbox"){
+      this.addEventListener('change', function() {
+        const isChecked = store.getState().inputs[name]
+        const newState = store.getState().inputs
+        newState[name] = !isChecked
+        store.setState({inputs: newState});
+      })
+    }
+
+ }
+});
+
+
+// wait until a deep state value is defined by a string "my.deep.value"
+//
+customElements.define("value-connected", class extends HTMLElement {
+constructor() {
+  super();
+  const path = this.getAttribute("data-path")
+
+  let prevValue = null
+  store.subscribe( () => {
+    const nowState = store.getState()
+    const stateValue = Object.byString(nowState, path) //!
+    const isEqual = prevValue === stateValue
+    if(isEqual){ return }
+    if(!isEqual){ 
+      prevValue = stateValue
+      return this.render(stateValue)
+    }
+  })
+}
+render(stateValue){
+  let node = "div"
+  const propNode = this.getAttribute("data-node")
+  if(propNode){ node = propNode }
+  const format = this.getAttribute("data-format")
+  const isDefined = stateValue !== undefined
+  this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : format ? `<${node}>${this.formatter(format)(stateValue)}</${node}>` : `<${node}>${stateValue}</${node}>` }`;
+  if(node === "rainbow"){
+    RAINBOWS()
   }
 }
-);
+formatter(name){
+  const formatters = {
+    "toFixed": (val) => parseFloat(val).toFixed(3),
+    "formatDecimals": (val) => parseFloat(ethers.formatUnits(val, 18)).toFixed(3),
+  }
+  return formatters[name]
+}
+connectedCallback() { this.render(); }
+attributeChangedCallback() { this.render(); }
+});
+
 
 
 // a button that tries to execute a function from the state store
 //
 customElements.define("button-connected",class extends HTMLElement {
-    constructor() { super();
-      this.innerHTML = `<button class="button"><span class="force-center">${this.innerText}</span></button>`;
+    constructor() { 
+      super();
+      const isIcon = this.getAttribute("icon")
+      if(isIcon === "" || isIcon === true) {
+        this.innerHTML = this.innerText
+      }
+      else { 
+        this.innerHTML = `<button class="button"><span class="force-center">${this.innerText}</span></button>`;
+      }
       // executes store action with same name on click if found
       const actionName = this.getAttribute("data-action");
       if (actionName) {
@@ -66,6 +128,11 @@ customElements.define("button-connected",class extends HTMLElement {
 
   }
 );
+
+
+// Specialized Components
+//
+
 
 
 // execute custom action and conditional rendering
@@ -95,76 +162,86 @@ customElements.define("button-connect-wallet", class extends HTMLElement {
 );
 
 
-// store this input value in the store
+// withdrawal and other democratized functions
 //
-customElements.define("input-connected", class extends HTMLElement {
-    constructor() {
-      super();
-      const name = this.getAttribute("name")
-      const type = this.getAttribute("type")
-      const label = this.getAttribute("label")
-      const placeholder = this.getAttribute("placeholder")
-      this.innerHTML = `<div><input checked ${type ? `type=${type}` : ''} ${placeholder ? `placeholder=${JSON.stringify(placeholder)}` : ''}/>${label ? `<sub>${label}</sub>`: ''}</div>`;
+customElements.define("admin-section", class extends HTMLElement {
+  constructor() { 
+    super(); 
+    this.hidden = true
+  }
+  connectedCallback() { 
+    RADIO.on("ADMIN", () => {
+      this.hidden = false
+      this.render()
+    })
+    this.render(); 
+  }
+  attributeChangedCallback() { this.render(); }
+  render(){
+    if(this.hidden){ return this.innerHTML = `` }
+    this.innerHTML = `
+    <hr/>
+    <div class="card">
+        <div class="flex flex-between">
+            <span>⚡ WITHDRAW</span>
+            <div>
+                <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.stETH.balance"></value-connected>  ??? stETH to withdraw</sub>
+            </div>
+        </div>
+        <sub>stETH to rETH</sub>
+        <div class="flex-center">
+        </div>
+        <div class="stack flex-center">
+            <button-connected class="flex-right" data-action="initiateWithdrawal">Step 1: Initiate Withdrawal</button-connected>
+            <div>todo compute hints etc</div>
+            <button-connected class="flex-right" data-action="finalizeWithdrawal">Step 2: FInalize Withdrawal</button-connected>
+        </div>
+        
+    </div>
 
-      if(type === "number"){
-        this.addEventListener("keyup", (event) => {
-          
-          const newState = store.getState().inputs
-          newState[name] = event.target.value
-          store.setState({inputs: newState});
-        });
-      }
+    <hr/>
+    <div class="card">
+        <div class="flex flex-between">
+            <span>⚡MINT ROCKETETHER</span>
+            <div>
+                <sub>Balance in Contract: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.stETH.balance"></value-connected>  ??? stETH</sub>
+            </div>
+        </div>
+        <sub>stETH to rETH</sub>
+        <div class="flex-center">
+        </div>
+        <div class="stack flex-center">
+            <button-connected class="flex-right" data-action="swap">Mint rETH Contract Reserves</button-connected>
+        </div>
+        
+    </div>
+    `;
+  }
+}
+);
 
-      if(type === "checkbox"){
-        this.addEventListener('change', function() {
-          const isChecked = store.getState().inputs[name]
-          const newState = store.getState().inputs
-          newState[name] = !isChecked
-          store.setState({inputs: newState});
-        })
-      }
-
-   }
-});
 
 
-// wait until a deep state value is defined by a string "my.deep.value"
+
+// reacts to window.RADIO msg channel
 //
-customElements.define("value-connected", class extends HTMLElement {
+customElements.define("logger-radio", class extends HTMLElement {
   constructor() {
     super();
-    const path = this.getAttribute("data-path")
+  }
+  connectedCallback(){
+    RADIO.on("msg", (msg) => { this.render(msg, false) })
+    RADIO.on("err", (msg) => { this.render(msg, true) })
+    RADIO.on("spinner", (msg) => { this.render(msg, false, true) })
+  }
+  render(msgObj, error = false, spinner = false){
 
-    let prevValue = null
-    store.subscribe( () => {
-      const nowState = store.getState()
-      const stateValue = Object.byString(nowState, path) //!
-      const isEqual = prevValue === stateValue
-      if(isEqual){ return }
-      if(!isEqual){ 
-        prevValue = stateValue
-        return this.render(stateValue)
-      }
-    })
+    this.innerHTML = `
+    <div class="stack col">
+      <div>${spinner ? `<div class="spinner float-r"></div>`: ''}</div>
+      <sub>${msgObj}</sub>
+    <div/>`;
   }
-  render(stateValue){
-    let node = "div"
-    const propNode = this.getAttribute("data-node")
-    if(propNode){ node = propNode }
-    const format = this.getAttribute("data-format")
-    const isDefined = stateValue !== undefined
-    this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : format ? `<${node}>${this.formatter(format)(stateValue)}</${node}>` : `<${node}>${stateValue}</${node}>` }`;
-    if(node === "rainbow"){
-      RAINBOWS()
-    }
-  }
-  formatter(name){
-    const formatters = {
-      "toFixed": (val) => parseFloat(val).toFixed(3),
-      "formatDecimals": (val) => parseFloat(ethers.formatUnits(val, 18)).toFixed(3),
-    }
-    return formatters[name]
-  }
-  connectedCallback() { this.render(); }
-  attributeChangedCallback() { this.render(); }
-});
+}
+);
+

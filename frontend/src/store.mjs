@@ -117,6 +117,10 @@ export const store = createStore(
       await getAllowanceRETH()
     },
 
+    async openMenu(){
+      RADIO.emit("ADMIN")
+    },
+
     async getAllowanceSTETH(){
       const { provider } = getState();
       const signer = await provider.getSigner();
