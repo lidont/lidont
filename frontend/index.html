@@ -13,12 +13,13 @@
     <main>
         <div class="container">
             <div class="nav">
-                <div class="icon flex-left pointer" data-action="openMenu">🍔</div>
+                <button-connected class="icon flex-left pointer" icon data-action="openMenu">🍔</button-connected>
                 <button-connect-wallet class="flex-right"></button-connect-wallet>
             </div>
             <sub class="flex-right"><value-connected data-format="formatDecimals" data-path="balance"></value-connected> ETH</sub>
             <div class="flex-center"><img class="logo" src="logo2.png" /></div>
 
+            <admin-section></admin-section>
 
             <hr/>
             <div class="card">
