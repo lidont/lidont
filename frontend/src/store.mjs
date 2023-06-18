@@ -110,6 +110,10 @@ export const store = createStore(
 
     async openMenu(){
       RADIO.emit("ADMIN")
+      await getState().fetchAdminData()
+    },
+
+    async fetchAdminData(){
       await getState().getLidontSTETHBalance()
       await getState().getWithdrawalRequests()
     },
@@ -217,7 +221,7 @@ export const store = createStore(
       RADIO.emit("spinner", "rETH staking. "+allowance+" sufficient for: "+amount)
       const tx = await lidontWeb3API.stake(signer, amount)
       await lidontWeb3API.waitUntilTxConfirmed(tx)
-      await waitForSeconds(1)
+      await waitForSeconds(0.3)
       await RELOAD()
     },
 
@@ -236,7 +240,7 @@ export const store = createStore(
       RADIO.emit("spinner", "claiming emission rewards")
       const tx = await lidontWeb3API.claimEmission(signer)
       await lidontWeb3API.waitUntilTxConfirmed(tx)
-      await waitForSeconds(1)
+      await waitForSeconds(0.3)
       await RELOAD()
     },
 
@@ -281,7 +285,7 @@ export const store = createStore(
         const details = {}
 
         requestIds.forEach( (value, index) =>  {
-          const uniqueId = requestStatus[index][3]+'_'+requestStatus[index][2]
+          const uniqueId = requestIds[index]+'of'+requestIds.join() // requestStatus[index][3] timestamp for uniqueness?
           details[uniqueId] = {
             amountOfStETH: requestStatus[index][0],
             amountOfShares: requestStatus[index][1],
@@ -315,11 +319,12 @@ export const store = createStore(
       const { provider, inputs, lidontWeb3API, balanceOfLidontSTETH } = getState();
       const signer = await provider.getSigner();
       RADIO.emit("msg", "initiating withdrawal")
-      console.log("TESTING CODE - TODO REMOVE")
-      const balanceOfLidontSTETHTest = ethers.parseUnits("1", 18)
-      const tx = await lidontWeb3API.initiateWithdrawal(signer, balanceOfLidontSTETHTest)
+      const amount = ethers.parseUnits(getState().inputs.stETHWithdrawAmount, 18)
+      const tx = await lidontWeb3API.initiateWithdrawal(signer, amount)
       await provider.waitForTransaction(tx.hash)
-      console.log("fulfilled")
+      await waitForSeconds(0.3)
+      await getState().getLidontSTETHBalance()
+      await getState().getWithdrawalRequests()
     },
 
     async finalizeWithdrawal(requestsDetails){
