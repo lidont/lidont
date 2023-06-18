@@ -83,7 +83,8 @@ export class lidontWeb3API {
   async finaliseWithdrawal(signer, requestIds, hints) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    console.log(requestIds, hints)
+    console.log("requestIds: ", requestIds)
+    console.log("hints: ", hints)
     const tx = await contract.getFunction("finaliseWithdrawal").call(who, requestIds, hints);
     this.addTx(tx)
   }

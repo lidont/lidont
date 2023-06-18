@@ -309,7 +309,7 @@ export const store = createStore(
       const unstETHAddress = detailsByChainId[chainIdDefault].unsteth
       const signer = await provider.getSigner();
       const unstETH = new ethers.Contract(unstETHAddress, unstETHAbi, signer);
-      const firstIndex = 1n // starts at 1 apparently 
+      const firstIndex = 1n // starts at 1 apparently: https://goerli.etherscan.io/address/0x077B60752864B3e5291863cf8890603f9ab335d3#code#F22#L289
       const lastIndex = await unstETH.getLastCheckpointIndex()
       const checkpointHints = await unstETH.findCheckpointHints(withdrawalRequestIds, firstIndex, lastIndex)
       return checkpointHints
@@ -331,6 +331,7 @@ export const store = createStore(
       const { provider, inputs, lidontWeb3API, getCheckpointHints } = getState();
       const signer = await provider.getSigner();
       let requestIds = []
+      // handling if we get multiple requestIds in one go
       Object.keys(requestsDetails).forEach( key => {
         const obj = requestsDetails[key]
         requestIds = requestIds.concat(obj.requestIds)
