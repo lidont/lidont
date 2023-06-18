@@ -1,5 +1,5 @@
 import { store } from "./store.mjs";
-import * as ethers from "./ethers.min.js"
+import * as ethers from '../node_modules/ethers/dist/ethers.js';
 import { formatDisplayAddr, RADIO, RAINBOWS } from "./util.mjs";
  
 
@@ -106,12 +106,13 @@ attributeChangedCallback() { this.render(); }
 customElements.define("button-connected",class extends HTMLElement {
     constructor() { 
       super();
+      const isDisabled = this.getAttribute("disabled")
       const isIcon = this.getAttribute("icon")
       if(isIcon === "" || isIcon === true) {
         this.innerHTML = this.innerText
       }
       else { 
-        this.innerHTML = `<button class="button"><span class="force-center">${this.innerText}</span></button>`;
+        this.innerHTML = `<button class="button ${isDisabled === "" || isDisabled ? "disabled" : ""}"><span class="force-center">${this.innerText}</span></button>`;
       }
       // executes store action with same name on click if found
       const actionName = this.getAttribute("data-action");
@@ -162,6 +163,31 @@ customElements.define("button-connect-wallet", class extends HTMLElement {
 );
 
 
+// execute custom action and conditional rendering
+//
+customElements.define("button-finalize", class extends HTMLElement {
+  constructor() { 
+    super();
+  }
+  connectedCallback() { 
+    const pendingRequestsIndex = this.getAttribute("data-pendingRequestsIndex");
+
+    this.addEventListener("click",async (event) => {
+        event.preventDefault();
+        const details = store.getState().pendingRequests[pendingRequestsIndex]
+        await store.getState().finalizeWithdrawal(details)
+    }, false );
+
+    this.render(); 
+  }
+  render(){
+    this.innerHTML = `<button class="button"><span class="force-center">${this.innerText}</span></button>`;
+  }
+
+}
+);
+
+
 // withdrawal and other democratized functions
 //
 customElements.define("admin-section", class extends HTMLElement {
@@ -170,44 +196,62 @@ customElements.define("admin-section", class extends HTMLElement {
     this.hidden = true
   }
   connectedCallback() { 
+
+    let prevValue = null // only re-render when value changed
+    store.subscribe( () => {
+      const state = store.getState()
+      if(prevValue === state.pendingWithdrawals){ return }
+      if(prevValue !== state.pendingWithdrawals){ 
+        prevValue = state.pendingWithdrawals
+        return this.render(state.pendingWithdrawals)
+      }
+    })
+
     RADIO.on("ADMIN", () => {
-      this.hidden = false
+      this.hidden = !this.hidden
       this.render()
     })
     this.render(); 
+
   }
   attributeChangedCallback() { this.render(); }
   render(){
+    const withdrawals = store.getState().pendingWithdrawals
     if(this.hidden){ return this.innerHTML = `` }
     this.innerHTML = `
     <hr/>
     <div class="card">
+        <div class="box">
+          <div class="rainbow-bg"></div>
+        </div>
         <div class="flex flex-between">
-            <span>⚡ WITHDRAW</span>
+            <span>🧛 WITHDRAW</span>
             <div>
-                <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.stETH.balance"></value-connected>  ??? stETH to withdraw</sub>
+                <sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub>
             </div>
         </div>
-        <sub>stETH to rETH</sub>
+        <sub>stETH from Lido</sub>
         <div class="flex-center">
         </div>
         <div class="stack flex-center">
-            <button-connected class="flex-right" data-action="initiateWithdrawal">Step 1: Initiate Withdrawal</button-connected>
-            <div>todo compute hints etc</div>
-            <button-connected class="flex-right" data-action="finalizeWithdrawal">Step 2: FInalize Withdrawal</button-connected>
+            <button-connected class="flex-center" data-action="initiateWithdrawal">Initiate New Withdrawal</button-connected>
         </div>
-        
+        <hr/>
+        <list-pending-withdrawals></list-pending-withdrawals>
     </div>
 
     <hr/>
     <div class="card">
+        <div class="box">
+          <div class="rainbow-bg"></div>
+        </div>
         <div class="flex flex-between">
-            <span>⚡MINT ROCKETETHER</span>
+            <span>🚀 MINT </span>
             <div>
-                <sub>Balance in Contract: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.stETH.balance"></value-connected>  ??? stETH</sub>
+                <sub>Balance in Contract: <value-connected data-format="formatDecimals" data-path="balanceOfLidontETH"></value-connected> ETH available to mint</sub>
             </div>
         </div>
-        <sub>stETH to rETH</sub>
+        <sub>ETH to rETH</sub>
         <div class="flex-center">
         </div>
         <div class="stack flex-center">
@@ -216,6 +260,56 @@ customElements.define("admin-section", class extends HTMLElement {
         
     </div>
     `;
+  }
+}
+);
+
+
+// list of pending withdrawals and management of them
+//
+customElements.define("list-pending-withdrawals", class extends HTMLElement {
+  constructor() { 
+    super(); 
+  }
+  connectedCallback() { 
+
+    let prevValue = null // only re-render when value changed
+    store.subscribe( () => {
+      const state = store.getState()
+      if(prevValue === state.pendingRequests){ return }
+      if(prevValue !== state.pendingRequests){ 
+        prevValue = state.pendingRequests
+        return this.render(state.pendingRequests)
+      }
+    })
+    this.render(); 
+
+  }
+  attributeChangedCallback() { this.render(); }
+  render(requests){
+    if(!requests || requests.length === 0){ return this.innerHTML = "" }
+    this.innerHTML = `
+    <div>
+      <span>Pending Withdrawals</span>
+
+      ${requests.map( (value, index) => { 
+        let amount, shares, timestamp
+        Object.keys(value).forEach( key => {
+          const obj = value[key]
+          amount = obj.amountOfStETH
+          shares = obj.amountOfShares
+          timestamp = obj.timestamp
+        })
+        
+        return `
+          <div class="stack row">
+          <sub>stETH: ${amount} stETH / ${shares} shares @ ${timestamp}</sub>
+            <button-finalize data-pendingRequestsIndex=${index}>Finalize Withdrawal: ${index}</button-finalize>
+          </div>
+        `.trim()}).join('')
+      }
+    </div>
+    `
   }
 }
 );

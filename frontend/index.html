@@ -14,9 +14,11 @@
         <div class="container">
             <div class="nav">
                 <button-connected class="icon flex-left pointer" icon data-action="openMenu">🍔</button-connected>
-                <button-connect-wallet class="flex-right"></button-connect-wallet>
+                <div class="stack">
+                    <button-connect-wallet class="flex-right"></button-connect-wallet>
+                    <span class="flex-right force-center pill"><value-connected data-format="formatDecimals" data-path="balance"></value-connected>&nbsp;ETH</span>
+                </div>
             </div>
-            <sub class="flex-right"><value-connected data-format="formatDecimals" data-path="balance"></value-connected> ETH</sub>
             <div class="flex-center"><img class="logo" src="logo2.png" /></div>
 
             <admin-section></admin-section>
@@ -72,7 +74,7 @@
             <div class="card">
                 <div class="flex flex-between">
                     <span>EMISSION</span>
-                    <sub>Balance: <value-connected data-format="toFixed" data-path="balancesBySymbol.lidont.balanceFormatted"></value-connected> LIDONT</sub>
+                    <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.LIDONT.balance"></value-connected> LIDONT</sub>
                 </div>
                 <sub>lidont emission rewards</sub>
                 <div class="flex flex-around">
@@ -94,9 +96,13 @@
                 <div class="flex flex-around">
                     <button-connected data-action="claimMinipool">Claim Rewards</button-connected>
                 </div>
+                <br/>
+                <div class="flex flex-right">
+                    <sub>Claimable: <rainbow>21000000</rainbow></sub>
+                </div>
             </div>
 
-            <div class="flex flex-around">
+            <div class="flex flex-around text-light">
                 <h2>SAVE THE ETHEREUM NETWORK</h2>
             </div>
 
