@@ -232,8 +232,10 @@ customElements.define("admin-section", class extends HTMLElement {
         </div>
         <sub>stETH from Lido</sub>
         <div class="flex-center">
+
         </div>
         <div class="stack flex-center">
+            <input-connected class="flex-7" type="number" placeholder="stETH amount to withdraw" name="stETHWithdrawAmount"></input-connected>
             <button-connected class="flex-center" data-action="initiateWithdrawal">Initiate New Withdrawal</button-connected>
         </div>
         <hr/>
@@ -287,7 +289,7 @@ customElements.define("list-pending-withdrawals", class extends HTMLElement {
   }
   attributeChangedCallback() { this.render(); }
   render(requests){
-    if(!requests || requests.length === 0){ return this.innerHTML = "" }
+    if(!requests || requests.length === 0){ return this.innerHTML = "<div class='spinner'></div>" }
     this.innerHTML = `
     <div>
       <span>Pending Withdrawals</span>
@@ -302,9 +304,9 @@ customElements.define("list-pending-withdrawals", class extends HTMLElement {
         })
         
         return `
-          <div class="stack row">
-          <sub>stETH: ${amount} stETH / ${shares} shares @ ${timestamp}</sub>
-            <button-finalize data-pendingRequestsIndex=${index}>Finalize Withdrawal: ${index}</button-finalize>
+          <div class="stack row flex-between">
+          <sub>${ethers.formatEther(shares)} shares bought on ${timestamp}</sub>
+            <button-finalize data-pendingRequestsIndex=${index}>Draw ${ethers.formatEther(amount)} stETH</button-finalize>
           </div>
         `.trim()}).join('')
       }
