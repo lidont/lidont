@@ -1,6 +1,6 @@
-import * as ethers from './ethers.min.js';
+import * as ethers from '../node_modules/ethers/dist/ethers.js';
 import { createStore, RADIO, log, waitForSeconds} from "./util.mjs";
-import { ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
+import { unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
 // addresses
@@ -9,7 +9,9 @@ export const detailsByChainId = {
   1: {
       lidont: "",
       reth: "",
+      rocketStorage: "",
       steth: "",
+      unsteth: "",
       SCAN: 'https://etherscan.io/',
       NAME: "Ethereum Mainnet",
       ICON: "eth.png"
@@ -17,21 +19,13 @@ export const detailsByChainId = {
   5: {
       lidont: "0xb6551fa3c8acd4ad436f415c4867809ff7683693",
       reth: "0x178E141a0E3b34152f73Ff610437A7bf9B83267A",
+      rocketStorage: "0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3",
       steth: "0x1643E812aE58766192Cf7D2Cf9567dF2C37e9B7F",
+      unsteth: "0xCF117961421cA9e546cD7f50bC73abCdB3039533",
       SCAN: 'https://goerli.etherscan.io/',
       NAME: "Ethereum Goerli",
       ICON: "eth.png"
-  },
-  31337: {
-      lidont: "",
-      reth: "",
-      steth: "",
-      SCAN: '',
-      RPC: '',
-      NAME: "Testnet",
-      ICON: "eth.png"
-  },
-
+  }
 }
 
 const chainIdTestnet = 5
@@ -56,18 +50,18 @@ export const store = createStore(
     balance: null,
     balanceFormatted: null,
 
-    balances: {
-
-    },
-    balancesBySymbol: {
-
-    },
-
+    balances: {},
+    balancesBySymbol: {},
     // forms 
     // for <input-connected> inputs are mapped to <input name=???> name components & forms
     inputs: {
       checkboxAlsoStake: true,
     },
+
+    pendingRequestss: [],
+
+    balanceOfLidontSTETH: undefined,
+    balanceOfLidontETH: undefined,
 
     stETHAllowance: undefined,
     rETHAllowance: undefined,
@@ -97,21 +91,18 @@ export const store = createStore(
 
       window.RADIO.emit("msg", "fetching data...")
       await RELOAD()
-
     },
 
     async RELOAD(){
-      const { getStake, updateBalance, updateErc20Balance, getAllowanceRETH, getAllowanceSTETH } = getState()
+      const { getStake, fetchEvents, updateBalance, updateErc20Balance, getAllowanceRETH, getAllowanceSTETH } = getState()
       //eth
       await updateBalance() 
       //erc20
       await updateErc20Balance(detailsByChainId[chainIdDefault].steth)
       await updateErc20Balance(detailsByChainId[chainIdDefault].reth)
       await updateErc20Balance(detailsByChainId[chainIdDefault].lidont)
-
       // get staked rETH
-      await getStake()
-
+      await getStake() 
       // allowances
       await getAllowanceSTETH()
       await getAllowanceRETH()
@@ -119,13 +110,26 @@ export const store = createStore(
 
     async openMenu(){
       RADIO.emit("ADMIN")
+      await getState().getLidontSTETHBalance()
+      await getState().getWithdrawalRequests()
     },
 
+    async getLidontSTETHBalance(){
+      const { lidontWeb3API } = getState()
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+      const ownAddress = await signer.getAddress()
+      const stETHAddress = detailsByChainId[chainIdDefault].steth
+      const lidontAddress = detailsByChainId[chainIdDefault].lidont
+      const stETH = new ethers.Contract(stETHAddress, ERC20Abi, signer);
+      const balanceOfLidontSTETH = await stETH.balanceOf(lidontAddress)
+      setState({ balanceOfLidontSTETH })
+    },
+
+    // SWAP
     async getAllowanceSTETH(){
       const { provider } = getState();
       const signer = await provider.getSigner();
-
-      // check stETH
       const ownAddress = await signer.getAddress()
       const stETHAddress = detailsByChainId[chainIdDefault].steth
       const lidontAddress = detailsByChainId[chainIdDefault].lidont
@@ -135,14 +139,11 @@ export const store = createStore(
       return allowance
     },
 
-    // actions
     async swap(){
       const { provider, inputs, lidontWeb3API, RELOAD, getAllowanceSTETH } = getState();
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.stETHAmount, 18)
       const alsoStake = inputs.checkboxAlsoStake
-
-      // check stETH spending allowance
       const ownAddress = await signer.getAddress()
       const stETHAddress = detailsByChainId[chainIdDefault].steth
       const lidontAddress = detailsByChainId[chainIdDefault].lidont
@@ -165,11 +166,10 @@ export const store = createStore(
       await RELOAD()
     },
 
+    // STAKE
     async getAllowanceRETH(){
       const { provider } = getState();
       const signer = await provider.getSigner();
-
-      // check stETH
       const ownAddress = await signer.getAddress()
       const rETHAddress = detailsByChainId[chainIdDefault].reth
       const lidontAddress = detailsByChainId[chainIdDefault].lidont
@@ -179,12 +179,27 @@ export const store = createStore(
       return allowance
     },
 
+    async getStake(){
+      const { provider, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const me = await signer.getAddress()
+      const rETHStakedDetails = await lidontWeb3API.getStakedRETH(signer, me)
+      const details = Object.assign({}, rETHStakedDetails)
+      
+      details.stake = rETHStakedDetails[0]
+      details.stakeFormatted = ethers.formatUnits(rETHStakedDetails[0], 18)
+      details.rewardDebt = rETHStakedDetails[1]
+      details.rewardDebtFormatted = ethers.formatUnits(rETHStakedDetails[1], 18)
+      details.lastClaimBlock = rETHStakedDetails[2]
+
+      setState({ rETHStakedDetails: details  })
+    },
+
     async stake(){
       const { provider, inputs, lidontWeb3API, getAllowanceRETH, RELOAD } = getState();
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.rETHAmount, 18)
 
-      // check stETH spending allowance
       const ownAddress = await signer.getAddress()
       const rETHAddress = detailsByChainId[chainIdDefault].reth
       const lidontAddress = detailsByChainId[chainIdDefault].lidont
@@ -214,22 +229,7 @@ export const store = createStore(
       await lidontWeb3API.unstake(signer, amount)
     },
 
-    async getStake(){
-      const { provider, lidontWeb3API } = getState();
-      const signer = await provider.getSigner();
-      const me = await signer.getAddress()
-      const rETHStakedDetails = await lidontWeb3API.getStakedRETH(signer, me)
-      const details = Object.assign({}, rETHStakedDetails)
-      
-      details.stake = rETHStakedDetails[0]
-      details.stakeFormatted = ethers.formatUnits(rETHStakedDetails[0], 18)
-      details.rewardDebt = rETHStakedDetails[1]
-      details.rewardDebtFormatted = ethers.formatUnits(rETHStakedDetails[1], 18)
-      details.lastClaimBlock = rETHStakedDetails[2]
-
-      setState({ rETHStakedDetails: details  })
-    },
-
+    // EMISSION
     async claimEmission(){
       const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
@@ -241,31 +241,102 @@ export const store = createStore(
     },
 
     async claimMinipool(){
+      /*
+      rocketStorage.getAddress(ethers.id(contract.address{name of contract}))
+      where name could be e.g. "rocketMinipoolManager"
+      which has things like getNodeMinipoolAt and getNodeMinipoolCount
+      so it also has getMinipoolAt and getMinipoolCount
+      */
       const { provider, inputs, lidontWeb3API } = getState();
+      const ownAddress = await signer.getAddress()
       const signer = await provider.getSigner();
+      const rocketStorageAddr = detailsByChainId[chainIdDefault].rocketStorage
+      const storageContract = new ethers.Contract(rocketStorageAddr, ERC20Abi, signer);
+      const nameOfContract = "??"
+      const id = ethers.id(stroageContract.address[nameOfContract])
+      const nodeAddress = await storageContract.getAddress()
+
       RADIO.emit("spinner", "claiming minipool rewards")
-      const nodeAddress = null
       const nodeIndex = null
       const index = null
       await lidontWeb3API.claimMinipool(signer, nodeAddress, nodeIndex, index)
     },
 
+    // WITHDRAW
+    async getWithdrawalRequests(){
+      const { provider, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const me = await signer.getAddress()
+      const unstETHAddress = detailsByChainId[chainIdDefault].unsteth
+      const lidontAddress = detailsByChainId[chainIdDefault].lidont
+      const unstETH = new ethers.Contract(unstETHAddress, unstETHAbi, signer);
+      const withdrawalRequestEvents = await lidontWeb3API.getEventsWITHDRAWALREQUEST()
+
+      const pendingRequests = []
+
+      for(const value of withdrawalRequestEvents){
+        const requestIds = value.args[0].toArray()
+        const requestStatus = await unstETH.getWithdrawalStatus(requestIds)
+
+        const details = {}
+
+        requestIds.forEach( (value, index) =>  {
+          const uniqueId = requestStatus[index][3]+'_'+requestStatus[index][2]
+          details[uniqueId] = {
+            amountOfStETH: requestStatus[index][0],
+            amountOfShares: requestStatus[index][1],
+            owner: requestStatus[index][2],
+            timestamp: requestStatus[index][3],
+            isFinalized: requestStatus[index][4],
+            isClaimed: requestStatus[index][5],
+            requestIds,
+          }
+        })
+
+        pendingRequests.push(details)
+        // todo filter claimed & finalized withdrawals
+      }
+
+      setState({ pendingRequests })
+    },
+
+    async getCheckpointHints(withdrawalRequestIds){
+      const { provider } = getState();
+      const unstETHAddress = detailsByChainId[chainIdDefault].unsteth
+      const signer = await provider.getSigner();
+      const unstETH = new ethers.Contract(unstETHAddress, unstETHAbi, signer);
+      const firstIndex = 1n // starts at 1 apparently 
+      const lastIndex = await unstETH.getLastCheckpointIndex()
+      const checkpointHints = await unstETH.findCheckpointHints(withdrawalRequestIds, firstIndex, lastIndex)
+      return checkpointHints
+    },
+
     async initiateWithdrawal(){
-      const { provider, inputs, lidontWeb3API } = getState();
+      const { provider, inputs, lidontWeb3API, balanceOfLidontSTETH } = getState();
       const signer = await provider.getSigner();
       RADIO.emit("msg", "initiating withdrawal")
-      await lidontWeb3API.initiateWithdrawal(signer, stETHAmount)
+      console.log("TESTING CODE - TODO REMOVE")
+      const balanceOfLidontSTETHTest = ethers.parseUnits("1", 18)
+      const tx = await lidontWeb3API.initiateWithdrawal(signer, balanceOfLidontSTETHTest)
+      await provider.waitForTransaction(tx.hash)
+      console.log("fulfilled")
     },
 
-    async finalizeWithdrawal(){
-      const { provider, inputs, lidontWeb3API } = getState();
+    async finalizeWithdrawal(requestsDetails){
+      const { provider, inputs, lidontWeb3API, getCheckpointHints } = getState();
       const signer = await provider.getSigner();
+      let requestIds = []
+      Object.keys(requestsDetails).forEach( key => {
+        const obj = requestsDetails[key]
+        requestIds = requestIds.concat(obj.requestIds)
+      })
+      RADIO.emit("msg", "getting hints...")
+      const hints = await getCheckpointHints(requestIds)
       RADIO.emit("msg", "finalizing withdrawal")
-      const requestids = null
-      const hints = null
-      await lidontWeb3API.finalizeWithdrawal(signer, requestIds, hints)
+      await lidontWeb3API.finaliseWithdrawal(signer, requestIds, hints.toArray())
     },
 
+    //MINT
     async mintRocketEther(){
       const { provider, inputs, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
@@ -273,8 +344,11 @@ export const store = createStore(
       await lidontWeb3API.mintRocketEther(signer, ethAmount)
     },
 
+
+    // wallet
+    //
     async connectWallet() {
-      const { address, loading } = getState();
+      const { address, loading, onAccountChange, onNetworkChange } = getState();
       const { ethereum } = window;
 
       if (ethereum && !address && !loading) {
@@ -293,10 +367,8 @@ export const store = createStore(
         setState({ address: accounts[0] });
         setState({ chainId: chainId });
 
-        ethereum.on("accountsChanged", (accounts) =>
-          this.onAccountChange(accounts)
-        );
-        ethereum.on("chainChanged", (chainId) => this.onNetworkChange(chainId));
+        ethereum.on("accountsChanged", onAccountChange );
+        ethereum.on("chainChanged", onNetworkChange );
 
         await getState().updateBalance();
       }

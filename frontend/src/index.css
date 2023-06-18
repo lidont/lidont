@@ -102,6 +102,14 @@ html[data-theme="dark"] {
 }
 
 
+@keyframes rainbow { 
+  0%{background-position:0% 82%}
+  50%{background-position:100% 19%}
+  100%{background-position:0% 82%}
+}
+
+
+
 /* 3 Generic */
 
 html {
@@ -149,6 +157,10 @@ main {
 
 a, span, p, sub, label {
   color: var(--color-dark);
+}
+
+span {
+  font-size: 1rem;
 }
 
 a {
@@ -307,8 +319,25 @@ logger-radio > div > sub{
   float: right;
 }
 
+.disabled {
+  pointer-events: none;
+}
+
+.text-light {
+  color: var(--color-light)
+}
+
+.text-dark {
+  color: var(--color-dark)
+}
+
 
 /* 6 Components - (actual components, the meat, buttons etc.) */
+
+.box {
+  position: relative;
+  display: block;
+}
 
 .container {
   max-width: 800px;
@@ -336,12 +365,13 @@ logger-radio > div > sub{
   max-height: 7rem;
 }
 
-@media screen and (max-width: 480px) {
+@media screen and (max-width: 720px) {
   .nav,
   .nav > .container {
     flex-direction: column;
   }
 
+  .stack,
   .flex-center,
   .flex-left,
   .flex-right {
@@ -380,35 +410,6 @@ logger-radio > div > sub{
   font-size: 1rem;
 }
 
-/*
-.button:before {
-  content: "";
-  background: linear-gradient(
-    45deg,
-    #ff0000,
-    #ff7300,
-    #fffb00,
-    #48ff00,
-    #00ffd5,
-    #002bff,
-    #7a00ff,
-    #ff00c8,
-    #ff0000
-  );
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  background-size: 400%;
-  z-index: -1;
-  filter: blur(5px);
-  width: calc(100% + 4px);
-  height: calc(100% + 4px);
-  animation: glowing 20s linear infinite;
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-  border-radius: 10px;
-}
-*/
 
 .button:before {
   content: "";
@@ -461,7 +462,6 @@ logger-radio > div > sub{
   margin-bottom: 2rem;
   border-radius: var(--radius);
   box-shadow: 0px 0px 1px 0px var(--color-darkGrey), 0 0 200px rgba(170, 170, 170, 0.50) inset;
-
 }
 
 .card p:last-child {
@@ -478,6 +478,7 @@ logger-radio > div > sub{
 }
 
 .spinner {
+  margin-top: 0.25rem;
   width: 1rem;
   height: 1rem;
   border: 0.05rem solid #ffffff;
@@ -498,6 +499,17 @@ logger-radio > div > sub{
   margin: 0rem 0.5rem;
 }
 
+.pill {
+  height: 100%;
+  background: rgba(103, 118, 185, 0.66);
+  max-width: 10rem;
+  min-height: 2.5rem;
+  line-height: 1.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+}
+
+
 
 /* 7 util - (IDs etc, here you can use !important and dirty hacks)*/
 
@@ -517,9 +529,23 @@ rainbow {
   font-weight: bold;
 }
 
-admin-section > .card{
-  background-color: rgba(224, 38, 38, 0.459);
+admin-section > .card {
+  overflow: hidden;
 }
+
+.rainbow-bg {
+  height: 100%;
+  width: 200%;
+  position: absolute;
+  padding-top: 200%;
+  z-index: -1000;
+  left: -2rem;
+  top: -2rem;
+  background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
+  background-size: 1800% 1800%;
+  animation: rainbow 18s ease infinite;
+}
+
 
 .text-rainbow {
   font-size: 2.5rem;

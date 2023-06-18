@@ -1,4 +1,4 @@
-import * as ethers from './ethers.min.js';
+import * as ethers from '../node_modules/ethers/dist/ethers.js';
 import { abi as Abi } from "./abi.mjs";
 import { waitForCallback, waitForSeconds } from './util.mjs';
 
@@ -80,10 +80,11 @@ export class lidontWeb3API {
     return tx
   }
 
-  async finalizeWithdrawal(signer, requestIds, hints) {
+  async finaliseWithdrawal(signer, requestIds, hints) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("finalizeWithdrawal").call(who, requestIds, hints);
+    console.log(requestIds, hints)
+    const tx = await contract.getFunction("finaliseWithdrawal").call(who, requestIds, hints);
     this.addTx(tx)
   }
 
@@ -118,6 +119,18 @@ export class lidontWeb3API {
 
   async isMinipoolClaimed(signer, address) {
     return await this.contract.connect(signer).minipoolClaimed(address);
+  }
+
+  async getEventsSWAP(){
+    const filter = this.contract.filters.Transfer
+    const events = await this.contract.queryFilter(filter) // (filter, -100) for last 100 blocks range
+    return events
+  }
+
+  async getEventsWITHDRAWALREQUEST(){
+    const filter = this.contract.filters.WithdrawalRequest
+    const events = await this.contract.queryFilter(filter) // (filter, -100) for last 100 blocks range
+    return events
   }
 
 
@@ -158,6 +171,14 @@ export class lidontWeb3API {
 }
 
 
+/* format abis with ethers 
+*/
+export function toHumanReadableAbi(abi){
+  const iface = new ethers.Interface(abi);
+  const formatted = iface.format("full");
+  return formatted
+}
+
 
 export const ERC20Abi = [
   "function name() view returns (string)",
@@ -167,4 +188,16 @@ export const ERC20Abi = [
   "function balanceOf(address arg0) view returns (uint256)",
   "function allowance(address arg0, address arg1) view returns (uint256)",
   "function approve(address _spender, uint256 _value) returns (bool)"
+];
+
+
+export const unstETHAbi = [
+  "function findCheckpointHints(uint256[],uint256,uint256) view returns (uint256[])",
+  "function getWithdrawalRequests(address) view returns (uint256[])",
+  "function getWithdrawalStatus(uint256[]) view returns (tuple(uint256,uint256,address,uint256,bool,bool)[])",
+  "function getLastCheckpointIndex() view returns (uint256)",
+  "function getLastFinalizedRequestId() view returns (uint256)",
+  "function getLastRequestId() view returns (uint256)",
+  "function unfinalizedRequestNumber() view returns (uint256)",
+  "function unfinalizedStETH() view returns (uint256)"
 ];
