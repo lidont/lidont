@@ -38,7 +38,7 @@ function intToHex(number){
   return '0x'+number.toString(16)
 }
 
-
+let intervalIdEmissions = null
 
 // Store
 //
@@ -52,6 +52,7 @@ export const store = createStore(
 
     balances: {},
     balancesBySymbol: {},
+
     // forms 
     // for <input-connected> inputs are mapped to <input name=???> name components & forms
     inputs: {
@@ -66,6 +67,7 @@ export const store = createStore(
     stETHAllowance: undefined,
     rETHAllowance: undefined,
     rETHStakedDetails: {},
+    unstakeReturn: null,
 
     provider: window.ethereum
       ? new ethers.BrowserProvider(window.ethereum)
@@ -96,6 +98,7 @@ export const store = createStore(
     async RELOAD(){
       const { getStake, fetchEvents, updateBalance, updateErc20Balance, getAllowanceRETH, getAllowanceSTETH } = getState()
       //eth
+      if(intervalIdEmissions) clearInterval(intervalIdEmissions)
       await updateBalance() 
       //erc20
       await updateErc20Balance(detailsByChainId[chainIdDefault].steth)
@@ -106,6 +109,10 @@ export const store = createStore(
       // allowances
       await getAllowanceSTETH()
       await getAllowanceRETH()
+      // emission
+      setInterval( () => {
+        getState().claimEmissionStatic()
+      },10000)
     },
 
     async openMenu(){
@@ -159,14 +166,13 @@ export const store = createStore(
         const tx = await stETH.getFunction("approve").call(ownAddress, lidontAddress, amount)
         await lidontWeb3API.addTx(tx)
         await lidontWeb3API.waitUntilTxConfirmed(tx)
-        await waitForSeconds(1)
         await RELOAD()
+        await waitForSeconds(0.5)
       }
 
       RADIO.emit("spinner", "swapping. "+allowance+" sufficient for: "+amount)
       const tx = await lidontWeb3API.swap(signer, amount, alsoStake)
       await lidontWeb3API.waitUntilTxConfirmed(tx)
-      await waitForSeconds(1)
       await RELOAD()
     },
 
@@ -221,16 +227,25 @@ export const store = createStore(
       RADIO.emit("spinner", "rETH staking. "+allowance+" sufficient for: "+amount)
       const tx = await lidontWeb3API.stake(signer, amount)
       await lidontWeb3API.waitUntilTxConfirmed(tx)
-      await waitForSeconds(0.3)
       await RELOAD()
     },
 
     async unstake(){
-      const { provider, inputs, lidontWeb3API } = getState();
+      const { provider, inputs, lidontWeb3API, RELOAD } = getState();
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.rETHAmount, 18)
       RADIO.emit("spinner", "rETH unstaking: "+amount)
-      await lidontWeb3API.unstake(signer, amount)
+      const tx = await lidontWeb3API.unstake(signer, amount)
+      await lidontWeb3API.waitUntilTxConfirmed(tx)
+      await RELOAD()
+    },
+
+    async unstakeStatic(){
+      const { provider, inputs, lidontWeb3API, RELOAD } = getState();
+      const signer = await provider.getSigner();
+      const amount = ethers.parseUnits(inputs.rETHAmount, 18)
+      const res = await lidontWeb3API.unstakeStatic(signer, amount)
+      setState({ unstakeReturn: `${ethers.formatEther(res[0])} stETH & ${ethers.formatEther(res[1])} rETH & ${ethers.formatEther(res[2])} ETH` })
     },
 
     // EMISSION
@@ -240,8 +255,17 @@ export const store = createStore(
       RADIO.emit("spinner", "claiming emission rewards")
       const tx = await lidontWeb3API.claimEmission(signer)
       await lidontWeb3API.waitUntilTxConfirmed(tx)
-      await waitForSeconds(0.3)
       await RELOAD()
+    },
+
+    async claimEmissionStatic(){
+      const { provider, lidontWeb3API, rETHStakedDetails } = getState();
+      const signer = await provider.getSigner();
+      const amount = await lidontWeb3API.claimEmissionStatic(signer)
+      const newState = Object.assign({} , rETHStakedDetails)
+      newState.rewardDebt = amount
+      newState.rewardDebtFormatted = ethers.formatEther(amount)
+      setState({rETHStakedDetails: newState})
     },
 
     async claimMinipool(){

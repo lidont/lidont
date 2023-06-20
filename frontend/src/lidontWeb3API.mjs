@@ -56,12 +56,23 @@ export class lidontWeb3API {
     return tx
   }
 
+  async unstakeStatic(signer, rETHAmount) {
+    const contract = this.contract.connect(signer)
+    return await contract.unstake.staticCall(rETHAmount);
+  }
+
   async claimEmission(signer) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
     const tx = await contract.getFunction("claimEmission").call(who);
     this.addTx(tx)
     return tx
+  }
+
+  async claimEmissionStatic(signer) {
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    return await contract.claimEmission.staticCall();
   }
 
   async claimMinipool(signer, nodeAddress, nodeIndex, index) {
