@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.mjs",
     "scripts": {
-        "serve": "npx http-server"
+        "serve": "npx http-server -a localhost -p 3001"
     },
     "dependencies": {
         "ethers": "6.6.0"
