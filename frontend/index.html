@@ -34,7 +34,7 @@
                 </div>
                 <sub>stETH to rETH</sub>
                 <div class="flex-center">
-                    <icon-comp icon="stETH"></icon-comp><span>&nbsp;▶ </span><icon-comp icon="rETH"></icon-comp>
+                    <icon-comp icon="stETH"></icon-comp>  ♻️  <icon-comp icon="rETH"></icon-comp>
                 </div>
                 <div class="stack flex-center">
                     <input-connected class="flex-7" type="number" placeholder="stETH amount to swap" name="stETHAmount"></input-connected>
@@ -56,16 +56,18 @@
                 </div>
                 <sub>rETH to earn lidont</sub>
                 <div class="flex-center">
-                    <icon-comp icon="rETH"></icon-comp>  ♾️  <span style="font-size: 2.66rem; line-height: 2.33rem"> 🪙 </span>
+                    <icon-comp icon="rETH"></icon-comp>  ♾️ <icon-comp icon="lidont"></icon-comp>
                 </div>
                 <div class="stack flex-center">
-                    <input-connected class="flex-7" type="number" placeholder="rETH amount to stake" name="rETHAmount"></input-connected>
+                    <input-connected class="flex-7" debounceAction="unstakeStatic" type="number" placeholder="rETH amount to (un)stake" name="rETHAmount"></input-connected>
                     <button-connected class="flex-right" data-action="stake">Stake rETH</button-connected>
                 </div>
                 <div class="stack flex-center">
-                    <sub>Staked:<value-connected data-format="toFixed" data-path="rETHStakedDetails.stakeFormatted"></value-connected> rETH</sub>
-                    <button-connected class="flex-right" data-action="unstake">Unstake rETH</button-connected>
+                    <sub class="flex-left">Unstake: <value-connected data-path="unstakeReturn"></value-connected></sub>
+                    <button-connected class="flex-right" data-action="unstake">Unstake</button-connected>
                 </div>
+                <br/>
+                <sub class="flex-right">Staked:<value-connected data-format="toFixed" data-path="rETHStakedDetails.stakeFormatted"></value-connected> rETH</sub>
                 
             </div>
 
@@ -84,6 +86,7 @@
                 <div class="flex flex-right">
                     <sub>Claimable: <value-connected data-node="rainbow" data-path="rETHStakedDetails.rewardDebtFormatted" ></value-connected></sub>
                 </div>
+                <!--button-connected class="flex-right" data-action="claimEmissionStatic">update</button-connected-->
             </div>
 
 
@@ -98,13 +101,25 @@
                 </div>
                 <br/>
                 <div class="flex flex-right">
-                    <sub>Claimable: <rainbow>21000000</rainbow></sub>
+                    <sub>Claimable: <rainbow>2.100.000</rainbow></sub>
+                </div>
+            </div>
+
+            <div>
+                <div class="stack flex-around">
+                    <sub>An Initiative by:</sub>
+                </div>
+                <div class="stack flex-center">
+                    <icon-comp large icon="evm"></icon-comp>
+                    &
+                    <icon-comp large icon="rocketlion"></icon-comp>
                 </div>
             </div>
 
             <div class="flex flex-around text-light">
-                <h2>SAVE THE ETHEREUM NETWORK</h2>
+                <h2>save the ethereum network</h2>
             </div>
+
 
             <logger-radio></logger-radio>
         </div>
