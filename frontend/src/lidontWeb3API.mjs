@@ -1,4 +1,4 @@
-import * as ethers from '../node_modules/ethers/dist/ethers.js';
+import * as ethers from './ethers.js';
 import { abi as Abi } from "./abi.mjs";
 import { waitForCallback, waitForSeconds } from './util.mjs';
 

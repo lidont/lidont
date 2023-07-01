@@ -9,9 +9,10 @@
 </head>
 
 <body>
-    <div class="hidden">1.0.0</div>
     <main>
+        <sub class="text-light">alpha-55</sub>
         <div class="container">
+            
             <div class="nav">
                 <button-connected class="icon flex-left pointer" icon data-action="openMenu">🍔</button-connected>
                 <div class="stack">
@@ -26,7 +27,7 @@
             <hr/>
             <div class="card">
                 <div class="flex flex-between">
-                    <span>SWAP</span>
+                    <span class="text-big">SWAP</span>
                     <div>
                         <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.stETH.balance"></value-connected>  stETH</sub>
                         <sub>Allowance: <value-connected data-format="formatDecimals" data-path="stETHAllowance"></value-connected> stETH</sub>
@@ -48,7 +49,7 @@
             <hr />
             <div class="card">
                 <div class="flex flex-between">
-                    <span>STAKE</span>
+                    <span class="text-big">STAKE</span>
                     <div>
                         <sub>Balance: <value-connected data-format="toFixed" data-path="balancesBySymbol.rETH.balanceFormatted"></value-connected> rETH</sub>
                         <sub>Allowance: <value-connected data-format="formatDecimals" data-path="rETHAllowance"></value-connected> rETH</sub>
@@ -75,7 +76,7 @@
             <hr />
             <div class="card">
                 <div class="flex flex-between">
-                    <span>EMISSION</span>
+                    <span class="text-big">EMISSION</span>
                     <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.LIDONT.balance"></value-connected> LIDONT</sub>
                 </div>
                 <sub>lidont emission rewards</sub>
@@ -93,7 +94,7 @@
             <hr />
             <div class="card">
                 <div class="flex flex-between">
-                    <span>MINIPOOL</span>
+                    <span class="text-big">MINIPOOLS</span>
                 </div>
                 <sub>lidont minipool rewards</sub>
                 <div class="flex flex-around">
