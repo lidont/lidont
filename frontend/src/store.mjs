@@ -1,4 +1,4 @@
-import * as ethers from '../node_modules/ethers/dist/ethers.js';
+import * as ethers from './ethers.js';
 import { createStore, RADIO, log, waitForSeconds} from "./util.mjs";
 import { unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 
@@ -109,10 +109,10 @@ export const store = createStore(
       // allowances
       await getAllowanceSTETH()
       await getAllowanceRETH()
-      // emission
+      // emission auto-loading
       setInterval( () => {
         getState().claimEmissionStatic()
-      },10000)
+      },30000) // check every 30s
     },
 
     async openMenu(){
@@ -245,7 +245,7 @@ export const store = createStore(
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.rETHAmount, 18)
       const res = await lidontWeb3API.unstakeStatic(signer, amount)
-      setState({ unstakeReturn: `${ethers.formatEther(res[0])} stETH & ${ethers.formatEther(res[1])} rETH & ${ethers.formatEther(res[2])} ETH` })
+      setState({ unstakeReturn: `${ethers.formatEther(res[0])} stETH + ${ethers.formatEther(res[1])} rETH + ${ethers.formatEther(res[2])} ETH` })
     },
 
     // EMISSION

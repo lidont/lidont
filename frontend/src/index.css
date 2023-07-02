@@ -335,6 +335,10 @@ logger-radio > div > sub{
   color: var(--color-dark)
 }
 
+.text-big {
+  font-size: 1.5rem;
+}
+
 
 /* 6 Components - (actual components, the meat, buttons etc.) */
 

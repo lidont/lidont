@@ -1,5 +1,5 @@
 import { store } from "./store.mjs";
-import * as ethers from '../node_modules/ethers/dist/ethers.js';
+import * as ethers from './ethers.js';
 import { formatDisplayAddr, RADIO, RAINBOWS, debounce } from "./util.mjs";
  
 
@@ -248,7 +248,7 @@ customElements.define("admin-section", class extends HTMLElement {
           <div class="rainbow-bg"></div>
         </div>
         <div class="flex flex-between">
-            <span>🧛 WITHDRAW</span>
+            <span class="text-big">🧛 WITHDRAW</span>
             <div>
                 <sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub>
             </div>
@@ -271,7 +271,7 @@ customElements.define("admin-section", class extends HTMLElement {
           <div class="rainbow-bg"></div>
         </div>
         <div class="flex flex-between">
-            <span>🚀 MINT </span>
+            <span class="text-big">🚀 MINT </span>
             <div>
                 <sub>Balance in Contract: <value-connected data-format="formatDecimals" data-path="balanceOfLidontETH"></value-connected> ETH available to mint</sub>
             </div>
@@ -280,7 +280,7 @@ customElements.define("admin-section", class extends HTMLElement {
         <div class="flex-center">
         </div>
         <div class="stack flex-center">
-            <button-connected class="flex-right" data-action="swap">Mint rETH Contract Reserves</button-connected>
+            <button-connected class="flex-right" data-action="swap">Mint rETH</button-connected>
         </div>
         
     </div>
