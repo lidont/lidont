@@ -31,6 +31,9 @@ interface UnstETH:
   def requestWithdrawals(_amounts: DynArray[uint256, MAX_LIDO_REQUESTS], _owner: address) -> DynArray[uint256, MAX_LIDO_REQUESTS]: nonpayable
   def claimWithdrawals(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]): nonpayable
 
+interface OutputPipe:
+  def receive(_who: address, _lidontAmount: uint256): payable
+
 stakedEther: immutable(ERC20)
 unstETH: immutable(UnstETH)
 
@@ -95,11 +98,15 @@ def _transfer(_from: address, _to: address, _amount: uint256) -> bool:
 def transfer(_to: address, _value: uint256) -> bool:
   return self._transfer(msg.sender, _to, _value)
 
+@internal
+def _approve(_owner: address, _spender: address, _value: uint256) -> bool:
+  self.allowance[_owner][_spender] = _value
+  log Approval(_owner, _spender, _value)
+  return True
+
 @external
 def approve(_spender: address, _value: uint256) -> bool:
-  self.allowance[msg.sender][_spender] = _value
-  log Approval(msg.sender, _spender, _value)
-  return True
+  return self._approve(msg.sender, _spender, _value)
 
 @external
 def transferFrom(_from: address, _to: address, _value: uint256) -> bool:
@@ -151,12 +158,12 @@ def claim(output: address) -> (uint256, uint256):
   etherAmount: uint256 = min(self.balance, self.pendingEther[msg.sender])
   assert 0 < etherAmount, "unavailable"
   self.pendingEther[msg.sender] -= etherAmount
-  send(output, etherAmount)
   lidontAmount: uint256 = 0
   if self.pendingEther[msg.sender] == 0:
     lidontAmount = self.pendingLidont[msg.sender]
-    assert self._transfer(empty(address), output, lidontAmount)
     self.pendingLidont[msg.sender] = 0
+  self._approve(empty(address), output, lidontAmount)
+  OutputPipe(output).receive(msg.sender, lidontAmount, value=etherAmount)
   log Claim(msg.sender, output, etherAmount, lidontAmount)
   return (etherAmount, lidontAmount)
 
