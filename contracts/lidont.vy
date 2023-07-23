@@ -4,8 +4,7 @@ MAX_LIDO_REQUESTS: constant(uint8) = 80 # maximum requestIds within a withdrawal
 MAX_LIDO_WITHDRAWAL: constant(uint256) = 1000 * (10 ** 18) # maximum size of a requestId
 
 MAX_REQUESTS: constant(uint8) = 32 # maximum number of stETH withdrawals a caller of finaliseWithdrawal can process at a time
-STAKING_EMISSION: constant(uint256) = 1 # amount of LIDONT emitted per staked rETH per block
-MINIPOOL_REWARD: constant(uint256) = 2100000 * (10 ** 18) # amount of atto-LIDONT emitted per minipool claim
+LIDONT_REWARD: constant(uint256) = 1 # amount of LIDONT rewarded per atto-stETH withdrawn through this contract
 
 interface ERC20:
   def name() -> String[64]: view
@@ -28,39 +27,15 @@ event Approval:
   _spender: indexed(address)
   _value: uint256
 
-interface RocketStorage:
-  def getAddress(_key: bytes32) -> address: view
-  def getNodeWithdrawalAddress(_nodeAddress: address) -> address: view
-
-interface RocketMinipoolManager:
-  def getMinipoolCount() -> uint256: view
-  def getMinipoolAt(_index: uint256) -> address: view
-  def getNodeMinipoolAt(_nodeAddress: address, _index: uint256) -> address: view
-
-interface RocketDepositPool:
-  def deposit(): payable
-
-interface RocketEther:
-  def getRethValue(_ethAmount: uint256) -> uint256: view
-
 interface UnstETH:
   def requestWithdrawals(_amounts: DynArray[uint256, MAX_LIDO_REQUESTS], _owner: address) -> DynArray[uint256, MAX_LIDO_REQUESTS]: nonpayable
   def claimWithdrawals(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]): nonpayable
 
-interface Minipool:
-  def getStatus() -> uint8: view
-Staking: constant(uint8) = 2
-Withdrawable: constant(uint8) = 3
-
-rocketStorage: immutable(RocketStorage)
-rocketDepositPoolKey: constant(bytes32) = keccak256("contract.addressrocketDepositPool")
-rocketMinipoolManagerKey: constant(bytes32) = keccak256("contract.addressrocketMinipoolManager")
-rocketEtherKey: constant(bytes32) = keccak256("contract.addressrocketTokenRETH")
-rocketEther: immutable(ERC20)
 stakedEther: immutable(ERC20)
 unstETH: immutable(UnstETH)
 
 # ERC20 functions
+
 name: public(constant(String[64])) = "Lidont Staked to Rocket Ether Ratchet"
 symbol: public(constant(String[8])) = "LIDONT"
 decimals: public(constant(uint8)) = 18
@@ -68,30 +43,41 @@ totalSupply: public(uint256)
 balanceOf: public(HashMap[address, uint256])
 allowance: public(HashMap[address, HashMap[address, uint256]])
 
-# Staked rETH accounting
-struct StakeDetails:
-  stake: uint256 # amount of atto-rETH considered staked
-                 # staking rETH increments this number
-                 # unstaking reduces this number, but
-                 # what is actually returned depends on calculated stake-share
-  rewardDebt: uint256 # amount of atto-LIDONT rewards owed
-  lastClaimBlock: uint256 # block for which rewardDebt is current
+# Rewards and claims tracking
 
-stakedReth: public(HashMap[address, StakeDetails])
-totalStakedReth: public(uint256)
+pendingLidont: public(HashMap[address, uint256])
+pendingEther: public(HashMap[address, uint256])
 
-# Minipool rewards accounting
-rewardMinipoolsFromIndex: public(immutable(uint256))
-minipoolClaimed: public(HashMap[address, bool])
+# Output pipes
+
+admin: public(address)
+validOutput: public(HashMap[address, bool])
+
+event ChangeAdmin:
+  oldAdmin: indexed(address)
+  newAdmin: indexed(address)
+
+event SetOutput:
+  output: indexed(address)
+  valid: indexed(bool)
 
 @external
-def __init__(rocketStorageAddress: address, stETHAddress: address, unstETHAddress: address):
-  rocketStorage = RocketStorage(rocketStorageAddress)
-  rocketEther = ERC20(rocketStorage.getAddress(rocketEtherKey))
+def __init__(stETHAddress: address, unstETHAddress: address):
   stakedEther = ERC20(stETHAddress)
   unstETH = UnstETH(unstETHAddress)
-  rewardMinipoolsFromIndex = RocketMinipoolManager(rocketStorage.getAddress(rocketMinipoolManagerKey)).getMinipoolCount()
-  self.minipoolClaimed[empty(address)] = True
+  self.admin = msg.sender
+
+@external
+def changeAdmin(newAdmin: address):
+  assert msg.sender == self.admin, "auth"
+  self.admin = newAdmin
+  log ChangeAdmin(msg.sender, newAdmin)
+
+@external
+def setValidOutput(output: address, valid: bool):
+  assert msg.sender == self.admin, "auth"
+  self.validOutput[output] = valid
+  log SetOutput(output, valid)
 
 # ERC20 functions
 
@@ -125,22 +111,9 @@ def transferFrom(_from: address, _to: address, _value: uint256) -> bool:
     self.allowance[_from][_to] = unsafe_sub(allowanceFrom, _value)
   return transferred
 
-# internal functions for minting LIDONT, and staking and unstaking rETH
-
-@internal
-def forceSend(_to: address, _amount: uint256) -> bool:
-  # gas=0 should prevent any action on receipt, and hence any chance of reentrancy
-  return raw_call(_to, b"", value=_amount, gas=0, revert_on_failure=False)
+# internal LIDONT minting
 
 event Mint:
-  amount: indexed(uint256)
-
-event Stake:
-  who: indexed(address)
-  amount: indexed(uint256)
-
-event Unstake:
-  who: indexed(address)
   amount: indexed(uint256)
 
 @internal
@@ -149,110 +122,45 @@ def _mint(amount: uint256):
   self.balanceOf[empty(address)] += amount
   log Mint(amount)
 
-@internal
-def _addRewardDebt(who: address):
-  blocks: uint256 = block.number - self.stakedReth[who].lastClaimBlock
-  amount: uint256 = blocks * self.stakedReth[who].stake * STAKING_EMISSION
-  self._mint(amount)
-  self.stakedReth[who].rewardDebt += amount
-  self.stakedReth[who].lastClaimBlock = block.number
-
-@internal
-def _stake(who: address, amount: uint256):
-  self._addRewardDebt(who)
-  self.stakedReth[who].stake += amount
-  self.totalStakedReth += amount
-  log Stake(who, amount)
-
-@internal
-def _unstake(who: address, amount: uint256):
-  self._addRewardDebt(who)
-  self.stakedReth[who].stake -= amount
-  self.totalStakedReth -= amount
-  log Unstake(who, amount)
-
 # Main mechanisms:
-# - swap stETH for staked rETH
-# - deposit (stake) rETH for staked rETH
-# - withdraw (unstake) staked rETH
-# - claim LIDONT rewards for staked rETH
-# - claim LIDONT for a minipool
+# - deposit stETH for (pending) ETH
+# - claim pending rewards and ether
 
-event Swap:
+event Deposit:
   who: indexed(address)
-  stakedEther: indexed(uint256)
-  rocketEther: indexed(uint256)
+  amount: indexed(uint256)
 
-event ClaimMinipool:
+event Claim:
   who: indexed(address)
-  node: indexed(address)
-  minipool: indexed(address)
-
-event ClaimEmission:
-  who: indexed(address)
-  lidont: indexed(uint256)
+  output: indexed(address)
+  etherAmount: uint256
+  lidontAmount: uint256
 
 @external
-def swap(stETHAmount: uint256, stake: bool):
-  rETHAmount: uint256 = RocketEther(rocketEther.address).getRethValue(stETHAmount)
+def deposit(stETHAmount: uint256):
   assert stakedEther.transferFrom(msg.sender, self, stETHAmount), "stETH transfer failed"
-  log Swap(msg.sender, stETHAmount, rETHAmount)
-  if stake:
-    self._stake(msg.sender, rETHAmount)
-  else:
-    assert rocketEther.transfer(msg.sender, rETHAmount), "rETH transfer failed"
+  self.pendingEther[msg.sender] += stETHAmount
+  rewardAmount: uint256 = stETHAmount * LIDONT_REWARD
+  self._mint(rewardAmount)
+  self.pendingLidont[msg.sender] += rewardAmount
+  log Deposit(msg.sender, stETHAmount)
 
 @external
-def stake(rETHAmount: uint256):
-  assert rocketEther.transferFrom(msg.sender, self, rETHAmount), "rETH transfer failed"
-  self._stake(msg.sender, rETHAmount)
+def claim(output: address) -> (uint256, uint256):
+  assert self.validOutput[output], "invalid"
+  etherAmount: uint256 = min(self.balance, self.pendingEther[msg.sender])
+  assert 0 < etherAmount, "unavailable"
+  self.pendingEther[msg.sender] -= etherAmount
+  send(output, etherAmount)
+  lidontAmount: uint256 = 0
+  if self.pendingEther[msg.sender] == 0:
+    lidontAmount = self.pendingLidont[msg.sender]
+    assert self._transfer(empty(address), output, lidontAmount)
+    self.pendingLidont[msg.sender] = 0
+  log Claim(msg.sender, output, etherAmount, lidontAmount)
+  return (etherAmount, lidontAmount)
 
-@internal
-@pure
-def fracOf(v: uint256, n: uint256, d: uint256) -> uint256:
-  return (v * n) / d
-
-@external
-def unstake(rETHAmount: uint256) -> (uint256, uint256, uint256):
-  withdrawN: uint256 = rETHAmount
-  withdrawD: uint256 = self.totalStakedReth
-  self._unstake(msg.sender, rETHAmount)
-  stETH: uint256 = self.fracOf(stakedEther.balanceOf(self), withdrawN, withdrawD)
-  rETH: uint256 = self.fracOf(rocketEther.balanceOf(self), withdrawN, withdrawD)
-  ETH: uint256 = self.fracOf(self.balance, withdrawN, withdrawD)
-  assert stakedEther.transfer(msg.sender, stETH), "stETH transfer failed"
-  assert rocketEther.transfer(msg.sender, rETH), "rETH transfer failed"
-  assert self.forceSend(msg.sender, ETH), "ETH transfer failed"
-  return stETH, rETH, ETH
-
-@external
-def claimEmission() -> uint256:
-  self._addRewardDebt(msg.sender)
-  amount: uint256 = self.stakedReth[msg.sender].rewardDebt
-  self._transfer(empty(address), msg.sender, amount)
-  self.stakedReth[msg.sender].rewardDebt = 0
-  log ClaimEmission(msg.sender, amount)
-  return amount
-
-@external
-def claimMinipool(nodeAddress: address, nodeIndex: uint256, index: uint256):
-  assert (msg.sender == rocketStorage.getNodeWithdrawalAddress(nodeAddress) or
-          msg.sender == nodeAddress), "auth"
-  rocketMinipoolManager: RocketMinipoolManager = RocketMinipoolManager(rocketStorage.getAddress(rocketMinipoolManagerKey))
-  minipool: address = rocketMinipoolManager.getNodeMinipoolAt(nodeAddress, nodeIndex)
-  assert rocketMinipoolManager.getMinipoolAt(index) == minipool, "index"
-  assert rewardMinipoolsFromIndex <= index, "old"
-  minipoolStatus: uint8 = Minipool(minipool).getStatus()
-  assert minipoolStatus == Staking or minipoolStatus == Withdrawable, "not staking"
-  assert not self.minipoolClaimed[minipool], "claimed"
-  self._mint(MINIPOOL_REWARD)
-  self._transfer(empty(address), msg.sender, MINIPOOL_REWARD)
-  self.minipoolClaimed[minipool] = True
-  log ClaimMinipool(msg.sender, nodeAddress, minipool)
-
-# Manage this contract's stETH and rETH balances:
-# - withdraw ETH for stETH
-# - mint rETH with ETH
+# Manage Lido withdrawals
 
 event WithdrawalRequest:
   requestIds: DynArray[uint256, MAX_LIDO_REQUESTS]
@@ -275,8 +183,3 @@ def initiateWithdrawal(stETHAmount: uint256) -> DynArray[uint256, MAX_LIDO_REQUE
 @external
 def finaliseWithdrawal(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]):
   unstETH.claimWithdrawals(_requestIds, _hints)
-
-@external
-def mintRocketEther(ethAmount: uint256):
-  depositPool: RocketDepositPool = RocketDepositPool(rocketStorage.getAddress(rocketDepositPoolKey))
-  depositPool.deposit(value = ethAmount)
