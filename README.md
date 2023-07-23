@@ -22,7 +22,7 @@ This can only be claimed by the registered Rocket Pool node account, or its Rock
 (The indices can be computed by the frontend.)
 
 
-## _private: Withdraw stETH from Lido
+## Withdraw stETH from Lido
 `initiateWithdrawal(stETHAmount: uint256) → uint256[]`: request withdrawal of the Lidont contract's stETH from Lido, sending the stETH to Lido's withdrawal contract.
 
 Fails if `stETHAmount` exceeds the Lidont contract's stETH balance, or is too large for a single Lido withdrawal (> 80000 stETH).
