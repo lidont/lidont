@@ -32,56 +32,31 @@ export class lidontWeb3API {
   // Writes
   //
 
-  async swap(signer, stETHAmount, stake) {
+  async deposit(signer, stETHAmount) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("swap").call(who, stETHAmount, stake);
+    const tx = await contract.getFunction("deposit").call(who, stETHAmount);
     this.addTx(tx)
     return tx
   }
 
-  async stake(signer, rETHAmount) {
+  async claim(signer, outputAddress) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("stake").call(who, rETHAmount);
+    const tx = await contract.getFunction("claim").call(who, outputAddress);
     this.addTx(tx)
-    return tx
   }
 
-  async unstake(signer, rETHAmount) {
-    const who = await signer.getAddress()
-    const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("unstake").call(who, rETHAmount);
-    this.addTx(tx)
-    return tx
-  }
-
-  async unstakeStatic(signer, rETHAmount) {
-    const contract = this.contract.connect(signer)
-    return await contract.unstake.staticCall(rETHAmount);
-  }
-
-  async claimEmission(signer) {
-    const who = await signer.getAddress()
-    const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("claimEmission").call(who);
-    this.addTx(tx)
-    return tx
-  }
-
-  async claimEmissionStatic(signer) {
-    const who = await signer.getAddress()
-    const contract = this.contract.connect(signer)
-    return await contract.claimEmission.staticCall();
-  }
-
-  async claimMinipool(signer, nodeAddress, nodeIndex, index) {
+  /*async claimMinipool(signer, nodeAddress, nodeIndex, index) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
     const tx = await contract.getFunction("claimMinipool").call(who, nodeAddress, nodeIndex, index);
     this.addTx(tx)
     return tx
-  }
+  }*/
+
+  // Manage Lido Withdrawals
+  //
 
   async initiateWithdrawal(signer, stETHAmount) {
     const who = await signer.getAddress()
@@ -100,11 +75,24 @@ export class lidontWeb3API {
     this.addTx(tx)
   }
 
-  async mintRocketEther(signer, ethAmount) {
+
+  // Output Pipes / Admin
+  //
+
+  async changeAdmin(signer, newAdminAddress){
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("mintRocketEther").call(who, ethAmount);
+    const tx = await contract.getFunction("changeAdmin").call(who, newAdminAddress);
     this.addTx(tx)
+    return tx
+  }
+
+  async setValidOutput(signer, outputAddress, isValid){
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    const tx = await contract.getFunction("setValidOutput").call(who, outputAddress, isValid);
+    this.addTx(tx)
+    return tx
   }
 
 
@@ -119,12 +107,6 @@ export class lidontWeb3API {
     return await this.contract.connect(signer).allowance(owner, spender);
   }
 
-  async getStakedRETH(signer, address) {
-    const contract = this.contract.connect(signer)
-    // stake, rewardDebt, lastClaimBlock
-    return await contract.stakedReth(address);
-  }
-
   async getRewardMinipoolsFromIndex(signer) {
     return await this.contract.connect(signer).rewardMinipoolsFromIndex();
   }
@@ -132,6 +114,8 @@ export class lidontWeb3API {
   async isMinipoolClaimed(signer, address) {
     return await this.contract.connect(signer).minipoolClaimed(address);
   }
+
+  // Events
 
   async getEventsSWAP(){
     const filter = this.contract.filters.Transfer
