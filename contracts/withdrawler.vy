@@ -1,30 +1,10 @@
 # @version 0.3.8
 
-MAX_LIDO_WITHDRAWAL: constant(uint256) = 1000 * (10 ** 18) # maximum size of a requestId
-
 MAX_REQUESTS: constant(uint256) = 32 # maximum number of requestIds to process at a time
-LIDONT_REWARD: constant(uint256) = 1 # amount of LIDONT rewarded per atto-stETH withdrawn through this contract
 
 interface ERC20:
-  def name() -> String[64]: view
-  def symbol() -> String[8]: view
-  def decimals() -> uint8: view
-  def totalSupply() -> uint256: view
-  def balanceOf(_owner: address) -> uint256: view
-  def transfer(_to: address, _value: uint256) -> bool: nonpayable
   def transferFrom(_from: address, _to: address, _value: uint256) -> bool: nonpayable
   def approve(_spender: address, _value: uint256) -> bool: nonpayable
-  def allowance(_owner: address, _spender: address) -> uint256: view
-
-event Transfer:
-  _from: indexed(address)
-  _to: indexed(address)
-  _value: uint256
-
-event Approval:
-  _owner: indexed(address)
-  _spender: indexed(address)
-  _value: uint256
 
 interface UnstETH:
   def requestWithdrawals(_amounts: DynArray[uint256, MAX_REQUESTS], _owner: address) -> DynArray[uint256, MAX_REQUESTS]: nonpayable
@@ -129,6 +109,8 @@ event Claim:
 def deposit(stETHAmount: uint256, outputPipe: address):
   assert self.validOutput[outputPipe], "invalid pipe"
   assert 0 < stETHAmount, "no deposit"
+  # TODO: assert stETHAmount is not too big for a single Lido withdrawal request
+  # and the total withdrawal amount is also not too big (if that is Lido-limited)
   assert stakedEther.transferFrom(msg.sender, self, stETHAmount), "stETH transfer failed"
   assert self.deposits[msg.sender].outputPipe == empty(address) or (
            self.deposits[msg.sender].outputPipe == outputPipe and
@@ -159,7 +141,8 @@ def initiateWithdrawal(depositors: DynArray[address, MAX_REQUESTS]) -> DynArray[
   return requestIds
 
 @external
-def finaliseWithdrawal(depositors: DynArray[address, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]):
+def finaliseWithdrawal(depositors: DynArray[address, MAX_REQUESTS],
+                       _hints: DynArray[uint256, MAX_REQUESTS]) -> DynArray[uint256, MAX_REQUESTS]:
   requestIds: DynArray[uint256, MAX_REQUESTS] = []
   for depositor in depositors:
     requestIds.append(self.deposits[depositor].requestId)
@@ -168,13 +151,17 @@ def finaliseWithdrawal(depositors: DynArray[address, MAX_REQUESTS], _hints: DynA
   for i in range(MAX_REQUESTS):
     if i == len(claimAmounts): break
     self.deposits[depositors[i]].ETH = claimAmounts[i]
+  return claimAmounts
 
 @external
-def claim():
+def claim() -> uint256:
   recipient: address = self._popQueue()
   output: address = self.deposits[recipient].outputPipe
+  assert output != empty(address), "not deposited" # TODO: impossible?
   amount: uint256 = self.deposits[recipient].ETH
+  assert 0 < amount, "not finalised"
   OutputPipe(output).receive(recipient, value=amount)
   self.deposits[recipient].ETH = 0
   self.deposits[recipient].outputPipe = empty(address)
   log Claim(recipient, output, amount)
+  return amount
