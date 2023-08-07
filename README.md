@@ -46,4 +46,4 @@ These functions can only be called by the current `admin` account.
 `changeAdmin(address newAdmin)`: change the admin account to `newAdmin`.
 
 ## Add/remove a valid output pipe
-`setValidOutput(address output, bool valid)`: set the validity of address `output` as an output pipe, according to whether `valid` is true (valid) or false (invalid). A valid output pipe should be a smart contract implementing a function `receive(address user) payable` that receives ether for `user` and processes them.
+`toggleValidOutput(address output)`: toggle the validity of address `output` as an output pipe. A valid output pipe should be a smart contract implementing a function `receive(address user) payable` that receives ether for `user`, and which will regularly have Lidont minted directly into its balance.

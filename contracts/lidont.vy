@@ -21,14 +21,11 @@ event Approval:
   _spender: indexed(address)
   _value: uint256
 
-interface Withdrawler:
-  def validOutput(outputPipe: address) -> bool: view
-
-withdrawler: immutable(Withdrawler)
+minter: immutable(address)
 
 @external
-def __init__(withdrawlerAddress: address):
-  withdrawler = Withdrawler(withdrawlerAddress)
+def __init__(m: address):
+  minter = m
 
 # ERC20 functions
 
@@ -78,8 +75,8 @@ event Mint:
   recipient: indexed(address)
 
 @external
-def mint(amount: uint256):
-  assert withdrawler.validOutput(msg.sender), "auth"
+def mint(amount: uint256, recipient: address):
+  assert msg.sender == minter, "auth"
   self.totalSupply += amount
-  self.balanceOf[msg.sender] += amount
-  log Mint(amount, msg.sender)
+  self.balanceOf[recipient] += amount
+  log Mint(amount, recipient)

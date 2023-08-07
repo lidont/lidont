@@ -1,8 +1,9 @@
 # @version 0.3.8
 
 MAX_REQUESTS: constant(uint256) = 32 # maximum number of requestIds to process at a time
+MAX_OUTPUT_PIPES: constant(uint256) = 32
 
-interface ERC20:
+interface StETH:
   def transferFrom(_from: address, _to: address, _value: uint256) -> bool: nonpayable
   def approve(_spender: address, _value: uint256) -> bool: nonpayable
 
@@ -11,11 +12,15 @@ interface UnstETH:
   def getClaimableEther(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]) -> DynArray[uint256, MAX_REQUESTS]: view
   def claimWithdrawals(_requestIds: DynArray[uint256, MAX_REQUESTS], _hints: DynArray[uint256, MAX_REQUESTS]): nonpayable
 
+interface Lidont:
+  def mint(amount: uint256, recipient: address): nonpayable
+
 interface OutputPipe:
   def receive(_who: address): payable
 
-stakedEther: immutable(ERC20)
+stakedEther: immutable(StETH)
 unstETH: immutable(UnstETH)
+lidont: public(Lidont)
 
 # Claims tracking
 
@@ -58,7 +63,11 @@ def _popQueue() -> address:
 # Output pipes
 
 admin: public(address)
-validOutput: public(HashMap[address, bool])
+outputIndex: public(HashMap[address, uint256]) # 0 is invalid, otherwise 1+index in outputPipes
+outputPipes: public(DynArray[address, MAX_OUTPUT_PIPES])
+
+emissionPerBlock: public(uint256)
+lastRewardBlock: public(HashMap[address, uint256])
 
 event ChangeAdmin:
   oldAdmin: indexed(address)
@@ -68,9 +77,13 @@ event SetOutputValidity:
   output: indexed(address)
   valid: indexed(bool)
 
+event ChangeEmission:
+  oldEmissionPerBlock: indexed(uint256)
+  newEmissionPerBlock: indexed(uint256)
+
 @external
 def __init__(stETHAddress: address, unstETHAddress: address):
-  stakedEther = ERC20(stETHAddress)
+  stakedEther = StETH(stETHAddress)
   unstETH = UnstETH(unstETHAddress)
   self.admin = msg.sender
 
@@ -81,10 +94,56 @@ def changeAdmin(newAdmin: address):
   log ChangeAdmin(msg.sender, newAdmin)
 
 @external
-def setValidOutput(output: address, valid: bool):
+def setLidont(lidontAddress: address):
   assert msg.sender == self.admin, "auth"
-  self.validOutput[output] = valid
-  log SetOutputValidity(output, valid)
+  self.lidont = Lidont(lidontAddress)
+
+@internal
+def _updatePendingRewardsFor(output: address):
+  # assert 0 < self.outputIndex[output], "assume the caller checks this"
+  unclaimedBlocks: uint256 = block.number - self.lastRewardBlock[output]
+  self.lastRewardBlock[output] = block.number
+  if 0 < unclaimedBlocks:
+    self.lidont.mint(unclaimedBlocks * self.emissionPerBlock, output)
+
+@internal
+def _updatePendingRewards():
+  for output in self.outputPipes:
+    self._updatePendingRewardsFor(output)
+
+@external
+def triggerEmission(output: address):
+  assert 0 < self.outputIndex[output], "invalid output pipe"
+  self._updatePendingRewardsFor(output)
+
+@external
+def toggleValidOutput(output: address):
+  assert msg.sender == self.admin, "auth"
+  newValidity: bool = self.outputIndex[output] == 0
+  if not newValidity:
+    self._updatePendingRewardsFor(output)
+  for i in range(MAX_OUTPUT_PIPES):
+    if newValidity and self.outputPipes[i] == empty(address):
+      self.outputPipes[i] = output
+      self.outputIndex[output] = unsafe_add(i, 1)
+      break
+    elif not newValidity and self.outputPipes[i] == output:
+      self.outputPipes[i] = empty(address)
+      self.outputIndex[output] = 0
+      break
+  if newValidity:
+    if self.outputIndex[output] == 0:
+      self.outputPipes.append(output)
+      self.outputIndex[output] = len(self.outputPipes)
+    self.lastRewardBlock[output] = block.number
+  log SetOutputValidity(output, newValidity)
+
+@external
+def changeEmissionRate(newEmissionPerBlock: uint256):
+  assert msg.sender == self.admin, "auth"
+  self._updatePendingRewards()
+  log ChangeEmission(self.emissionPerBlock, newEmissionPerBlock)
+  self.emissionPerBlock = newEmissionPerBlock
 
 # Main mechanisms:
 # - deposit stETH for (pending) ETH
@@ -107,7 +166,7 @@ event Claim:
 
 @external
 def deposit(stETHAmount: uint256, outputPipe: address):
-  assert self.validOutput[outputPipe], "invalid pipe"
+  assert 0 < self.outputIndex[outputPipe], "invalid pipe"
   assert 0 < stETHAmount, "no deposit"
   # TODO: assert stETHAmount is not too big for a single Lido withdrawal request
   # and the total withdrawal amount is also not too big (if that is Lido-limited)
