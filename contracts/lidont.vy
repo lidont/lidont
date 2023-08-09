@@ -78,5 +78,6 @@ event Mint:
 def mint(amount: uint256, recipient: address):
   assert msg.sender == minter, "auth"
   self.totalSupply += amount
-  self.balanceOf[recipient] += amount
+  self.balanceOf[empty(address)] += amount
+  self.allowance[empty(address)][recipient] += amount
   log Mint(amount, recipient)
