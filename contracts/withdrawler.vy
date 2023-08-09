@@ -126,6 +126,7 @@ def toggleValidOutput(output: address):
   if not newValidity:
     self._updatePendingRewardsFor(output)
   for i in range(MAX_OUTPUT_PIPES):
+    if i == len(self.outputPipes): break
     if newValidity and self.outputPipes[i] == empty(address):
       self.outputPipes[i] = output
       self.outputIndex[output] = unsafe_add(i, 1)
