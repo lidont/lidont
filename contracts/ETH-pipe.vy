@@ -54,6 +54,12 @@ event Stake:
 event Unstake:
   user: indexed(address)
   amount: indexed(uint256)
+  reward: indexed(uint256)
+
+@internal
+def forceSend(_to: address, _amount: uint256) -> bool:
+  # gas=0 should prevent any action on receipt, and hence any chance of reentrancy
+  return raw_call(_to, b"", value=_amount, gas=0, revert_on_failure=False)
 
 @internal
 def _stake(user: address, amount: uint256):
@@ -72,9 +78,10 @@ def _unstake(user: address, amount: uint256):
   reward: uint256 = self._reward(user, amount)
   self.totalStake -= amount
   self.stakes[user].amount -= amount
+  assert self.forceSend(user, amount), "send"
+  log Unstake(user, amount, reward)
   if reward == 0: return
   assert rewardToken.transfer(user, reward), "transfer"
-  log Unstake(user, amount)
 
 @internal
 @view
