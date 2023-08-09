@@ -21,14 +21,8 @@ struct StakedBond:
 stakes: public(HashMap[address, StakedBond])
 totalStake: public(uint256)
 
-interface Withdrawler:
-  def triggerEmission(output: address): nonpayable
-
-withdrawler: immutable(Withdrawler)
-
 @external
-def __init__(withdrawlerAddress: address, rewardTokenAddress: address):
-  withdrawler = Withdrawler(withdrawlerAddress)
+def __init__(rewardTokenAddress: address):
   rewardToken = RewardToken(rewardTokenAddress)
   precision = 10 ** convert(rewardToken.decimals(), uint256)
   self.bondValue = initialBondValue
