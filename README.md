@@ -1,38 +1,43 @@
 # Lidont
 Incentivise withdrawing stETH from Lido with Lidont reward tokens.
 
-# Contract functionality
-Lidont is an [ERC-20](https://eips.ethereum.org/EIPS/eip-20) compliant token contract.
-In addition to the standard ERC-20 functionality, it implements the following mechanisms.
+# Withdrawler Contract functionality
+
+The withdrawler receives stETH deposits and sends the ETH withdrawn from Lido to the selected output pipe.
 
 ## Deposit stETH
-`deposit(uint256 stETHAmount)`: deposit Lido Staked Ether (stETH) into the Lidont contract to be withdrawn from Lido, and mint Lidont rewards that become claimable when your withdrawn ether becomes available.
+`deposit(uint256 stETHAmount, address outputPipe)`: deposit Lido Staked Ether (stETH) to be unstaked from Lido and select `outputPipe` as the destination for the withdrawn ETH.
 
-Fails if the Lidont contract is not approved for the transfer of at least `stETHAmount` stETH from your account.
+Fails if `outputPipe` is not a valid output pipe (see [Output Pipes](#output-pipes)).
 
-## Claim output
-`claim(address output) → (uint256 etherAmount, uint256 lidontAmount)`: claim pending withdrawn ETH and LIDONT rewards, sending them both to the output pipe at address `output`. The Lidont tokens are sent only if there would be no pending ether left to be claimed by the caller after this call. Returns the amount of ether and Lidont claimed, so that this can be previewed via static call.
+Fails if the withdrawler is not approved for the transfer of at least `stETHAmount` stETH from the sender.
 
-Fails if `output` is not the address of a valid output pipe (see [Output Pipes](#output-pipes)), or if it is not possible to claim any ether (either because there is no ether in the Lidont contract, or there is no pending ether to be claimed by the caller).
-
-# Processing Lido Withdrawals
-Anyone can call these functions and pay the gas to convert the Lidont contract's stETH into ETH.
+Fails if there are already too many (32) pending deposits that have not yet been unstaked.
 
 ## Initiate Lido withdrawal
-`initiateWithdrawal(stETHAmount: uint256) → uint256[]`: request withdrawal of the Lidont contract's stETH from Lido, sending the stETH to Lido's withdrawal contract.
+`initiateWithdrawal(address[] depositors) → uint256[] requestIds`: request unstaking the stETH from Lido for each of the `depositors`.
 
-Fails if `stETHAmount` exceeds the Lidont contract's stETH balance, or is too large for a single Lido withdrawal (> 80000 stETH).
+The array of `requestIds` from Lido is returned and also included in the emitted log `WithdrawalRequest(uint256[] requestIds, address[] depositors, uint256[] requestAmounts)`.
 
-Respecting Lido limitations, if `stETHAmount` (in atto-stETH) is larger than 1000 stETH, the request is broken up into (up to 80) requests of size 1000 stETH.
-The array of requestIds from Lido is returned and also included in the emitted log `WithdrawalRequest(uint256 indexed stETHamount, uint256[] requestIds)`.
+Fails if any of the `depositors` does not have a stETH deposit that is waiting to be unstaked.
 
 ## Finalise Lido withdrawal
-`finaliseWithdrawal(uint256[] requestIds, uint256[] hints)`: finalise the withdrawal with Lido, receiving ETH into the Lidont contract.
+`finaliseWithdrawal(address[] depositors, uint256[] hints) → uint256[] amounts`: finalise the Lido withdrawal for each of the `depositors`, receiving the sum of the `amounts` of ETH into the withdrawler.
 
-Fails if a withdrawal is not yet ready to finalise.
+The `hints` (computed by the frontend) are provided via static call by Lido given the `depositors`' `requestId`s.
 
-A maximum of 32 requestIds can be processed at a time by `finaliseWithdrawal`.
-(The `requestIds` and `hints` can be computed by the frontend.)
+Fails if any of the `depositors` does not have an open withdrawal `requestId`.
+
+A maximum of 32 requests can be processed at a time.
+
+## Claim output
+`claim() → uint256`: claim pending withdrawn ETH, sending it via the chosen output pipe, for the next depositor.
+
+Depositors' claims are processed in the order of their deposits.
+
+Fails if there is no pending depositor, or if the next depositor's stETH has not yet been withdrawn and finalised.
+
+Returns the amount of ETH sent, which is also recorded in the emitted log `Claim(address recipient, address outputPipe, uint256 amount)`.
 
 # Output Pipes
 These functions can only be called by the current `admin` account.
@@ -41,4 +46,9 @@ These functions can only be called by the current `admin` account.
 `changeAdmin(address newAdmin)`: change the admin account to `newAdmin`.
 
 ## Add/remove a valid output pipe
-`setValidOutput(address output, bool valid)`: set the validity of address `output` as an output pipe, according to whether `valid` is true (valid) or false (invalid). A valid output pipe should be a smart contract implementing a function `receive(address user, uint256 lidontAmount) payable` that receives ether and Lidont rewards for `user` and processes them. The `receive` function can expect `lidontAmount` of Lidont to be approved for transfer from the null address during its call.
+`toggleValidOutput(address output)`: toggle the validity of address `output` as an output pipe.
+
+# Output Pipe Functionality
+A valid output pipe should be a smart contract implementing the following functions:
+  - `receive(address user) payable`: receives ether for `user`.
+  - `receiveReward(address from, uint256 amount) nonpayable`: signals availability of `amount` Lidont rewards (which can be transferred from `from`).

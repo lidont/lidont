@@ -20,6 +20,16 @@ def main():
     else:
         deployer = accounts[0]
     network = network.removesuffix('-fork')
-    args = addresses[network].values()
-    deployed = project.lidont.deploy(*args, sender=deployer)
+    addr = addresses[network]
+    withdrawler = project.withdrawler.deploy(
+            addr['stETHAddress'], addr['unstETHAddress'], sender=deployer)
+    lidont = project.lidont.deploy(withdrawler.address, sender=deployer)
+    withdrawler.setLidont(lidont.address, sender=deployer)
+    ethPipe = project._get_attr('ETH-pipe').deploy(
+            lidont.address, sender=deployer)
+    rethPipe = project._get_attr('rETH-pipe').deploy(
+            lidont.address, addr['rocketStorageAddress'], sender=deployer)
+    withdrawler.toggleValidOutput(ethPipe.address, sender=deployer)
+    withdrawler.toggleValidOutput(rethPipe.address, sender=deployer)
+
     IPython.embed()
