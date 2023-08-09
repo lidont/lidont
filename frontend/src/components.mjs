@@ -35,13 +35,12 @@ customElements.define("icon-comp", class extends HTMLElement {
       data = '/logo_rocketlion.png'
     }
 
-
     this.innerHTML = `<img class="img-icon ${isLarge ? "icon-large": ""}" src="${data}"/>`;
   }
 }
 );
 
-// store this input value in the store
+// store an input value in the store
 //
 customElements.define("input-connected", class extends HTMLElement {
   constructor() {
@@ -152,6 +151,8 @@ customElements.define("button-connected",class extends HTMLElement {
 
   }
 );
+
+
 
 
 // Specialized Components
@@ -276,11 +277,11 @@ customElements.define("admin-section", class extends HTMLElement {
                 <sub>Balance in Contract: <value-connected data-format="formatDecimals" data-path="balanceOfLidontETH"></value-connected> ETH available to mint</sub>
             </div>
         </div>
-        <sub>ETH to rETH</sub>
+        <sub>choose your output pipe</sub>
         <div class="flex-center">
         </div>
         <div class="stack flex-center">
-            <button-connected class="flex-right" data-action="swap">Mint rETH</button-connected>
+            <button-connected class="flex-right" data-action="swap">Mint</button-connected>
         </div>
         
     </div>
