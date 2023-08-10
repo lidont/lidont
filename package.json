@@ -1,0 +1,14 @@
+{
+    "name": "lidont",
+    "version": "1.0.0",
+    "description": "",
+    "main": "src/index.mjs",
+    "scripts": {
+        "serve::fe": "npx http-server -o frontend -a localhost -p 3001",
+        "install::ape": "pip install -U pip && pip install eth-ape"
+        
+    },
+    "dependencies": {
+        "ethers": "6.6.0"
+    }
+}
