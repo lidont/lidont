@@ -26,6 +26,14 @@ def lidont(project, accounts, withdrawler):
     withdrawler.setLidont(lidont.address, sender=accounts[0])
     return lidont
 
+@pytest.fixture(scope="session")
+def ETH_pipe(project, lidont, accounts):
+    return project._get_attr('ETH-pipe').deploy(lidont.address, sender=accounts[0])
+
+@pytest.fixture(scope="session")
+def rETH_pipe(project, lidont, accounts):
+    return project._get_attr('rETH-pipe').deploy(lidont.address, sender=accounts[0])
+
 def test_lidont_symbol_decimals(lidont):
     assert lidont.symbol() == 'LIDONT'
     assert lidont.decimals() == 18
@@ -36,3 +44,8 @@ def test_cannot_deposit_no_pipe(withdrawler, accounts):
     assert withdrawler.outputIndex(arbitraryPipe) == 0
     with reverts("invalid pipe"):
         withdrawler.deposit(1, arbitraryPipe, sender=accounts[0])
+
+def test_toggle_pipe_makes_valid(withdrawler, ETH_pipe, accounts):
+    assert withdrawler.outputIndex(ETH_pipe.address) == 0
+    withdrawler.toggleValidOutput(ETH_pipe.address, sender=accounts[0])
+    assert withdrawler.outputIndex(ETH_pipe.address) == 1
