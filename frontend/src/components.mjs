@@ -1,6 +1,6 @@
 import { store } from "./store.mjs";
 import * as ethers from './ethers.js';
-import { formatDisplayAddr, RADIO, RAINBOWS, debounce, html } from "./util.mjs";
+import { formatDisplayAddr, RADIO, RAINBOWS, debounce, html, shallowCompare } from "./util.mjs";
 import { lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
@@ -234,7 +234,7 @@ customElements.define("button-connect-wallet", class extends HTMLElement {
       })
     }
     render(address){
-      this.innerHTML = `
+      this.innerHTML = html`
         <button-connected data-action="INIT">${!address ? "Connect" : formatDisplayAddr(address)}</button-connected>
       `;
     }
@@ -242,6 +242,40 @@ customElements.define("button-connect-wallet", class extends HTMLElement {
     attributeChangedCallback() { this.render(); }
   }
 );
+
+
+customElements.define("button-deposit", class extends HTMLElement {
+  constructor() {
+    super();
+    let prevValue = {} // only re-render when value changed
+    store.subscribe( () => {
+      const state = store.getState()
+      if(!shallowCompare(prevValue, state.inputs)){ return }
+      if(shallowCompare(prevValue, state.inputs)){ 
+        prevValue = state.inputs
+        return this.render()
+      }
+    })
+  }
+  render(){
+    const state = store.getState()
+    const pipe = state.inputs && state.inputs.selectedOutputPipe
+    const amount = state.inputs && state.inputs.stETHAmount
+    if(!amount || !pipe || parseFloat(amount) <= 0){
+      return this.innerHTML = html`
+        <button-connected disabled large class="disabled vampire--off flex-center" data-action="deposit">🧛</button-connected>
+      `;
+    }
+    this.innerHTML = html`
+      <button-connected large class="vampire flex-center" data-action="deposit">🧛</button-connected>
+      <sup>receive ${pipe} - stake for lidont & bribes*</sup>
+    `;
+  }
+  connectedCallback() { this.render(); }
+  attributeChangedCallback() { this.render(); }
+}
+);
+
 
 
 // execute custom action and conditional rendering

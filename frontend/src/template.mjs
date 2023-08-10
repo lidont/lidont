@@ -4,13 +4,14 @@ import { RADIO, html } from "./util.mjs";
 
 const template = html`
 <main>
+<logger-radio></logger-radio>
 <sub class="text-light">beta-1</sub>
 <div class="container">
     <div class="nav">
         <div class="stack">
             <button-connected class="icon flex-left pointer openMenu" icon data-action="openMenu">🍔</button-connected>
             <button-connect-wallet class="flex-right"></button-connect-wallet>
-            <span class="flex-right force-center pill"><value-connected hidden data-format="formatDecimals" data-path="balance">&nbsp; ETH</value-connected></span>
+            <span class="flex-right force-center pill"><value-connected data-format="formatDecimals" data-path="balance"></value-connected>&nbsp; ETH</span>
         </div>
     </div>
     <div class="flex-center"><img class="logo" src="logo2.png" /></div>
@@ -45,7 +46,7 @@ const template = html`
         <sub>3. After withdraw cycle your LST is staked to earn rewards:</sub>
         <hr/>
         <div class="stack flex-center">
-            <button-connected large class="vampire flex-center" data-action="deposit">🧛</button-connected>
+            <button-deposit></button-deposit>
         </div>
         
     </div>
@@ -107,9 +108,6 @@ const template = html`
     <div class="flex flex-around text-light">
         <h2>save the ethereum network</h2>
     </div>
-
-
-    <logger-radio></logger-radio>
 </div>
 </main>
 `

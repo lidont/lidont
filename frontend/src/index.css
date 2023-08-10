@@ -246,13 +246,20 @@ input[type=checkbox] {
 logger-radio {
   position: fixed;
   right: 2rem;
-  bottom: -1rem;
+  top: -1.25rem;
 }
 
 logger-radio > div > sub{
   color: var(--color-light) !important;
 }
 
+sup {
+  font-size: 1rem;
+}
+
+button-deposit {
+  width: 100%;
+}
 
 /* 5 Objects (you are allowed to use classes from here on) 
 
@@ -579,6 +586,12 @@ logger-radio > div > sub{
 .vampire {
   transform: translatey(0px);
 	animation: float 6s ease-in-out infinite;
+}
+
+.vampire--off {
+  transform: none;
+	animation: none;
+  filter: grayscale();
 }
 
 /* 7 util - (IDs etc, here you can use !important and dirty hacks)*/

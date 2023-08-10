@@ -35,7 +35,7 @@ export class lidontWeb3API {
   async deposit(signer, stETHAmount, outputPipeAddr) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("Deposit").call(who, stETHAmount, outputPipeAddr);
+    const tx = await contract.getFunction("deposit").call(who, stETHAmount, outputPipeAddr);
     this.addTx(tx)
     return tx
   }
@@ -43,7 +43,7 @@ export class lidontWeb3API {
   async claim(signer) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("Claim").call(who);
+    const tx = await contract.getFunction("claim").call(who);
     this.addTx(tx)
     return tx
   }
@@ -131,6 +131,12 @@ export class lidontWeb3API {
     return events
   }
 
+  async getEventsWITHDRAWALREQUEST(){
+    const filter = this.contract.filters.WITHDRAWALREQUEST
+    const events = await this.contract.queryFilter(filter) // (filter, -100) for last 100 blocks range
+    return events
+  }
+
 
   // Transaction Queue
   //
@@ -199,3 +205,6 @@ export const unstETHAbi = [
   "function unfinalizedRequestNumber() view returns (uint256)",
   "function unfinalizedStETH() view returns (uint256)"
 ];
+
+
+export const outputPipeAbi = []
