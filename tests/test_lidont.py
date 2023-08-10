@@ -29,3 +29,10 @@ def lidont(project, accounts, withdrawler):
 def test_lidont_symbol_decimals(lidont):
     assert lidont.symbol() == 'LIDONT'
     assert lidont.decimals() == 18
+
+def test_cannot_deposit_no_pipe(withdrawler, accounts):
+    import secrets
+    arbitraryPipe = f'0x{secrets.token_hex(20)}'
+    assert withdrawler.outputIndex(arbitraryPipe) == 0
+    with reverts("invalid pipe"):
+        withdrawler.deposit(1, arbitraryPipe, sender=accounts[0])
