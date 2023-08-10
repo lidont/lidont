@@ -1,4 +1,4 @@
-from ape import reverts
+from ape import reverts, Contract
 import pytest
 
 addresses = dict(mainnet =
@@ -14,9 +14,20 @@ addresses = dict(mainnet =
                  )
 
 @pytest.fixture(scope="session")
-def withdrawler(project, networks, accounts):
+def addr(networks):
     network = networks.provider.network.name.removesuffix('-fork')
-    addr = addresses[network]
+    return addresses[network]
+
+@pytest.fixture(scope="session")
+def stETH(addr):
+    return Contract(addr['stETHAddress'])
+
+@pytest.fixture(scope="session")
+def unstETH(addr):
+    return Contract(addr['unstETHAddress'])
+
+@pytest.fixture(scope="session")
+def withdrawler(project, addr, accounts):
     return project.withdrawler.deploy(
             addr['stETHAddress'], addr['unstETHAddress'], sender=accounts[0])
 
@@ -49,3 +60,26 @@ def test_toggle_pipe_makes_valid(withdrawler, ETH_pipe, accounts):
     assert withdrawler.outputIndex(ETH_pipe.address) == 0
     withdrawler.toggleValidOutput(ETH_pipe.address, sender=accounts[0])
     assert withdrawler.outputIndex(ETH_pipe.address) == 1
+
+@pytest.fixture(scope="session")
+def ETH_pipe_added(withdrawler, ETH_pipe, accounts):
+    withdrawler.toggleValidOutput(ETH_pipe.address, sender=accounts[0])
+    return ETH_pipe
+
+@pytest.fixture(scope="session")
+def rETH_pipe_added(withdrawler, rETH_pipe, accounts):
+    withdrawler.toggleValidOutput(rETH_pipe.address, sender=accounts[0])
+    return ETH_pipe
+
+def test_cannot_deposit_no_amount(withdrawler, ETH_pipe_added, accounts):
+    with reverts("no deposit"):
+        withdrawler.deposit(0, ETH_pipe_added.address, sender=accounts[0])
+
+def test_cannot_deposit_not_approved(withdrawler, ETH_pipe_added, accounts):
+    with reverts("stETH transfer failed"):
+        withdrawler.deposit(1, ETH_pipe_added.address, sender=accounts[0])
+
+def test_cannot_deposit_no_balance(withdrawler, stETH, ETH_pipe_added, accounts):
+    stETH.approve(withdrawler.address, 1, sender=accounts[0])
+    with reverts("stETH transfer failed"):
+        withdrawler.deposit(1, ETH_pipe_added.address, sender=accounts[0])
