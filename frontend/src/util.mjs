@@ -1,3 +1,5 @@
+export const html = (strings, ...values) => String.raw({ raw: strings }, ...values);
+
 /*
     zustand state management library
     zustand/vanilla is a agnostic state management library with no dependencies

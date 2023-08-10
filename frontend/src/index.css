@@ -109,6 +109,22 @@ html[data-theme="dark"] {
 }
 
 
+@keyframes float {
+	0% {
+		box-shadow: 0 5px 15px 0px rgba(0, 0, 0, 0.3);
+		transform: translatey(0px);
+	}
+	50% {
+		box-shadow: 0 25px 15px 0px rgba(0,0,0,0.1);
+		transform: translatey(-20px);
+	}
+	100% {
+		box-shadow: 0 5px 15px 0px rgba(0,0,0,0.3);
+		transform: translatey(0px);
+	}
+}
+
+
 
 /* 3 Generic */
 
@@ -177,8 +193,8 @@ h2 {
 }
 
 sub {
-  font-size: 1rem;
-  font-weight: 200;
+  font-size: 1.25rem;
+  font-weight: 300;
   display: flex;
   gap: 0.5rem;
   line-height: 1rem;
@@ -349,7 +365,7 @@ logger-radio > div > sub{
 
 .container {
   max-width: 800px;
-  padding: 2rem;
+  padding: 0rem 2rem;
   display: block;
   position: relative;
   width: 100%;
@@ -361,6 +377,7 @@ logger-radio > div > sub{
   display: flex;
   gap: 1rem;
   padding: 0.5rem 0rem;
+  width: 100%;
 }
 
 .nav {
@@ -394,15 +411,34 @@ logger-radio > div > sub{
   line-height: 2rem;
 }
 
+.radio--icon {
+  pointer-events: none;
+  filter: grayscale();
+}
+
+.radio--icon--input {
+  opacity: 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 5rem;
+  height: 5rem;
+  position: absolute;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.radio--icon--selected {
+  filter: none !important;
+}
+
 .img-icon {
   margin: 0 auto;
-  height: 100%;
-  max-height: 50px;
+  height: 3rem;
   margin: 0rem 0.5rem;
 }
 
-.icon-large {
-  max-height: 80px;
+.icon--large {
+  height: 5rem;
 }
 
 .button {
@@ -410,7 +446,7 @@ logger-radio > div > sub{
   padding: 0.5rem 0.25rem;
   display: flex;
   width: 220px;
-  max-height: 2.5rem;
+  height: 2.5rem;
   line-height: 1.5rem;
   border: none;
   outline: none;
@@ -422,6 +458,17 @@ logger-radio > div > sub{
   border-radius: var(--radius);
   font-size: 1rem;
 }
+
+.button--large {
+  width: 100%;
+  height: 6rem;
+}
+
+.button--large > span {
+  font-size: 6rem;
+  line-height: 2rem;
+}
+
 
 
 .button:before {
@@ -470,7 +517,12 @@ logger-radio > div > sub{
   border-radius: 10px;
 }
 
+.openMenu {
+  margin-top: 0.25rem;
+}
+
 .card {
+  overflow: hidden;
   padding: 1rem 1rem;
   margin-bottom: 2rem;
   border-radius: var(--radius);
@@ -488,6 +540,11 @@ logger-radio > div > sub{
 
 .logo {
   max-height: 128px;
+}
+
+.spin {
+  animation: spin 16s linear infinite;
+  line-height: 0rem;
 }
 
 .spinner {
@@ -519,7 +576,10 @@ logger-radio > div > sub{
   border-radius: 10px;
 }
 
-
+.vampire {
+  transform: translatey(0px);
+	animation: float 6s ease-in-out infinite;
+}
 
 /* 7 util - (IDs etc, here you can use !important and dirty hacks)*/
 
