@@ -6,126 +6,18 @@
     <title>lidont</title>
     <link rel="stylesheet" type="text/css" href="src/index.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/favicon/site.webmanifest">
+    <link rel="mask-icon" href="/favicon/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#2b5797">
+    <meta name="theme-color" content="#ffffff">
 </head>
 
 <body>
-    <main>
-        <sub class="text-light">alpha-55</sub>
-        <div class="container">
-            
-            <div class="nav">
-                <button-connected class="icon flex-left pointer" icon data-action="openMenu">🍔</button-connected>
-                <div class="stack">
-                    <button-connect-wallet class="flex-right"></button-connect-wallet>
-                    <span class="flex-right force-center pill"><value-connected data-format="formatDecimals" data-path="balance"></value-connected>&nbsp;ETH</span>
-                </div>
-            </div>
-            <div class="flex-center"><img class="logo" src="logo2.png" /></div>
-
-            <admin-section></admin-section>
-
-            <hr/>
-            <div class="card">
-                <div class="flex flex-between">
-                    <span class="text-big">SWAP</span>
-                    <div>
-                        <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.stETH.balance"></value-connected>  stETH</sub>
-                        <sub>Allowance: <value-connected data-format="formatDecimals" data-path="stETHAllowance"></value-connected> stETH</sub>
-                    </div>
-                </div>
-                <sub>stETH to rETH</sub>
-                <div class="flex-center">
-                    <icon-comp icon="stETH"></icon-comp>  ♻️  <icon-comp icon="rETH"></icon-comp>
-                </div>
-                <div class="stack flex-center">
-                    <input-connected class="flex-7" type="number" placeholder="stETH amount to swap" name="stETHAmount"></input-connected>
-                    <input-connected class="flex-center" label="stake rETH?" type="checkbox" name="checkboxAlsoStake"></input-connected>
-                    <button-connected class="flex-right" data-action="swap">Swap stETH</button-connected>
-                </div>
-                
-            </div>
-    
-
-            <hr />
-            <div class="card">
-                <div class="flex flex-between">
-                    <span class="text-big">STAKE</span>
-                    <div>
-                        <sub>Balance: <value-connected data-format="toFixed" data-path="balancesBySymbol.rETH.balanceFormatted"></value-connected> rETH</sub>
-                        <sub>Allowance: <value-connected data-format="formatDecimals" data-path="rETHAllowance"></value-connected> rETH</sub>
-                    </div>
-                </div>
-                <sub>rETH to earn lidont</sub>
-                <div class="flex-center">
-                    <icon-comp icon="rETH"></icon-comp>  ♾️ <icon-comp icon="lidont"></icon-comp>
-                </div>
-                <div class="stack flex-center">
-                    <input-connected class="flex-7" debounceAction="unstakeStatic" type="number" placeholder="rETH amount to (un)stake" name="rETHAmount"></input-connected>
-                    <button-connected class="flex-right" data-action="stake">Stake rETH</button-connected>
-                </div>
-                <div class="stack flex-center">
-                    <sub class="flex-left">Unstake: <value-connected data-path="unstakeReturn"></value-connected></sub>
-                    <button-connected class="flex-right" data-action="unstake">Unstake</button-connected>
-                </div>
-                <br/>
-                <sub class="flex-right">Staked:<value-connected data-format="toFixed" data-path="rETHStakedDetails.stakeFormatted"></value-connected> rETH</sub>
-                
-            </div>
-
-
-            <hr />
-            <div class="card">
-                <div class="flex flex-between">
-                    <span class="text-big">EMISSION</span>
-                    <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.LIDONT.balance"></value-connected> LIDONT</sub>
-                </div>
-                <sub>lidont emission rewards</sub>
-                <div class="flex flex-around">
-                    <button-connected data-action="claimEmission">Claim Emission</button-connected>
-                </div>  
-                <br/>
-                <div class="flex flex-right">
-                    <sub>Claimable: <value-connected data-node="rainbow" data-path="rETHStakedDetails.rewardDebtFormatted" ></value-connected></sub>
-                </div>
-                <!--button-connected class="flex-right" data-action="claimEmissionStatic">update</button-connected-->
-            </div>
-
-
-            <hr />
-            <div class="card">
-                <div class="flex flex-between">
-                    <span class="text-big">MINIPOOLS</span>
-                </div>
-                <sub>lidont minipool rewards</sub>
-                <div class="flex flex-around">
-                    <button-connected data-action="claimMinipool">Claim Rewards</button-connected>
-                </div>
-                <br/>
-                <div class="flex flex-right">
-                    <sub>Claimable: <rainbow>2.100.000</rainbow></sub>
-                </div>
-            </div>
-
-            <div>
-                <div class="stack flex-around">
-                    <sub>An Initiative by:</sub>
-                </div>
-                <div class="stack flex-center">
-                    <icon-comp large icon="evm"></icon-comp>
-                    &
-                    <icon-comp large icon="rocketlion"></icon-comp>
-                </div>
-            </div>
-
-            <div class="flex flex-around text-light">
-                <h2>save the ethereum network</h2>
-            </div>
-
-
-            <logger-radio></logger-radio>
-        </div>
-    </main>
-
+    <template-main></template-main>
+    <template-admin></template-admin>   
     <script type="module">
         import "./src/index.mjs";
     </script>

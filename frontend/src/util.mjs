@@ -1,3 +1,5 @@
+export const html = (strings, ...values) => String.raw({ raw: strings }, ...values);
+
 /*
     zustand state management library
     zustand/vanilla is a agnostic state management library with no dependencies
@@ -200,6 +202,14 @@ export const debounce = (callback, wait = 1000) => {
   };
 }
 
+
+// shallow compare objects
+//
+export const shallowCompare = (obj1, obj2) =>
+  Object.keys(obj1).length === Object.keys(obj2).length &&
+  Object.keys(obj1).every(key => 
+    obj2.hasOwnProperty(key) && obj1[key] === obj2[key]
+  );
 
 // stupid rainbow effect, replacing text
 //

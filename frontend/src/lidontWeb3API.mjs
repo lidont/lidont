@@ -32,115 +32,107 @@ export class lidontWeb3API {
   // Writes
   //
 
-  async swap(signer, stETHAmount, stake) {
+  async deposit(signer, stETHAmount, outputPipeAddr) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("swap").call(who, stETHAmount, stake);
+    const tx = await contract.getFunction("deposit").call(who, stETHAmount, outputPipeAddr);
     this.addTx(tx)
     return tx
   }
 
-  async stake(signer, rETHAmount) {
+  async claim(signer) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("stake").call(who, rETHAmount);
+    const tx = await contract.getFunction("claim").call(who);
     this.addTx(tx)
     return tx
   }
 
-  async unstake(signer, rETHAmount) {
+  // Manage Lido Withdrawals
+  //
+
+  async initiateWithdrawal(signer, depositorsAddressArray) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("unstake").call(who, rETHAmount);
-    this.addTx(tx)
+    const tx = await contract.getFunction("initiateWithdrawal").call(who, depositorsAddressArray);
+    await this.addTx(tx)
     return tx
   }
 
-  async unstakeStatic(signer, rETHAmount) {
-    const contract = this.contract.connect(signer)
-    return await contract.unstake.staticCall(rETHAmount);
-  }
-
-  async claimEmission(signer) {
+  async finaliseWithdrawal(signer, depositorsAddressArray, hints) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("claimEmission").call(who);
-    this.addTx(tx)
-    return tx
-  }
-
-  async claimEmissionStatic(signer) {
-    const who = await signer.getAddress()
-    const contract = this.contract.connect(signer)
-    return await contract.claimEmission.staticCall();
-  }
-
-  async claimMinipool(signer, nodeAddress, nodeIndex, index) {
-    const who = await signer.getAddress()
-    const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("claimMinipool").call(who, nodeAddress, nodeIndex, index);
-    this.addTx(tx)
-    return tx
-  }
-
-  async initiateWithdrawal(signer, stETHAmount) {
-    const who = await signer.getAddress()
-    const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("initiateWithdrawal").call(who, stETHAmount);
-    this.addTx(tx)
-    return tx
-  }
-
-  async finaliseWithdrawal(signer, requestIds, hints) {
-    const who = await signer.getAddress()
-    const contract = this.contract.connect(signer)
-    console.log("requestIds: ", requestIds)
+    console.log("depositorsAddresses: ", depositorsAddressArray)
     console.log("hints: ", hints)
-    const tx = await contract.getFunction("finaliseWithdrawal").call(who, requestIds, hints);
-    this.addTx(tx)
+    const tx = await contract.getFunction("finaliseWithdrawal").call(who, depositorsAddressArray, hints);
+    await this.addTx(tx)
+    return tx
   }
 
-  async mintRocketEther(signer, ethAmount) {
+
+  // Output Pipes / Admin
+  //
+
+  async triggerEmission(signer, outputAddress){
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("mintRocketEther").call(who, ethAmount);
-    this.addTx(tx)
+    const tx = await contract.getFunction("triggerEmission").call(who, outputAddress);
+    await this.addTx(tx)
+    return tx
   }
 
 
   // Reads
   //
-  async getStake(signer, who) {
-    return await this.contract.connect(signer).getStake(who);
+
+  async getDeposits(signer, who){ 
+    return await this.contract.connect(signer).deposits(who);
   }
 
-  async getAllowance(signer, owner, spender) {
-    const who = await signer.getAddress()
-    return await this.contract.connect(signer).allowance(owner, spender);
+  async getQueue(signer, index){ 
+    return await this.contract.connect(signer).queue(index);
   }
 
-  async getStakedRETH(signer, address) {
-    const contract = this.contract.connect(signer)
-    // stake, rewardDebt, lastClaimBlock
-    return await contract.stakedReth(address);
+  async getQueueSize(signer){ 
+    return await this.contract.connect(signer).queueSize();
   }
 
-  async getRewardMinipoolsFromIndex(signer) {
-    return await this.contract.connect(signer).rewardMinipoolsFromIndex();
+  async getQueueFront(signer){ 
+    return await this.contract.connect(signer).queueFront();
   }
 
-  async isMinipoolClaimed(signer, address) {
-    return await this.contract.connect(signer).minipoolClaimed(address);
+  async getQueueBack(signer){ 
+    return await this.contract.connect(signer).queueBack();
   }
 
-  async getEventsSWAP(){
-    const filter = this.contract.filters.Transfer
+  async getOutputIndex(signer, address){ 
+    return await this.contract.connect(signer).outputIndex(address);
+  }
+
+  async getOutputPipes(signer, index){ // 0-64 output pipes max
+    return await this.contract.connect(signer).outputPipes(index);
+  }
+
+  async getEmissionPerBlock(signer){
+    return await this.contract.connect(signer).emissionPerBlock();
+  }
+
+  async getLastRewardBlock(signer, address){ 
+    return await this.contract.connect(signer).lastRewardBlock(address);
+  }
+
+
+
+  // Events
+
+  async getEventsDEPOSIT(){
+    const filter = this.contract.filters.Deposit
     const events = await this.contract.queryFilter(filter) // (filter, -100) for last 100 blocks range
     return events
   }
 
   async getEventsWITHDRAWALREQUEST(){
-    const filter = this.contract.filters.WithdrawalRequest
+    const filter = this.contract.filters.WITHDRAWALREQUEST
     const events = await this.contract.queryFilter(filter) // (filter, -100) for last 100 blocks range
     return events
   }
@@ -213,3 +205,6 @@ export const unstETHAbi = [
   "function unfinalizedRequestNumber() view returns (uint256)",
   "function unfinalizedStETH() view returns (uint256)"
 ];
+
+
+export const outputPipeAbi = []
