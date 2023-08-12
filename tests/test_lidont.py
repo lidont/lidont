@@ -61,12 +61,12 @@ def test_toggle_pipe_makes_valid(withdrawler, ETH_pipe, accounts):
     withdrawler.toggleValidOutput(ETH_pipe.address, sender=accounts[0])
     assert withdrawler.outputIndex(ETH_pipe.address) == 1
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def ETH_pipe_added(withdrawler, ETH_pipe, accounts):
     withdrawler.toggleValidOutput(ETH_pipe.address, sender=accounts[0])
     return ETH_pipe
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def rETH_pipe_added(withdrawler, rETH_pipe, accounts):
     withdrawler.toggleValidOutput(rETH_pipe.address, sender=accounts[0])
     return ETH_pipe
@@ -75,11 +75,22 @@ def test_cannot_deposit_no_amount(withdrawler, ETH_pipe_added, accounts):
     with reverts("no deposit"):
         withdrawler.deposit(0, ETH_pipe_added.address, sender=accounts[0])
 
-def test_cannot_deposit_not_approved(withdrawler, ETH_pipe_added, accounts):
+@pytest.fixture(scope="function")
+def have_stETH(stETH, accounts):
+    return stETH.submit(accounts[0], value='6942069420 gwei', sender=accounts[0])
+
+def test_cannot_deposit_not_approved(withdrawler, have_stETH, ETH_pipe_added, accounts):
     with reverts("ALLOWANCE_EXCEEDED"):
         withdrawler.deposit(1, ETH_pipe_added.address, sender=accounts[0])
 
 def test_cannot_deposit_no_balance(withdrawler, stETH, ETH_pipe_added, accounts):
+    assert stETH.balanceOf(accounts[0]) == 0
     assert stETH.approve(withdrawler.address, 1, sender=accounts[0])
-    with reverts():
+    with reverts("balance"):
         withdrawler.deposit(1, ETH_pipe_added.address, sender=accounts[0])
+
+def test_deposit(withdrawler, stETH, have_stETH, ETH_pipe_added, accounts):
+    amount = 42 * 10 ** 9
+    assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
+    withdrawler.deposit('42 gwei', ETH_pipe_added.address, sender=accounts[0])
+    assert withdrawler.deposits(accounts[0]).stETH == amount
