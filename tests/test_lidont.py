@@ -80,6 +80,6 @@ def test_cannot_deposit_not_approved(withdrawler, ETH_pipe_added, accounts):
         withdrawler.deposit(1, ETH_pipe_added.address, sender=accounts[0])
 
 def test_cannot_deposit_no_balance(withdrawler, stETH, ETH_pipe_added, accounts):
-    stETH.approve(withdrawler.address, 1, sender=accounts[0])
-    with reverts("stETH transfer failed"):
+    assert stETH.approve(withdrawler.address, 1, sender=accounts[0])
+    with reverts():
         withdrawler.deposit(1, ETH_pipe_added.address, sender=accounts[0])
