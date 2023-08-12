@@ -42,7 +42,7 @@ struct DepositData:
 
 deposits: public(HashMap[address, DepositData])
 
-queue: public(DynArray[address, MAX_REQUESTS])
+queue: public(address[MAX_REQUESTS])
 queueSize: public(uint256)
 queueFront: public(uint256)
 queueBack: public(uint256)
