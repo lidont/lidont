@@ -1,4 +1,4 @@
-# @version 0.3.8
+# @version 0.3.9
 
 MAX_REQUESTS: constant(uint256) = 32 # maximum number of requestIds to process at a time
 MAX_OUTPUT_PIPES: constant(uint256) = 32
