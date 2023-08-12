@@ -4,6 +4,7 @@ MAX_REQUESTS: constant(uint256) = 32 # maximum number of requestIds to process a
 MAX_OUTPUT_PIPES: constant(uint256) = 32
 
 interface StETH:
+  def balanceOf(_owner: address) -> uint256: view
   def transferFrom(_from: address, _to: address, _value: uint256) -> bool: nonpayable
   def approve(_spender: address, _value: uint256) -> bool: nonpayable
 
@@ -174,6 +175,7 @@ def deposit(stETHAmount: uint256, outputPipe: address):
   assert 0 < stETHAmount, "no deposit"
   # TODO: assert stETHAmount is not too big for a single Lido withdrawal request
   # and the total withdrawal amount is also not too big (if that is Lido-limited)
+  assert stakedEther.balanceOf(msg.sender) >= stETHAmount, "balance"
   assert stakedEther.transferFrom(msg.sender, self, stETHAmount), "stETH transfer failed"
   assert self.deposits[msg.sender].outputPipe == empty(address) or (
            self.deposits[msg.sender].outputPipe == outputPipe and
