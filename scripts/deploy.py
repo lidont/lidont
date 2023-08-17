@@ -1,6 +1,7 @@
 from ape import accounts, networks, project
-from postDeployFork import postDeployFork
+import scripts.postdeployfork
 import IPython
+
 
 addresses = dict(mainnet =
                  dict(rocketStorageAddress = '0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46',
@@ -34,7 +35,7 @@ def main():
     withdrawler.toggleValidOutput(rethPipe.address, sender=deployer)
 
     """
-        postDeployFork(addr)
+    scripts.postdeployfork.job(addr)
     """
-        
+    
     IPython.embed()
