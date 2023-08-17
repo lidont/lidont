@@ -42,8 +42,9 @@ def ETH_pipe(project, lidont, accounts):
     return project._get_attr('ETH-pipe').deploy(lidont.address, sender=accounts[0])
 
 @pytest.fixture(scope="session")
-def rETH_pipe(project, lidont, accounts):
-    return project._get_attr('rETH-pipe').deploy(lidont.address, sender=accounts[0])
+def rETH_pipe(project, lidont, accounts, addr):
+    return project._get_attr('rETH-pipe').deploy(lidont.address, addr["rocketStorageAddress"], sender=accounts[0])
+
 
 def test_lidont_symbol_decimals(lidont):
     assert lidont.symbol() == 'LIDONT'
@@ -69,7 +70,7 @@ def ETH_pipe_added(withdrawler, ETH_pipe, accounts):
 @pytest.fixture(scope="function")
 def rETH_pipe_added(withdrawler, rETH_pipe, accounts):
     withdrawler.toggleValidOutput(rETH_pipe.address, sender=accounts[0])
-    return ETH_pipe
+    return rETH_pipe
 
 def test_cannot_deposit_no_amount(withdrawler, ETH_pipe_added, accounts):
     with reverts("no deposit"):
@@ -95,20 +96,32 @@ def test_deposit_pipe_ETH(withdrawler, stETH, have_stETH, ETH_pipe_added, accoun
     withdrawler.deposit('42 gwei', ETH_pipe_added.address, sender=accounts[0])
     assert withdrawler.deposits(accounts[0]).stETH == amount
 
-def test_deposit_pipe_ETH_2nd(withdrawler, stETH, have_stETH, ETH_pipe_added, accounts):
+def test_deposit_pipe_rETH(withdrawler, addr, stETH, have_stETH, rETH_pipe_added, accounts):
     amount = 42 * 10 ** 9
     assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
-    withdrawler.deposit('42 gwei', ETH_pipe_added.address, sender=accounts[0])
+    withdrawler.deposit('42 gwei', rETH_pipe_added.address, sender=accounts[0])
     assert withdrawler.deposits(accounts[0]).stETH == amount
 
-def test_initiateWithdrawal(withdrawler, accounts):
+@pytest.fixture(scope="function")
+def deposit_ETH_pipe(accounts, withdrawler, stETH, ETH_pipe_added):
+    amount = 42 * 10 ** 9
+    stETH.approve(withdrawler.address, amount, sender=accounts[0])
+    withdrawler.deposit('42 gwei', ETH_pipe_added.address, sender=accounts[0])
+    withdrawler.deposits(accounts[0]).stETH == amount
+
+def test_cannot_deposit_different_pipe_after_deposit(withdrawler, addr, accounts, stETH, have_stETH, rETH_pipe_added, deposit_ETH_pipe):
+    amount = 42 * 10 ** 9
+    assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
+    with reverts("pending deposit"):
+        withdrawler.deposit('42 gwei', rETH_pipe_added.address, sender=accounts[0])
+
+def test_initiateWithdrawal(withdrawler, addr, accounts, stETH, have_stETH, deposit_ETH_pipe, ETH_pipe_added):
     queueSize = withdrawler.queueSize()
     queue = []
     for x in range(queueSize):
-        print(x)
-        print(withdrawler.queue(x))
-        queue.push(withdrawler.queue(x))
-    print(queueSize)
-    print(queue)
-    requestIds = withdrawler.initiateWithdrawal(queue, sender=accounts[0])
+        queue.append(withdrawler.queue(x))
+    assert queueSize == 1
+    assert queue[0] == "0x1e59ce931B4CFea3fe4B875411e280e173cB7A9C"
+    receipt = withdrawler.initiateWithdrawal(queue, sender=accounts[0])
+    requestIds = receipt.transaction.data
     assert requestIds
