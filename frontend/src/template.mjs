@@ -79,16 +79,15 @@ const template = html`
         <div class="flex flex-between">
             <span class="text-big">Attack</span>
             <div>
-                <sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub>
+                <!--sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub-->
             </div>
         </div>
-        <sub>Withdraw stETH from lido</sub>
-        <div class="flex-center">
-
-        </div>
+        <sub>Deposits:</sub>
+        <value-connected data-path="deposits"></value-connected>
+        <br/>
         <div class="stack flex-center">
-            <input-connected class="flex-7" type="number" placeholder="stETH amount to withdraw" name="stETHWithdrawAmount"></input-connected>
             <button-connected class="flex-center" data-action="initiateWithdrawal">Initiate New Withdrawal</button-connected>
+            <button-connected class="flex-center" data-action="finalizeWithdrawal">FInalize Withdrawal</button-connected>
         </div>
         <hr/>
         <list-pending-withdrawals></list-pending-withdrawals>

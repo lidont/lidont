@@ -18,4 +18,9 @@ import './components.mjs'
 window.RADIO.emit("msg", "App Init!")
 
 
-store.getState().INIT()
+try {
+    store.getState().INIT()
+}
+catch (e) {
+    console.log(e)
+}
