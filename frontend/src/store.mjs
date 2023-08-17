@@ -317,7 +317,7 @@ export const store = createStore(
       const { provider, lidontWeb3API, queue } = getState();
       const signer = await provider.getSigner();
       RADIO.emit("msg", "initiating withdrawal")
-      const tx = await lidontWeb3API.initiateWithdrawal(signer, ["0x7A9ff6896a99a98b3a045Cec727A6828f233C93A"])
+      const tx = await lidontWeb3API.initiateWithdrawal(signer, queue)
       await provider.waitForTransaction(tx.hash)
       await waitForSeconds(0.3)
 
