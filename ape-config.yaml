@@ -1,5 +1,4 @@
 plugins:
-  - name: alchemy
   - name: vyper
   - name: foundry
   - name: etherscan
@@ -9,7 +8,3 @@ ethereum:
     default_provider: foundry
 foundry:
   host: auto
-  fork: 
-    ethereum:
-      mainnet:
-        upstream_provider: https://eth-mainnet.g.alchemy.com/v2/tW-0aCzXQ9VTqcdp6GbOQqJKmttoIG2k
