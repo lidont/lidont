@@ -89,8 +89,26 @@ def test_cannot_deposit_no_balance(withdrawler, stETH, ETH_pipe_added, accounts)
     with reverts("balance"):
         withdrawler.deposit(1, ETH_pipe_added.address, sender=accounts[0])
 
-def test_deposit(withdrawler, stETH, have_stETH, ETH_pipe_added, accounts):
+def test_deposit_pipe_ETH(withdrawler, stETH, have_stETH, ETH_pipe_added, accounts):
     amount = 42 * 10 ** 9
     assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
     withdrawler.deposit('42 gwei', ETH_pipe_added.address, sender=accounts[0])
     assert withdrawler.deposits(accounts[0]).stETH == amount
+
+def test_deposit_pipe_ETH_2nd(withdrawler, stETH, have_stETH, ETH_pipe_added, accounts):
+    amount = 42 * 10 ** 9
+    assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
+    withdrawler.deposit('42 gwei', ETH_pipe_added.address, sender=accounts[0])
+    assert withdrawler.deposits(accounts[0]).stETH == amount
+
+def test_initiateWithdrawal(withdrawler, accounts):
+    queueSize = withdrawler.queueSize()
+    queue = []
+    for x in range(queueSize):
+        print(x)
+        print(withdrawler.queue(x))
+        queue.push(withdrawler.queue(x))
+    print(queueSize)
+    print(queue)
+    requestIds = withdrawler.initiateWithdrawal(queue, sender=accounts[0])
+    assert requestIds

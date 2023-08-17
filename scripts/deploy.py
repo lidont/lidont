@@ -1,4 +1,5 @@
 from ape import accounts, networks, project
+from postDeployFork import postDeployFork
 import IPython
 
 addresses = dict(mainnet =
@@ -32,4 +33,8 @@ def main():
     withdrawler.toggleValidOutput(ethPipe.address, sender=deployer)
     withdrawler.toggleValidOutput(rethPipe.address, sender=deployer)
 
+    """
+        postDeployFork()
+    """
+        
     IPython.embed()

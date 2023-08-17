@@ -6,7 +6,7 @@ import { unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 const chainIdTestnet = 5
 const chainIdMainnet = 1
 
-const isProduction = false
+const isProduction = true
 const chainIdDefault = isProduction ? chainIdMainnet : chainIdTestnet
 
 
@@ -22,9 +22,8 @@ outputPipes[1] = "rETH"
 //
 export const detailsByChainId = {
   1: {
-      withdrawler: "",
-      lidont: "",
-      reth: "",
+      withdrawler: "0x274b028b03A250cA03644E6c578D81f019eE1323",
+      lidont: "0xBcF7FFFD8B256Ec51a36782a52D0c34f6474D951",
       rocketStorage: "0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46",
       steth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
       unsteth: "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
@@ -35,7 +34,6 @@ export const detailsByChainId = {
   5: {
       withdrawler: "0x61c8a978e078a03c671303cc521d31bdd0a4df87",
       lidont: "0x308AF4D8158FCbFc7818dF33dac826E5CADa8740",
-      reth: "0x178E141a0E3b34152f73Ff610437A7bf9B83267A",
       rocketStorage: "0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3",
       steth: "0x1643E812aE58766192Cf7D2Cf9567dF2C37e9B7F",
       unsteth: "0xCF117961421cA9e546cD7f50bC73abCdB3039533",
@@ -52,18 +50,6 @@ function intToHex(number){
 
 let intervalIdEmissions = null
 
-
-// dev: quick get-state log with excludes
-window.gs = () => {
-  const state = Object.assign({}, store.getState())
-  delete state.provider
-  delete state.lidontWeb3API
-  for(const key in state){   // deleta all functions too
-    if(typeof state[key] === "function") delete state[key]
-  }
-  console.table(state)
-  return state
-}
 
 
 // Store
@@ -86,6 +72,10 @@ export const store = createStore(
     outputPipes: {
       // 1: {name: "ETH", addr: "0x0"}
     },
+
+    deposits: null,
+    queue: null,
+    queueDetails: null,
 
     pendingRequests: [],
 
@@ -121,7 +111,7 @@ export const store = createStore(
     },
 
     async RELOAD(){
-      const { getStake, fetchEvents, getOutputPipes, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
+      const { getQueue, getDeposits, getOutputPipes, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
       // eth
       if(intervalIdEmissions) clearInterval(intervalIdEmissions)
       await updateBalance() 
@@ -132,6 +122,8 @@ export const store = createStore(
       await getAllowanceSTETH()
       // pipes
       await getOutputPipes()
+      await getDeposits()
+      await getQueue()
       // emission auto-loading
       /*
       setInterval( () => {
@@ -167,7 +159,32 @@ export const store = createStore(
           break
         }
       }
-      console.log("got all pipes!")
+    },
+
+    async getDeposits(){
+      const { lidontWeb3API } = getState()
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+      const me = await signer.getAddress()
+      const deposits = await lidontWeb3API.getDeposits(signer, me)
+      console.log(deposits)
+      setState({deposits})
+    },
+
+    async getQueue(){
+      const { lidontWeb3API } = getState()
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+      const size = await lidontWeb3API.getQueueSize(signer)
+      const front = await lidontWeb3API.getQueueFront(signer)
+      const back = await lidontWeb3API.getQueueBack(signer)
+      const queue = []
+      for(let index = 0; index < size; index++){
+        const entry = await lidontWeb3API.getQueue(signer, index)
+        queue.push(entry)
+      }
+      setState({queue})
+      setState({queueDetails: {size, front, back}})
     },
 
     async getLidontSTETHBalance(){
@@ -297,15 +314,13 @@ export const store = createStore(
     },
 
     async initiateWithdrawal(){
-      const { provider, inputs, lidontWeb3API, balanceOfLidontSTETH } = getState();
+      const { provider, lidontWeb3API, queue } = getState();
       const signer = await provider.getSigner();
       RADIO.emit("msg", "initiating withdrawal")
-      const amount = ethers.parseUnits(getState().inputs.stETHWithdrawAmount, 18)
-      const tx = await lidontWeb3API.initiateWithdrawal(signer, amount)
+      const tx = await lidontWeb3API.initiateWithdrawal(signer, ["0x7A9ff6896a99a98b3a045Cec727A6828f233C93A"])
       await provider.waitForTransaction(tx.hash)
       await waitForSeconds(0.3)
-      await getState().getLidontSTETHBalance()
-      await getState().getWithdrawalRequests()
+
     },
 
     async finalizeWithdrawal(requestsDetails){
@@ -484,4 +499,16 @@ export const store = createStore(
 );
 
 
-window.STORE = store;
+// DEV ONLY: quick get-state log with excludes
+window.gs = () => {
+  const state = Object.assign({}, store.getState())
+  delete state.provider
+  delete state.lidontWeb3API
+  for(const key in state){   // deleta all functions too
+    if(typeof state[key] === "function") delete state[key]
+  }
+  console.table(state)
+  return state
+}
+
+window.store = store;

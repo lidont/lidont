@@ -52,6 +52,7 @@ export class lidontWeb3API {
   //
 
   async initiateWithdrawal(signer, depositorsAddressArray) {
+    debugger
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
     const tx = await contract.getFunction("initiateWithdrawal").call(who, depositorsAddressArray);
