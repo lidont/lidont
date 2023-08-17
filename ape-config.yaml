@@ -1,4 +1,5 @@
 plugins:
+  - name: alchemy
   - name: vyper
   - name: foundry
   - name: etherscan
@@ -8,7 +9,3 @@ ethereum:
     default_provider: foundry
 foundry:
   host: auto
-  fork: 
-    ethereum:
-      mainnet:
-        upstream_provider: https://falling-warmhearted-tent.discover.quiknode.pro/f687259088ca474b85f818b935822af9b8ad8afa/
