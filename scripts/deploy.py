@@ -1,5 +1,4 @@
 from ape import accounts, networks, project
-import scripts.postdeployfork
 import IPython
 
 
@@ -34,8 +33,5 @@ def main():
     withdrawler.toggleValidOutput(ethPipe.address, sender=deployer)
     withdrawler.toggleValidOutput(rethPipe.address, sender=deployer)
 
-    """
-    scripts.postdeployfork.job(addr)
-    """
     
     IPython.embed()
