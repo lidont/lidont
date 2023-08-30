@@ -80,13 +80,12 @@ const template = html`
         <div class="flex flex-between">
             <span class="text-big">Attack</span>
             <div>
-                <sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub>
+                <!--sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub-->
             </div>
         </div>
-        <sub>Withdraw stETH from lido</sub>
-        <div class="flex-center">
-
-        </div>
+        <sub>Deposits:</sub>
+        <value-connected data-path="deposits"></value-connected>
+        <br/>
         <div class="stack flex-center">
             <button-connected large class="flex-center" data-action="initiateWithdrawal">Withdraw</button-connected>
         </div>

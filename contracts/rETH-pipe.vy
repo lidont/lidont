@@ -1,3 +1,5 @@
+# @version 0.3.9
+
 interface ERC20:
   def decimals() -> uint8: view
   def balanceOf(_owner: address) -> uint256: view
