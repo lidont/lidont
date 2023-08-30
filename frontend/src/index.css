@@ -472,8 +472,13 @@ button-deposit {
 }
 
 .button--large > span {
-  font-size: 6rem;
-  line-height: 2rem;
+  font-size: 3rem;
+  line-height: 5rem;
+}
+
+.button--icon > span {
+  font-size: 6rem !important;
+  line-height: 2rem !important;
 }
 
 

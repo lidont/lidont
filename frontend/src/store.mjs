@@ -10,11 +10,11 @@ const isProduction = false
 const chainIdDefault = isProduction ? chainIdMainnet : chainIdTestnet
 
 
-// output pipes by id
+// output pipes by id, starts at 1
 //
-const outputPipes = []
-outputPipes[0] = "ETH" 
-outputPipes[1] = "rETH" 
+const pipes = new Map()
+pipes.set("0", "ETH")
+pipes.set("1", "rETH")
 
 
 
@@ -33,8 +33,8 @@ export const detailsByChainId = {
       ICON: "eth.png"
   },
   5: {
-      withdrawler: "0x61c8a978e078a03c671303cc521d31bdd0a4df87",
-      lidont: "0x308AF4D8158FCbFc7818dF33dac826E5CADa8740",
+      withdrawler: "0x3fAA7e474B810c2Bf9590D69368E0ba7D7AD1146",
+      lidont: "0x055EC52e9fC20Acf31495d4dC57a47a372faDe04",
       reth: "0x178E141a0E3b34152f73Ff610437A7bf9B83267A",
       rocketStorage: "0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3",
       steth: "0x1643E812aE58766192Cf7D2Cf9567dF2C37e9B7F",
@@ -87,6 +87,10 @@ export const store = createStore(
       // 1: {name: "ETH", addr: "0x0"}
     },
 
+    queue: {
+      // size, back, front, map
+    },
+
     pendingRequests: [],
 
     balanceOfLidontSTETH: undefined,
@@ -121,7 +125,7 @@ export const store = createStore(
     },
 
     async RELOAD(){
-      const { getStake, fetchEvents, getOutputPipes, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
+      const { getQueue, getStake, fetchEvents, fetchWithdrawals, getOutputPipes, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
       // eth
       if(intervalIdEmissions) clearInterval(intervalIdEmissions)
       await updateBalance() 
@@ -132,35 +136,59 @@ export const store = createStore(
       await getAllowanceSTETH()
       // pipes
       await getOutputPipes()
-      // emission auto-loading
+      // queue
+      await getQueue()
+      // emission auto-loading:
+      
+      // withdrawals
+      await fetchWithdrawals()
+      // 
       /*
       setInterval( () => {
         getState().claimStatic()
       },30000) // check every 30s
       */
+     return
     },
 
     async openMenu(){
       RADIO.emit("ADMIN")
-      await getState().fetchAdminData()
+      await getState().fetchWithdrawals()
     },
 
-    async fetchAdminData(){
+    async fetchWithdrawals(){
       await getState().getLidontSTETHBalance()
       await getState().getWithdrawalRequests()
+    },
+
+    async getQueue(){
+      const { lidontWeb3API } = getState()
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+      const front = await lidontWeb3API.getQueueFront(signer)
+      const back = await lidontWeb3API.getQueueBack(signer)
+      const size = await lidontWeb3API.getQueueSize(signer)
+      const list = {}
+      for(let i = 0; i < Number(size); i++){ 
+        const depositorAddr = await lidontWeb3API.getQueue(signer, i)
+        list[depositorAddr] = undefined
+      }
+      const queue = {front, back, size, list}
+      setState({queue})
     },
 
     async getOutputPipes(){
       const { lidontWeb3API } = getState()
       const { provider } = getState();
       const signer = await provider.getSigner();
-      for(let index in outputPipes){
-        console.log("getting pipe "+index)
-        const value = outputPipes[index]
+
+      for(let [key, value] of pipes){ 
+        const id = key
+        console.log("getting pipe "+id, value)
         try{
-          const addr = await lidontWeb3API.getOutputPipes(signer, index)
+          const addr = await lidontWeb3API.getOutputPipes(signer, id)
           const newState = getState().outputPipes
-          newState[index] = {value, index, addr}
+          newState[id] = {value, id, addr}
           setState({outputPipes: newState})
         } catch(e){
           console.log(e)
@@ -214,15 +242,14 @@ export const store = createStore(
       if(allowance < amount){
         RADIO.emit("spinner", "stETH allowance: "+allowance+" approving "+amount)
         const tx = await stETH.getFunction("approve").call(ownAddress, withdrawlerAddress, amount)
-        await lidontWeb3API.addTx(tx)
-        await lidontWeb3API.waitUntilTxConfirmed(tx)
+        await tx.wait()
         await RELOAD()
         await waitForSeconds(0.5)
       }
 
       RADIO.emit("spinner", "swapping. "+allowance+" sufficient for: "+amount)
       const tx = await lidontWeb3API.deposit(signer, amount, outputPipe.addr)
-      await lidontWeb3API.waitUntilTxConfirmed(tx)
+      await tx.wait()
       await RELOAD()
     },
 
@@ -232,7 +259,7 @@ export const store = createStore(
       const signer = await provider.getSigner();
       RADIO.emit("spinner", "claiming emission rewards")
       const tx = await lidontWeb3API.claim(signer)
-      await lidontWeb3API.waitUntilTxConfirmed(tx)
+      await tx.wait()
       await RELOAD()
     },
 
@@ -261,25 +288,30 @@ export const store = createStore(
 
       for(const value of withdrawalRequestEvents){
         const requestIds = value.args[0].toArray()
+        const depositors = value.args[1].toArray()
+        const requestAmounts = value.args[2].toArray()
         const requestStatus = await unstETH.getWithdrawalStatus(requestIds)
 
         const details = {}
-
         requestIds.forEach( (value, index) =>  {
+          const isFinalized = requestStatus[index][4]
+          const isClaimed   = requestStatus[index][5]
+          if(isFinalized || isClaimed) return
           const uniqueId = requestIds[index]+'of'+requestIds.join() // requestStatus[index][3] timestamp for uniqueness?
           details[uniqueId] = {
             amountOfStETH: requestStatus[index][0],
             amountOfShares: requestStatus[index][1],
             owner: requestStatus[index][2],
             timestamp: requestStatus[index][3],
-            isFinalized: requestStatus[index][4],
-            isClaimed: requestStatus[index][5],
+            isFinalized,
+            isClaimed,
             requestIds,
+            depositors,
+            requestAmounts
           }
         })
 
         pendingRequests.push(details)
-        // todo filter claimed & finalized withdrawals
       }
 
       setState({ pendingRequests })
@@ -297,12 +329,13 @@ export const store = createStore(
     },
 
     async initiateWithdrawal(){
-      const { provider, inputs, lidontWeb3API, balanceOfLidontSTETH } = getState();
+      const { provider, queue, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       RADIO.emit("msg", "initiating withdrawal")
-      const amount = ethers.parseUnits(getState().inputs.stETHWithdrawAmount, 18)
-      const tx = await lidontWeb3API.initiateWithdrawal(signer, amount)
-      await provider.waitForTransaction(tx.hash)
+      const depositorAddrArray = Object.keys(queue.list)
+      console.log(depositorAddrArray)
+      const tx = await lidontWeb3API.initiateWithdrawal(signer, depositorAddrArray)
+      await tx.wait()
       await waitForSeconds(0.3)
       await getState().getLidontSTETHBalance()
       await getState().getWithdrawalRequests()
@@ -312,15 +345,12 @@ export const store = createStore(
       const { provider, inputs, lidontWeb3API, getCheckpointHints } = getState();
       const signer = await provider.getSigner();
       let requestIds = []
-      // handling if we get multiple requestIds in one go
-      Object.keys(requestsDetails).forEach( key => {
-        const obj = requestsDetails[key]
-        requestIds = requestIds.concat(obj.requestIds)
-      })
+      console.log(requestsDetails)
+      debugger
       RADIO.emit("msg", "getting hints...")
       const hints = await getCheckpointHints(requestIds)
       RADIO.emit("msg", "finalizing withdrawal")
-      await lidontWeb3API.finaliseWithdrawal(signer, requestIds, hints.toArray())
+      await lidontWeb3API.finaliseWithdrawal(signer, depositorsAddrArray, hints.toArray())
     },
 
     // wallet

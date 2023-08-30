@@ -187,11 +187,11 @@ customElements.define("button-connected",class extends HTMLElement {
       const isLarge = this.getAttribute("large")
       const isDisabled = this.getAttribute("disabled")
       const isIcon = this.getAttribute("icon")
-      if(isIcon === "" || isIcon === true) {
+      const isNaked = this.getAttribute("naked")
+      if(isNaked === ""){
         this.innerHTML = this.innerText
-      }
-      else { 
-        this.innerHTML = html`<button class="button ${isLarge === "" ? "button--large":""} ${isDisabled === "" || isDisabled ? "disabled" : ""}"><span class="force-center">${this.innerText}</span></button>`;
+      } else {
+        this.innerHTML = html`<button class="button ${isLarge === "" ? "button--large":""} ${isIcon === "" ? "button--icon":""} ${isDisabled === "" || isDisabled ? "disabled" : ""}"><span class="force-center">${this.innerText}</span></button>`;
       }
       // executes store action with same name on click if found
       const actionName = this.getAttribute("data-action");
@@ -263,11 +263,11 @@ customElements.define("button-deposit", class extends HTMLElement {
     const amount = state.inputs && state.inputs.stETHAmount
     if(!amount || !pipe || parseFloat(amount) <= 0){
       return this.innerHTML = html`
-        <button-connected disabled large class="disabled vampire--off flex-center" data-action="deposit">🧛</button-connected>
+        <button-connected disabled large icon class="disabled vampire--off flex-center" data-action="deposit">🧛</button-connected>
       `;
     }
     this.innerHTML = html`
-      <button-connected large class="vampire flex-center" data-action="deposit">🧛</button-connected>
+      <button-connected large icon class="vampire flex-center" data-action="deposit">🧛</button-connected>
       <sup>receive ${pipe} - stake for lidont & bribes*</sup>
     `;
   }
@@ -333,6 +333,7 @@ customElements.define("list-pending-withdrawals", class extends HTMLElement {
 
       ${requests.map( (value, index) => { 
         let amount, shares, timestamp
+
         Object.keys(value).forEach( key => {
           const obj = value[key]
           amount = obj.amountOfStETH
@@ -343,7 +344,7 @@ customElements.define("list-pending-withdrawals", class extends HTMLElement {
         return html`
           <div class="stack row flex-between">
           <sub>${ethers.formatEther(shares)} shares bought on ${timestamp}</sub>
-            <button-finalize data-pendingRequestsIndex=${index}>Draw ${ethers.formatEther(amount)} stETH</button-finalize>
+            <button-finalize data-pendingRequestsIndex=${index}>Finalize ${ethers.formatEther(amount)} stETH</button-finalize>
           </div>
         `.trim()}).join('')
       }

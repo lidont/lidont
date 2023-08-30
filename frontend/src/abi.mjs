@@ -317,4 +317,4 @@ export const abi = `
       "type": "uint256"
   }]
 }]
-`
+`;

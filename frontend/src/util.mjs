@@ -144,7 +144,7 @@ export function waitForCallback(cb) {
           if(!done){
               throw Error()
           }
-          return
+          return true
         } catch (e) {
           // console.log(e)
           await waitForSeconds(1)
@@ -157,7 +157,7 @@ export function waitForCallback(cb) {
       return resolve()
   });
 
-return P;
+  return P;
 }
 
 

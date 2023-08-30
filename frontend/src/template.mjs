@@ -9,7 +9,7 @@ const template = html`
 <div class="container">
     <div class="nav">
         <div class="stack">
-            <button-connected class="icon flex-left pointer openMenu" icon data-action="openMenu">🍔</button-connected>
+            <button-connected class="icon flex-left pointer openMenu" naked icon data-action="openMenu">🍔</button-connected>
             <button-connect-wallet class="flex-right"></button-connect-wallet>
             <span class="flex-right force-center pill"><value-connected data-format="formatDecimals" data-path="balance"></value-connected>&nbsp; ETH</span>
         </div>
@@ -43,11 +43,12 @@ const template = html`
             <input-connected class="flex-center radio" icon label="rETH" id="rETH" type="radio" name="selectedOutputPipe"></input-connected>
         </div>
         <br/>
-        <sub>3. After withdraw cycle your LST is staked to earn rewards:</sub>
+        <sub>3. Deposit:</sub>
         <hr/>
         <div class="stack flex-center">
             <button-deposit></button-deposit>
         </div>
+        <sub>After the withdraw cycle your LST is staked to earn rewards</sub>
         
     </div>
 
@@ -87,8 +88,7 @@ const template = html`
 
         </div>
         <div class="stack flex-center">
-            <input-connected class="flex-7" type="number" placeholder="stETH amount to withdraw" name="stETHWithdrawAmount"></input-connected>
-            <button-connected class="flex-center" data-action="initiateWithdrawal">Initiate New Withdrawal</button-connected>
+            <button-connected large class="flex-center" data-action="initiateWithdrawal">Withdraw</button-connected>
         </div>
         <hr/>
         <list-pending-withdrawals></list-pending-withdrawals>

@@ -132,7 +132,7 @@ export class lidontWeb3API {
   }
 
   async getEventsWITHDRAWALREQUEST(){
-    const filter = this.contract.filters.WITHDRAWALREQUEST
+    const filter = this.contract.filters.WithdrawalRequest
     const events = await this.contract.queryFilter(filter) // (filter, -100) for last 100 blocks range
     return events
   }
@@ -159,18 +159,24 @@ export class lidontWeb3API {
     const newState = [].concat(this.pending)
     newState.push(txData);
     this.pending = newState
+    return newState
   }
 
   purgeMinedTransactions() {
     this.pending = this.pending.filter((tx) => tx.confirmations == 0);
   }
 
-  async waitUntilTxConfirmed(tx){
-    return await waitForCallback( async () => {
+  /*async waitUntilTxConfirmed(tx){
+    const confirm = await waitForCallback( async () => {
       const data = await this.getTx(tx)
-      if(data.blockNumber) return true
+      if(data.blockNumber) {
+        console.log(data)
+        return true
+      }
+      return false
     })
-  }
+    return confirm
+  }*/
   
 }
 
