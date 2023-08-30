@@ -6,7 +6,7 @@ import { unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 const chainIdTestnet = 5
 const chainIdMainnet = 1
 
-const isProduction = true
+const isProduction = false
 const chainIdDefault = isProduction ? chainIdMainnet : chainIdTestnet
 
 
