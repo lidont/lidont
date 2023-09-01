@@ -315,10 +315,10 @@ customElements.define("list-pending-withdrawals", class extends HTMLElement {
     let prevValue = null // only re-render when value changed
     store.subscribe( () => {
       const state = store.getState()
-      if(prevValue === state.pendingRequests){ return }
-      if(prevValue !== state.pendingRequests){ 
-        prevValue = state.pendingRequests
-        return this.render(state.pendingRequests)
+      if(prevValue === state.withdrawalRequests){ return }
+      if(prevValue !== state.withdrawalRequests){ 
+        prevValue = state.withdrawalRequests
+        return this.render(state.withdrawalRequests)
       }
     })
     this.render(); 
@@ -326,21 +326,24 @@ customElements.define("list-pending-withdrawals", class extends HTMLElement {
   }
   attributeChangedCallback() { this.render(); }
   render(requests){
+
     if(!requests || requests.length === 0){ return this.innerHTML = "<div class='spinner'></div>" }
     this.innerHTML = `
     <div>
       <span>Pending Withdrawals</span>
 
       ${requests.map( (value, index) => { 
-        let amount, shares, timestamp
 
+        let amount, shares, timestamp
         Object.keys(value).forEach( key => {
           const obj = value[key]
           amount = obj.amountOfStETH
           shares = obj.amountOfShares
           timestamp = obj.timestamp
         })
-        
+
+        if(!amount || !shares || !timestamp) return
+
         return html`
           <div class="stack row flex-between">
           <sub>${ethers.formatEther(shares)} shares bought on ${timestamp}</sub>

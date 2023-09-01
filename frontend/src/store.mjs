@@ -24,6 +24,7 @@ export const detailsByChainId = {
   1: {
       withdrawler: "0x274b028b03A250cA03644E6c578D81f019eE1323",
       lidont: "0xBcF7FFFD8B256Ec51a36782a52D0c34f6474D951",
+      reth: "",
       rocketStorage: "0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46",
       steth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
       unsteth: "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
@@ -79,6 +80,7 @@ export const store = createStore(
     },
 
     pendingRequests: [],
+    withdrawalRequests: [],
 
     balanceOfLidontSTETH: undefined,
     balanceOfLidontETH: undefined,
@@ -124,7 +126,7 @@ export const store = createStore(
       // pipes
       await getOutputPipes()
       // queue
-      await getQueue()
+      // await getQueue()
       // emission auto-loading:
       
       // withdrawals
@@ -162,6 +164,26 @@ export const store = createStore(
       }
       const queue = {front, back, size, list}
       setState({queue})
+    },
+
+    async getAllOutputPipes(){
+      const { lidontWeb3API } = getState()
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+
+      for(let i = 0; i <64; i++){ 
+        console.log("getting pipe "+i)
+        try{
+          const addr = await lidontWeb3API.getOutputPipes(signer, i)
+          console.log(addr)
+          const newState = getState().outputPipes
+          newState[i] = {value, i, addr}
+          setState({outputPipes: newState})
+        } catch(e){
+          console.log(e)
+          break
+        }
+      }
     },
 
     async getOutputPipes(){
@@ -296,37 +318,41 @@ export const store = createStore(
       const unstETH = new ethers.Contract(unstETHAddress, unstETHAbi, signer);
       const withdrawalRequestEvents = await lidontWeb3API.getEventsWITHDRAWALREQUEST()
 
-      const pendingRequests = []
+      const withdrawalRequests = []
 
       for(const value of withdrawalRequestEvents){
         const requestIds = value.args[0].toArray()
         const depositors = value.args[1].toArray()
         const requestAmounts = value.args[2].toArray()
-        const requestStatus = await unstETH.getWithdrawalStatus(requestIds)
+        const requestsStatus = await unstETH.getWithdrawalStatus(requestIds)
+        console.log(requestIds, depositors, requestAmounts)
+        console.log(requestsStatus)
 
-        const details = {}
+        let requestIdsData = []
+
         requestIds.forEach( (value, index) =>  {
-          const isFinalized = requestStatus[index][4]
-          const isClaimed   = requestStatus[index][5]
-          if(isFinalized || isClaimed) return
-          const uniqueId = requestIds[index]+'of'+requestIds.join() // requestStatus[index][3] timestamp for uniqueness?
-          details[uniqueId] = {
-            amountOfStETH: requestStatus[index][0],
-            amountOfShares: requestStatus[index][1],
-            owner: requestStatus[index][2],
-            timestamp: requestStatus[index][3],
+          const isFinalized = requestsStatus[index][4]
+          const isClaimed   = requestsStatus[index][5]
+          const requestID = requestIds[index] // requestsStatus[index][3] timestamp for uniqueness?
+          requestIdsData.push({
+            amountOfStETH: requestsStatus[index][0],
+            amountOfShares: requestsStatus[index][1],
+            owner: requestsStatus[index][2],
+            timestamp: requestsStatus[index][3],
             isFinalized,
             isClaimed,
             requestIds,
             depositors,
-            requestAmounts
-          }
+            requestAmounts,
+            value,
+            requestID
+          })
         })
 
-        pendingRequests.push(details)
+        withdrawalRequests.push(requestIdsData)
       }
 
-      setState({ pendingRequests })
+      setState({ withdrawalRequests })
     },
 
     async getCheckpointHints(withdrawalRequestIds){
