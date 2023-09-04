@@ -504,9 +504,16 @@ export const store = createStore(
           })
         }
       })
+
       console.log(depositors, requestIds)
-      // max size 32?
-      return {depositors: depositore.slice(0, 32), requestIds: requestIds.slice(0, 32)}
+      
+      // max size 32
+      if(depositors.length > 32){
+        depositors.length = 32
+        requestIds.length = 32
+      }
+
+      return {depositors, requestIds}
     },
 
     async finalizeWithdrawal(){
