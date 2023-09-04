@@ -16,7 +16,7 @@ const template = html`
     </div>
     <div class="flex-center"><img class="logo" src="logo2.png" /></div>
 
-    <admin-section></admin-section>
+    <template-admin></template-admin>
 
     <hr/>
     <div class="card">
@@ -51,48 +51,23 @@ const template = html`
         <sub>After the withdraw cycle your LST is staked to earn rewards</sub>
         
     </div>
-
+    <emoji-rain></emoji-rain>
     <hr />
     <div class="card">
         <div class="flex flex-between">
-            <span class="text-big">Rewards</span>
+            <span class="text-big">Receive Tokens</span>
             <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.LIDONT.balance"></value-connected> LIDONT</sub>
         </div>
-        <sub>lidont emission rewards</sub>
-        <div class="flex flex-around">
-            <button-connected data-action="claimEmission">Claim Emission</button-connected>
-        </div>  
-        <br/>
-        <div class="flex flex-right">
-            <sub>Claimable: <value-connected data-node="rainbow" data-path="rETHStakedDetails.rewardDebtFormatted" ></value-connected></sub>
+        <div class="flex-center">
+            <p class="spin"><icon-comp icon="lidont"></icon-comp></p>
         </div>
-        <!--button-connected class="flex-right" data-action="claimEmissionStatic">update</button-connected-->
-        <div class="flex flex-around">
-            <button-connected data-action="claimEmission">Claim Bribes</button-connected>
-        </div>  
-    </div>
-
-    <hr/>
-    <div class="card">
-        <div class="box">
-          <div class="rainbow-bg"></div>
-        </div>
-        <div class="flex flex-between">
-            <span class="text-big">Attack</span>
-            <div>
-                <!--sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub-->
-            </div>
-        </div>
-        <sub>Deposits:</sub>
-        <value-connected data-path="deposits"></value-connected>
-        <br/>
-        <div class="stack flex-center">
-            <button-connected large class="flex-center" data-action="initiateWithdrawal">Withdraw</button-connected>
-        </div>
+        <sub>Ouput Pipes:</sub>
         <hr/>
-        <list-pending-withdrawals></list-pending-withdrawals>
-    </div>
 
+        <list-pipes></list-pipes>
+
+    </div>
+    <hr/>
     <div>
         <div class="stack flex-around">
             <sub>Initiative by:</sub>
@@ -138,10 +113,10 @@ customElements.define("template-admin", class extends HTMLElement {
       let prevValue = null // only re-render when value changed
       store.subscribe( () => {
         const state = store.getState()
-        if(prevValue === state.pendingWithdrawals){ return }
-        if(prevValue !== state.pendingWithdrawals){ 
-          prevValue = state.pendingWithdrawals
-          return this.render(state.pendingWithdrawals)
+        if(prevValue === state.withdrawEvents){ return }
+        if(prevValue !== state.withdrawEvents){ 
+          prevValue = state.withdrawEvents
+          return this.render()
         }
       })
   
@@ -154,15 +129,33 @@ customElements.define("template-admin", class extends HTMLElement {
     }
     attributeChangedCallback() { this.render(); }
     render(){
-      const withdrawals = store.getState().pendingWithdrawals
       if(this.hidden){ return this.innerHTML = `` }
       this.innerHTML = html`
-      <hr/>
-      <div class="card">
-          <div class="box">
+      <section>
+        <hr/>
+        <div class="card">
+            <div class="box">
             <div class="rainbow-bg"></div>
-          </div>
-      </div>
+            </div>
+            <div class="flex flex-between">
+                <span class="text-big">Attack</span>
+                <div>
+                    <!--sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub-->
+                </div>
+            </div>
+            <sub>xxxx stETH waiting to be saved</sub>
+            <div class="stack flex-center">
+                <button-connected large class="flex-center" data-action="initiateWithdrawal">Initiate Withdraw</button-connected>
+            </div>
+
+            <div class="stack flex-center">
+                <button-connected large class="flex-center" data-action="finalizeWithdrawal">Finalize Batch</button-connected>
+            </div>
+            
+            <sub>Next Batch:</sub>
+            <list-finalize></list-finalize>
+        </div>
+    </section>
       `;
     }
   }

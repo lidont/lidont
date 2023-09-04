@@ -63,7 +63,7 @@ customElements.define("input-connected", class extends HTMLElement {
 
     if(type === "number"){
       this.addEventListener("keyup", (event) => {
-        const newState = store.getState().inputs
+        const newState = Object.assign({},store.getState().inputs)
         newState[name] = event.target.value
         store.setState({inputs: newState});
         this.debounce()
@@ -73,7 +73,7 @@ customElements.define("input-connected", class extends HTMLElement {
     if(type === "checkbox"){
       this.addEventListener('change', function() {
         const isChecked = store.getState().inputs[name]
-        const newState = store.getState().inputs
+        const newState = Object.assign({},store.getState().inputs)
         newState[name] = !isChecked
         store.setState({inputs: newState});
       })
@@ -81,7 +81,7 @@ customElements.define("input-connected", class extends HTMLElement {
 
     if(type === "radio"){
       this.addEventListener('change', function(event) {
-        const newState = store.getState().inputs
+        const newState = Object.assign({},store.getState().inputs)
         newState[name] = event.target.id
         store.setState({inputs: newState});
         this.render(store.getState());
@@ -247,20 +247,24 @@ customElements.define("button-connect-wallet", class extends HTMLElement {
 customElements.define("button-deposit", class extends HTMLElement {
   constructor() {
     super();
-    let prevValue = {} // only re-render when value changed
+  }
+  connectedCallback() { 
+    this.prevValue = {} // only re-render when value changed
     store.subscribe( () => {
       const state = store.getState()
-      if(!shallowCompare(prevValue, state.inputs)){ return }
-      if(shallowCompare(prevValue, state.inputs)){ 
-        prevValue = state.inputs
+      if(shallowCompare(this.prevValue, state.inputs)){ return }
+      if(!shallowCompare(this.prevValue, state.inputs)){ 
+        this.prevValue = store.getState().inputs
         return this.render()
       }
     })
+    this.render(); 
   }
   render(){
     const state = store.getState()
     const pipe = state.inputs && state.inputs.selectedOutputPipe
     const amount = state.inputs && state.inputs.stETHAmount
+    console.log("rerender btn")
     if(!amount || !pipe || parseFloat(amount) <= 0){
       return this.innerHTML = html`
         <button-connected disabled large icon class="disabled vampire--off flex-center" data-action="deposit">🧛</button-connected>
@@ -271,34 +275,59 @@ customElements.define("button-deposit", class extends HTMLElement {
       <sup>receive ${pipe} - stake for lidont & bribes*</sup>
     `;
   }
-  connectedCallback() { this.render(); }
   attributeChangedCallback() { this.render(); }
 }
 );
 
 
-
-// execute custom action and conditional rendering
+// list of pipes and rewards / unclaim
 //
-customElements.define("button-finalize", class extends HTMLElement {
+customElements.define("list-pipes", class extends HTMLElement {
   constructor() { 
-    super();
+    super(); 
   }
   connectedCallback() { 
-    const pendingRequestsIndex = this.getAttribute("data-pendingRequestsIndex");
 
-    this.addEventListener("click",async (event) => {
-        event.preventDefault();
-        const details = store.getState().pendingRequests[pendingRequestsIndex]
-        await store.getState().finalizeWithdrawal(details)
-    }, false );
+    this.prevValue = {} // only re-render when value changed
+
+    store.subscribe( () => {
+      const state = store.getState()
+      if(shallowCompare(this.prevValue, state.outputPipes)){ return }
+      if(!shallowCompare(this.prevValue, state.outputPipes)){ 
+        this.prevValue = store.getState().outputPipes
+        return this.render(store.getState().outputPipes)
+      }
+    })
 
     this.render(); 
-  }
-  render(){
-    this.innerHTML = `<button class="button"><span class="force-center">${this.innerText}</span></button>`;
-  }
 
+  }
+  attributeChangedCallback() { this.render(); }
+  render(outPipes){
+    if(!outPipes){ return this.innerHTML = "<div class='spinner'></div>" }
+    const pipes = Object.values(outPipes)
+    console.log("rerender pipes")
+    this.innerHTML = `
+    <div>
+      ${pipes.map( (value, index) => { 
+        return html`
+          <div class="stack row flex-between">
+          <sub>${index}</sub>
+                  <div class="flex flex-around">
+            <button-connected data-action="claimEmission">Claim</button-connected>
+        </div>  
+        <br/>
+        <div class="flex flex-right">
+            <sub>Claimable: <value-connected data-node="rainbow" data-path="rETHStakedDetails.rewardDebtFormatted" ></value-connected></sub>
+        </div>
+        <!--button-connected class="flex-right" data-action="claimEmissionStatic">update</button-connected-->
+        </div>
+          
+        `.trim()}).join('')
+      }
+    </div>
+    `
+  }
 }
 );
 
@@ -306,7 +335,7 @@ customElements.define("button-finalize", class extends HTMLElement {
 
 // list of pending withdrawals and management of them
 //
-customElements.define("list-pending-withdrawals", class extends HTMLElement {
+customElements.define("list-finalize", class extends HTMLElement {
   constructor() { 
     super(); 
   }
@@ -315,10 +344,10 @@ customElements.define("list-pending-withdrawals", class extends HTMLElement {
     let prevValue = null // only re-render when value changed
     store.subscribe( () => {
       const state = store.getState()
-      if(prevValue === state.withdrawalRequests){ return }
-      if(prevValue !== state.withdrawalRequests){ 
-        prevValue = state.withdrawalRequests
-        return this.render(state.withdrawalRequests)
+      if(prevValue === state.withdrawEvents){ return }
+      if(prevValue !== state.withdrawEvents){ 
+        prevValue = state.withdrawEvents
+        return this.render(state.withdrawEvents)
       }
     })
     this.render(); 
@@ -330,8 +359,6 @@ customElements.define("list-pending-withdrawals", class extends HTMLElement {
     if(!requests || requests.length === 0){ return this.innerHTML = "<div class='spinner'></div>" }
     this.innerHTML = `
     <div>
-      <span>Pending Withdrawals</span>
-
       ${requests.map( (value, index) => { 
 
         let amount, shares, timestamp
@@ -347,7 +374,6 @@ customElements.define("list-pending-withdrawals", class extends HTMLElement {
         return html`
           <div class="stack row flex-between">
           <sub>${ethers.formatEther(shares)} shares bought on ${timestamp}</sub>
-            <button-finalize data-pendingRequestsIndex=${index}>Finalize ${ethers.formatEther(amount)} stETH</button-finalize>
           </div>
         `.trim()}).join('')
       }
@@ -382,3 +408,93 @@ customElements.define("logger-radio", class extends HTMLElement {
 }
 );
 
+
+// rainin emojis background
+//
+
+
+function Circle(x, y, c, v, range) {
+  var container = document.getElementById('animateEmoji');
+  var _this = this;
+  this.x = x;
+  this.y = y;
+  this.color = c;
+  this.v = v;
+  this.range = range;
+  this.element = document.createElement('span');
+  /*this.element.style.display = 'block';*/
+  this.element.style.opacity = 0;
+  this.element.style.position = 'absolute';
+  this.element.style.fontSize = '26px';
+  this.element.style.color = 'hsl('+(Math.random()*360|0)+',80%,50%)';
+  this.element.innerHTML = c;
+  container.appendChild(this.element);
+
+  this.update = function(dt) {
+    if (_this.y > 800) {
+      _this.y = 80 + Math.random() * 4;
+      _this.x = _this.range[0] + Math.random() * _this.range[1];
+    }
+    _this.y += _this.v.y;
+    _this.x += _this.v.x;
+    this.element.style.opacity = 0.77;
+    this.element.style.transform = 'translate3d(' + _this.x + 'px, ' + _this.y + 'px, 0px)';
+    this.element.style.webkitTransform = 'translate3d(' + _this.x + 'px, ' + _this.y + 'px, 0px)';
+    this.element.style.mozTransform = 'translate3d(' + _this.x + 'px, ' + _this.y + 'px, 0px)';
+  };
+}
+
+customElements.define("emoji-rain", class extends HTMLElement {
+  constructor() { super(); this.render() }
+  render(address){
+    this.innerHTML = html`
+      <div id="containerEmoji">
+        <div id="animateEmoji"></div>
+      </div>
+    `;
+  }
+  connectedCallback() { 
+    this.render()
+    RADIO.on("RAIN", this.letItRain)
+  }
+  letItRain() { 
+    
+
+    setTimeout( () => {
+      var emoji = ['💰', '💎', '🏴‍☠️', '⚔️', '🍺', '🔓', '🦜', '💍', '💴', '💶', '🪙'];
+      var circles = [];
+
+      function addCircle(delay, range, color) {
+        setTimeout(function() {
+          var c = new Circle(range[0] + Math.random() * range[1], 80 + Math.random() * 4, color, {
+            x: -0.15 + Math.random() * 0.3,
+            y: 1 + Math.random() * 1
+          }, range);
+          circles.push(c);
+        }, delay);
+      }
+  
+      for (var i = 0; i < 15; i++) {
+        addCircle(i * 150, [10 + 0, 300], emoji[Math.floor(Math.random() * emoji.length)]);
+        addCircle(i * 160, [10 + 0, -300], emoji[Math.floor(Math.random() * emoji.length)]);
+        addCircle(i * 170, [10 - 200, -300], emoji[Math.floor(Math.random() * emoji.length)]);
+        addCircle(i * 180, [10 + 200, 300], emoji[Math.floor(Math.random() * emoji.length)]);
+        addCircle(i * 190, [10 - 400, -300], emoji[Math.floor(Math.random() * emoji.length)]);
+        addCircle(i * 250, [10 + 400, 300], emoji[Math.floor(Math.random() * emoji.length)]);
+        addCircle(i * 260, [10 - 600, -300], emoji[Math.floor(Math.random() * emoji.length)]);
+        addCircle(i * 270, [10 + 600, 300], emoji[Math.floor(Math.random() * emoji.length)]);
+      }
+  
+      function animate(dt) {
+        for (var i in circles) {
+          circles[i].update(dt);
+        }
+        requestAnimationFrame(animate);
+      }
+  
+      animate();
+    }, 500)
+
+  }
+}
+);

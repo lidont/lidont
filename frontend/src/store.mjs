@@ -1,5 +1,5 @@
 import * as ethers from './ethers.js';
-import { createStore, RADIO, log, waitForSeconds} from "./util.mjs";
+import { createStore, RADIO, log, waitForSeconds, isObjectEmpty} from "./util.mjs";
 import { unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
@@ -12,9 +12,9 @@ const chainIdDefault = isProduction ? chainIdMainnet : chainIdTestnet
 
 // output pipes by id, starts at 1
 //
-const pipes = new Map()
-pipes.set("0", "ETH")
-pipes.set("1", "rETH")
+const mapAddrToProtocol = new Map()
+mapAddrToProtocol.set("0x0", "ETH")
+mapAddrToProtocol.set("0x1", "rETH")
 
 
 
@@ -71,6 +71,8 @@ export const store = createStore(
     // for <input-connected> inputs are mapped to <input name=???> name components & forms
     inputs: {},
 
+
+
     outputPipes: {
       // 1: {name: "ETH", addr: "0x0"}
     },
@@ -79,8 +81,18 @@ export const store = createStore(
       // size, back, front, map
     },
 
-    pendingRequests: [],
-    withdrawalRequests: [],
+    // raw events
+    depositEvents: [],
+    withdrawEvents: [],
+
+    // 3 user states - has deposited , waiting to be finalized - finalized waiting to be claimed
+    // depositorsAddr -> requestIds
+
+     // derived from deposit events
+    addrToDeposits: {},
+    
+    // derived from withdraw events
+    addrToRequestIds: {},
 
     balanceOfLidontSTETH: undefined,
     balanceOfLidontETH: undefined,
@@ -109,12 +121,12 @@ export const store = createStore(
         setState({ pending: lidontWeb3API.pending })
       })
 
-      window.RADIO.emit("msg", "fetching data...")
+      RADIO.emit("msg", "fetching data...")
       await RELOAD()
     },
 
     async RELOAD(){
-      const { getQueue, getStake, fetchEvents, fetchWithdrawals, getOutputPipes, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
+      const { getQueue, getAllOutputPipes, getDepositEvents, getWithdrawEvents, getOutputPipesManual, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
       // eth
       if(intervalIdEmissions) clearInterval(intervalIdEmissions)
       await updateBalance() 
@@ -124,30 +136,35 @@ export const store = createStore(
       // allowances
       await getAllowanceSTETH()
       // pipes
-      await getOutputPipes()
+      await getAllOutputPipes()
+      // await getOutputPipesManual()
       // queue
-      // await getQueue()
+      await getQueue()
       // emission auto-loading:
       
       // withdrawals
-      await fetchWithdrawals()
+      await getDepositEvents()
+      await getWithdrawEvents()
       // 
       /*
       setInterval( () => {
         getState().claimStatic()
       },30000) // check every 30s
       */
-     return
+      RADIO.emit("msg", "<3 <3 <3")
+      return
     },
 
     async openMenu(){
       RADIO.emit("ADMIN")
-      await getState().fetchWithdrawals()
+      await getState().getDepositEvents()
+      await getState().getWithdrawEvents()
     },
 
     async fetchWithdrawals(){
       await getState().getLidontSTETHBalance()
-      await getState().getWithdrawalRequests()
+      await getState().getDepositEvents()
+      await getState().getWithdrawRequests()
     },
 
     async getQueue(){
@@ -171,22 +188,26 @@ export const store = createStore(
       const { provider } = getState();
       const signer = await provider.getSigner();
 
+      const outputPipes = {}
+
       for(let i = 0; i <64; i++){ 
-        console.log("getting pipe "+i)
         try{
           const addr = await lidontWeb3API.getOutputPipes(signer, i)
           console.log(addr)
-          const newState = getState().outputPipes
-          newState[i] = {value, i, addr}
-          setState({outputPipes: newState})
+          console.log("got pipe "+i)
+          // const newState = Object.assign({}, getState().outputPipes)
+          outputPipes[i] = {i, addr}
         } catch(e){
-          console.log(e)
+          // console.log(e)
+          console.log("pipes total: "+i)
           break
         }
       }
+
+      setState({outputPipes})
     },
 
-    async getOutputPipes(){
+    async getOutputPipesManual(){
       const { lidontWeb3API } = getState()
       const { provider } = getState();
       const signer = await provider.getSigner();
@@ -211,9 +232,8 @@ export const store = createStore(
       const { provider } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
-      const deposits = await lidontWeb3API.getDeposits(signer, me)
-      console.log(deposits)
-      setState({deposits})
+      const myDeposits = await lidontWeb3API.getDeposits(signer, me)
+      setState({deposits: myDeposits})
     },
 
     async getQueue(){
@@ -307,52 +327,113 @@ export const store = createStore(
       setState({rETHStakedDetails: newState})
     },
 
-    // WITHDRAW
+    // DEPOSIT EVENTS
     //
-    async getWithdrawalRequests(){
+    async getDepositEvents(){
       const { provider, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const me = await signer.getAddress()
+      const withdrawalerAddress = detailsByChainId[chainIdDefault].withdrawler
+      const depositEvents = await lidontWeb3API.getEventsDEPOSIT()
+
+      setState({depositEvents})
+
+      const addrToDeposits = Object.assign({}, getState().addrToDeposits)
+
+      for(const value of depositEvents){
+        const addr = value.args[0]
+        const amount = value.args[1]
+        addrToDeposits[addr] = addrToDeposits[addr] || {}
+
+        addrToDeposits[addr].deposits = addrToDeposits[addr].deposits || []
+        addrToDeposits[addr].depositTotalAmount = addrToDeposits[addr].depositTotalAmount || 0n
+
+        addrToDeposits[addr].deposits.push({block: value.blockNumber, txhash: value.transactionHash, address: addr, amount})
+        addrToDeposits[addr].depositTotalAmount = addrToDeposits[addr].depositTotalAmount + amount
+      }
+
+      setState({addrToDeposits})
+
+      return depositEvents
+    },
+
+    // WITHDRAW EVENTS
+    //
+    async getWithdrawEvents(){
+      const { provider, lidontWeb3API, depositEvents } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
       const unstETHAddress = detailsByChainId[chainIdDefault].unsteth
       const withdrawalerAddress = detailsByChainId[chainIdDefault].withdrawler
       const unstETH = new ethers.Contract(unstETHAddress, unstETHAbi, signer);
-      const withdrawalRequestEvents = await lidontWeb3API.getEventsWITHDRAWALREQUEST()
+      const withdrawEvents = await lidontWeb3API.getEventsWITHDRAWALREQUEST()
+      
+      setState({withdrawEvents})
 
-      const withdrawalRequests = []
+      // filter request ids
+      const addrToRequestIds = Object.assign({}, getState().addrToRequestIds)
 
-      for(const value of withdrawalRequestEvents){
+      for(const value of withdrawEvents){
         const requestIds = value.args[0].toArray()
         const depositors = value.args[1].toArray()
         const requestAmounts = value.args[2].toArray()
         const requestsStatus = await unstETH.getWithdrawalStatus(requestIds)
-        console.log(requestIds, depositors, requestAmounts)
-        console.log(requestsStatus)
 
-        let requestIdsData = []
+        // map all request Ids an address has
+        requestIds.forEach( (requestId, index) => {
+          const depositor = depositors[index]
+          const status = requestsStatus[index]
+          
+          addrToRequestIds[depositor]           = addrToRequestIds[depositor] || {}
+          addrToRequestIds[depositor].amounts   = addrToRequestIds[depositor].amounts || {
+            total: 0n,
+            unfinalized: 0n,
+            finalized: 0n,
+            claimed: 0n
+          }
 
-        requestIds.forEach( (value, index) =>  {
-          const isFinalized = requestsStatus[index][4]
-          const isClaimed   = requestsStatus[index][5]
-          const requestID = requestIds[index] // requestsStatus[index][3] timestamp for uniqueness?
-          requestIdsData.push({
-            amountOfStETH: requestsStatus[index][0],
-            amountOfShares: requestsStatus[index][1],
-            owner: requestsStatus[index][2],
-            timestamp: requestsStatus[index][3],
-            isFinalized,
-            isClaimed,
-            requestIds,
-            depositors,
-            requestAmounts,
-            value,
-            requestID
-          })
+          const out = {
+            requestId: requestId,
+            amount: requestAmounts[index],
+            amountOfStETH  :requestsStatus[index][0],
+            amountOfShares :requestsStatus[index][1],
+            owner          :requestsStatus[index][2],
+            timestamp      :requestsStatus[index][3],
+            isFinalized    :requestsStatus[index][4],
+            isClaimed      :requestsStatus[index][5],
+            statusRaw: status,
+          }
+
+          // all
+          addrToRequestIds[depositor].allRequestIds = addrToRequestIds[depositor].allRequestIds || {}
+          addrToRequestIds[depositor].allRequestIds[requestId] = out
+          addrToRequestIds[depositor].amounts.total = addrToRequestIds[depositor].amounts.total + out.amount
+
+          if(!out.isFinalized){
+            addrToRequestIds[depositor].unfinalized = addrToRequestIds[depositor].unfinalized || {}
+            addrToRequestIds[depositor].unfinalized[requestId] = out
+            addrToRequestIds[depositor].amounts.unfinalized = addrToRequestIds[depositor].amounts.unfinalized + out.amount
+          }
+
+          if(out.isFinalized && !out.isClaimed){
+            addrToRequestIds[depositor].finalized = addrToRequestIds[depositor].finalized || {}
+            addrToRequestIds[depositor].finalized[requestId] = out
+            addrToRequestIds[depositor].amounts.finalized = addrToRequestIds[depositor].amounts.finalized + out.amount
+          }
+
+          if(out.isFinalized && out.isClaimed){
+            addrToRequestIds[depositor].claimed = addrToRequestIds[depositor].claimed || {}
+            addrToRequestIds[depositor].claimed[requestId] = out
+            addrToRequestIds[depositor].amounts.claimed = addrToRequestIds[depositor].amounts.claimed + out.amount
+          }
+
         })
 
-        withdrawalRequests.push(requestIdsData)
       }
 
-      setState({ withdrawalRequests })
+      setState({addrToRequestIds})
+
+      console.log(getState())
     },
 
     async getCheckpointHints(withdrawalRequestIds){
@@ -367,27 +448,78 @@ export const store = createStore(
     },
 
     async initiateWithdrawal(){
-      const { provider, queue, lidontWeb3API } = getState();
+      const { provider, addrToDeposits, addrToRequestIds, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       RADIO.emit("msg", "initiating withdrawal")
-      const depositorAddrArray = Object.keys(queue.list)
+
+      const depositorAddrArray = []
+
+      Object.keys(addrToDeposits).forEach( addr => {
+        // check map addr -> deposit amount
+        const addrWithdrawRequests = addrToRequestIds[addr]
+
+        if(!addrWithdrawRequests){
+          // never withdrawn, doesnt have requestId listed
+          depositorAddrArray.push(addr)
+          return
+        }
+        if(addrWithdrawRequests){
+          // has withdrawn in the past - check amounts
+          const depositAmount = addrToDeposits[addr].depositTotalAmount
+          const user = addrWithdrawRequests
+          if(depositAmount < user.amounts.total){
+            // if has more deposited than we record total requestIds
+              depositorAddrArray.push(addr)
+              return
+          }
+        }
+      })
+
       console.log(depositorAddrArray)
+      
       const tx = await lidontWeb3API.initiateWithdrawal(signer, depositorAddrArray)
       await tx.wait()
       await waitForSeconds(0.3)
 
     },
 
-    async finalizeWithdrawal(requestsDetails){
-      const { provider, inputs, lidontWeb3API, getCheckpointHints } = getState();
+    async assembleFinalizationBatch(){
+
+      const { provider, addrToDeposits, addrToRequestIds } = getState();
+      RADIO.emit("msg", "assemble next batch for withdrawal")
+
+      const depositors = []
+      const requestIds = []
+
+      Object.keys(addrToRequestIds).forEach( addr => {
+        const depositor = addrToRequestIds[addr]
+
+        if(depositor.unfinalized){
+          Object.keys(depositor.unfinalized).forEach( requestIdsString => {
+            const item = depositor.unfinalized[requestIdsString]
+            if(!item.isFinalized){
+              depositors.push(addr)
+              requestIds.push(item.requestId)
+            }
+          })
+        }
+      })
+      console.log(depositors, requestIds)
+      // max size 32?
+      return {depositors: depositore.slice(0, 32), requestIds: requestIds.slice(0, 32)}
+    },
+
+    async finalizeWithdrawal(){
+      const { provider, inputs, lidontWeb3API, getCheckpointHints, assembleFinalizationBatch } = getState();
       const signer = await provider.getSigner();
-      let requestIds = []
-      console.log(requestsDetails)
-      debugger
+
+      const batch = await assembleFinalizationBatch()
+
       RADIO.emit("msg", "getting hints...")
-      const hints = await getCheckpointHints(requestIds)
+      const hints = await getCheckpointHints(batch.requestIds)
+
       RADIO.emit("msg", "finalizing withdrawal")
-      await lidontWeb3API.finaliseWithdrawal(signer, depositorsAddrArray, hints.toArray())
+      await lidontWeb3API.finaliseWithdrawal(signer, batch.depositors, hints.toArray())
     },
 
     // wallet

@@ -125,13 +125,13 @@ export class lidontWeb3API {
 
   // Events
 
-  async getEventsDEPOSIT(){
+  async getEventsDEPOSIT(blockRange){
     const filter = this.contract.filters.Deposit
     const events = await this.contract.queryFilter(filter) // (filter, -100) for last 100 blocks range
     return events
   }
 
-  async getEventsWITHDRAWALREQUEST(){
+  async getEventsWITHDRAWALREQUEST(blockRange){
     const filter = this.contract.filters.WithdrawalRequest
     const events = await this.contract.queryFilter(filter) // (filter, -100) for last 100 blocks range
     return events

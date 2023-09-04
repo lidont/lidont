@@ -74,6 +74,9 @@ config(
   api
 )
 
+export const isObjectEmpty = (objectName) => {
+  return JSON.stringify(objectName) === "{}";
+};
 
 // waits for x seconds, returns promise
 //
