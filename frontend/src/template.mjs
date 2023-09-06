@@ -151,6 +151,10 @@ customElements.define("template-admin", class extends HTMLElement {
             <div class="stack flex-center">
                 <button-connected large class="flex-center" data-action="finalizeWithdrawal">Finalize Batch</button-connected>
             </div>
+
+            <div class="stack flex-center">
+                <button-connected large class="flex-center" data-action="claimWithdrawal">Claim</button-connected>
+            </div>
             
             <sub>Next Batch:</sub>
             <list-finalize></list-finalize>

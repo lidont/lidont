@@ -1,6 +1,7 @@
 import * as ethers from './ethers.js';
 import { abi as Abi } from "./abi.mjs";
 import { waitForCallback, waitForSeconds } from './util.mjs';
+import { detailsByChainId } from './store.mjs';
 
 
 export class lidontWeb3API {
@@ -212,5 +213,132 @@ export const unstETHAbi = [
   "function unfinalizedStETH() view returns (uint256)"
 ];
 
-
-export const outputPipeAbi = []
+export const outputPipesAbi = `
+[{
+  "name": "Stake",
+  "inputs": [{
+      "name": "user",
+      "type": "address",
+      "indexed": true
+  }, {
+      "name": "amount",
+      "type": "uint256",
+      "indexed": true
+  }],
+  "anonymous": false,
+  "type": "event"
+}, {
+  "name": "Unstake",
+  "inputs": [{
+      "name": "user",
+      "type": "address",
+      "indexed": true
+  }, {
+      "name": "amount",
+      "type": "uint256",
+      "indexed": true
+  }, {
+      "name": "reward",
+      "type": "uint256",
+      "indexed": true
+  }],
+  "anonymous": false,
+  "type": "event"
+}, {
+  "stateMutability": "nonpayable",
+  "type": "constructor",
+  "inputs": [{
+      "name": "rewardTokenAddress",
+      "type": "address"
+  }, {
+      "name": "rocketStorageAddress",
+      "type": "address"
+  }],
+  "outputs": []
+}, {
+  "stateMutability": "nonpayable",
+  "type": "function",
+  "name": "receiveReward",
+  "inputs": [{
+      "name": "_from",
+      "type": "address"
+  }, {
+      "name": "_amount",
+      "type": "uint256"
+  }],
+  "outputs": []
+}, {
+  "stateMutability": "nonpayable",
+  "type": "function",
+  "name": "unstake",
+  "inputs": [{
+      "name": "amount",
+      "type": "uint256"
+  }],
+  "outputs": []
+}, {
+  "stateMutability": "payable",
+  "type": "function",
+  "name": "receive",
+  "inputs": [{
+      "name": "user",
+      "type": "address"
+  }],
+  "outputs": []
+}, {
+  "stateMutability": "view",
+  "type": "function",
+  "name": "bondValue",
+  "inputs": [],
+  "outputs": [{
+      "name": "",
+      "type": "uint256"
+  }]
+}, {
+  "stateMutability": "view",
+  "type": "function",
+  "name": "temp",
+  "inputs": [],
+  "outputs": [{
+      "name": "",
+      "type": "uint256"
+  }]
+}, {
+  "stateMutability": "view",
+  "type": "function",
+  "name": "dust",
+  "inputs": [],
+  "outputs": [{
+      "name": "",
+      "type": "uint256"
+  }]
+}, {
+  "stateMutability": "view",
+  "type": "function",
+  "name": "stakes",
+  "inputs": [{
+      "name": "arg0",
+      "type": "address"
+  }],
+  "outputs": [{
+      "name": "",
+      "type": "tuple",
+      "components": [{
+          "name": "amount",
+          "type": "uint256"
+      }, {
+          "name": "bondValue",
+          "type": "uint256"
+      }]
+  }]
+}, {
+  "stateMutability": "view",
+  "type": "function",
+  "name": "totalStake",
+  "inputs": [],
+  "outputs": [{
+      "name": "",
+      "type": "uint256"
+  }]
+}]
+`

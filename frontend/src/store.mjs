@@ -1,6 +1,6 @@
 import * as ethers from './ethers.js';
 import { createStore, RADIO, log, waitForSeconds, isObjectEmpty} from "./util.mjs";
-import { unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
+import { outputPipesAbi, unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
 const chainIdTestnet = 5
@@ -71,10 +71,12 @@ export const store = createStore(
     // for <input-connected> inputs are mapped to <input name=???> name components & forms
     inputs: {},
 
-
-
     outputPipes: {
-      // 1: {name: "ETH", addr: "0x0"}
+      // 1: {i: 0, addr: "0x0"}
+    },
+
+    addrToOutputPipes: {
+      // [0x0]: {i: 0, addr: "0x0"}
     },
 
     queue: {
@@ -85,14 +87,11 @@ export const store = createStore(
     depositEvents: [],
     withdrawEvents: [],
 
-    // 3 user states - has deposited , waiting to be finalized - finalized waiting to be claimed
-    // depositorsAddr -> requestIds
-
      // derived from deposit events
-    addrToDeposits: {},
-    
+    addrToDeposits: {},     // depositorsAddr -> deposit
+
     // derived from withdraw events
-    addrToRequestIds: {},
+    addrToRequestIds: {},   // depositorsAddr -> requestIds
 
     balanceOfLidontSTETH: undefined,
     balanceOfLidontETH: undefined,
@@ -104,6 +103,7 @@ export const store = createStore(
       : new ethers.InfuraProvider("mainnet", "ID"),
 
     lidontWeb3API: new lidontWeb3API(detailsByChainId[chainIdDefault].withdrawler),
+
     pending: undefined,
 
     // compound actions
@@ -184,19 +184,20 @@ export const store = createStore(
     },
 
     async getAllOutputPipes(){
-      const { lidontWeb3API } = getState()
+      const { lidontWeb3API , getStakesForPipe } = getState()
       const { provider } = getState();
       const signer = await provider.getSigner();
 
       const outputPipes = {}
+      const addrToOutputPipes = {}
 
       for(let i = 0; i <64; i++){ 
         try{
           const addr = await lidontWeb3API.getOutputPipes(signer, i)
-          console.log(addr)
-          console.log("got pipe "+i)
-          // const newState = Object.assign({}, getState().outputPipes)
-          outputPipes[i] = {i, addr}
+          const stakes = await getStakesForPipe(addr)
+          console.log("got pipe "+i, addr)
+          outputPipes[i] = {i, addr, stakes}
+          addrToOutputPipes[addr] = {i, addr, stakes}
         } catch(e){
           // console.log(e)
           console.log("pipes total: "+i)
@@ -204,9 +205,9 @@ export const store = createStore(
         }
       }
 
-      setState({outputPipes})
+      setState({outputPipes, addrToOutputPipes})
     },
-
+/*
     async getOutputPipesManual(){
       const { lidontWeb3API } = getState()
       const { provider } = getState();
@@ -217,16 +218,23 @@ export const store = createStore(
         console.log("getting pipe "+id, value)
         try{
           const addr = await lidontWeb3API.getOutputPipes(signer, id)
-          const newState = getState().outputPipes
+          const newState = Object.assign({}, getState().outputPipes)
           newState[id] = {value, id, addr}
-          setState({outputPipes: newState})
+
+          const byAddress = Object.assign({},getState().addrToOutputPipes)
+          byAddress[addr] = byAddress[addr] || {}
+          byAddress[addr].id = id
+          byAddress[addr].value = value
+          byAddress[addr].addr = addr
+
+          setState({outputPipes: newState, addrToOutputPipes: byAddress})
         } catch(e){
           console.log(e)
           break
         }
       }
     },
-
+*/
     async getDeposits(){
       const { lidontWeb3API } = getState()
       const { provider } = getState();
@@ -307,17 +315,35 @@ export const store = createStore(
       await RELOAD()
     },
 
-    // EMISSION
-    async claim(){
+    // EMISSION / OUTPUT PIPES
+    //
+
+    // reads
+    async getStakesForPipe(pipeAddress){
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+      const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
+      const stakes = await pipe.stakes(signer)
+      const out = {
+        stakesRaw: stakes,
+        amount: stakes[0],
+        bondValue: stakes[1]
+      }
+      return out
+    },
+
+    // writes
+    async claimPipeEmission(pipeAddress){
       const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
+      const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
       RADIO.emit("spinner", "claiming emission rewards")
-      const tx = await lidontWeb3API.claim(signer)
+      const tx = await lidontWeb3API.stakes(signer)
       await tx.wait()
       await RELOAD()
     },
 
-    async claimStatic(){
+    async claimPipeEmissionStatic(){
       const { provider, lidontWeb3API, rETHStakedDetails } = getState();
       const signer = await provider.getSigner();
       const amount = await lidontWeb3API.claimStatic(signer)
@@ -485,7 +511,7 @@ export const store = createStore(
 
     async assembleFinalizationBatch(){
 
-      const { provider, addrToDeposits, addrToRequestIds } = getState();
+      const { addrToRequestIds } = getState();
       RADIO.emit("msg", "assemble next batch for withdrawal")
 
       const depositors = []
@@ -494,10 +520,11 @@ export const store = createStore(
       Object.keys(addrToRequestIds).forEach( addr => {
         const depositor = addrToRequestIds[addr]
 
-        if(depositor.unfinalized){
-          Object.keys(depositor.unfinalized).forEach( requestIdsString => {
-            const item = depositor.unfinalized[requestIdsString]
-            if(!item.isFinalized){
+        if(depositor.finalized){
+          // get all lido finalized batches to ... lidont finalize
+          Object.keys(depositor.finalized).forEach( requestIdsString => {
+            const item = depositor.finalized[requestIdsString]
+            if(item.isFinalized){
               depositors.push(addr)
               requestIds.push(item.requestId)
             }
@@ -524,9 +551,16 @@ export const store = createStore(
 
       RADIO.emit("msg", "getting hints...")
       const hints = await getCheckpointHints(batch.requestIds)
-
       RADIO.emit("msg", "finalizing withdrawal")
+      // const test = [detailsByChainId[chainIdDefault].withdrawler]
       await lidontWeb3API.finaliseWithdrawal(signer, batch.depositors, hints.toArray())
+    },
+
+    async claimWithdrawal(){
+      const { provider, inputs, lidontWeb3API, getCheckpointHints, assembleFinalizationBatch } = getState();
+      const signer = await provider.getSigner();
+      RADIO.emit("msg", "claiming")
+      await lidontWeb3API.claim(signer)
     },
 
     // wallet

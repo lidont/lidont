@@ -289,30 +289,36 @@ customElements.define("list-pipes", class extends HTMLElement {
   connectedCallback() { 
 
     this.prevValue = {} // only re-render when value changed
+    this.prevValue2 = {}
 
     store.subscribe( () => {
-      const state = store.getState()
-      if(shallowCompare(this.prevValue, state.outputPipes)){ return }
-      if(!shallowCompare(this.prevValue, state.outputPipes)){ 
-        this.prevValue = store.getState().outputPipes
-        return this.render(store.getState().outputPipes)
+      const { outputPipes } = store.getState()
+
+      if(shallowCompare(this.prevValue, outputPipes)){ return }
+      if(!shallowCompare(this.prevValue, outputPipes)){ 
+        this.prevValue = outputPipes
+        return this.render()
       }
+
+
     })
 
     this.render(); 
-
   }
   attributeChangedCallback() { this.render(); }
-  render(outPipes){
-    if(!outPipes){ return this.innerHTML = "<div class='spinner'></div>" }
-    const pipes = Object.values(outPipes)
+  render(){
+    const { outputPipes } = store.getState()
+    if(!outputPipes){ return this.innerHTML = "<div class='spinner'></div>" }
+    const pipes = Object.values(outputPipes)
     console.log("rerender pipes")
     this.innerHTML = `
     <div>
       ${pipes.map( (value, index) => { 
+        console.log(value)
         return html`
+          <sub>${index} - ${value.addr}</sub>
           <div class="stack row flex-between">
-          <sub>${index}</sub>
+          <sub>amount: ${value.stakes.amount}; bondValue: ${value.stakes.bondValue}</sub>
                   <div class="flex flex-around">
             <button-connected data-action="claimEmission">Claim</button-connected>
         </div>  
