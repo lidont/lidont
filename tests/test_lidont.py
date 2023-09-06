@@ -55,7 +55,7 @@ def test_cannot_deposit_no_pipe(withdrawler, accounts):
     arbitraryPipe = f'0x{secrets.token_hex(20)}'
     assert withdrawler.outputIndex(arbitraryPipe) == 0
     with reverts("invalid pipe"):
-        withdrawler.deposit(1, arbitraryPipe, sender=accounts[0])
+        withdrawler.deposit(100, arbitraryPipe, sender=accounts[0])
 
 def test_toggle_pipe_makes_valid(withdrawler, ETH_pipe, accounts):
     assert withdrawler.outputIndex(ETH_pipe.address) == 0
@@ -73,7 +73,7 @@ def rETH_pipe_added(withdrawler, rETH_pipe, accounts):
     return rETH_pipe
 
 def test_cannot_deposit_no_amount(withdrawler, ETH_pipe_added, accounts):
-    with reverts("no deposit"):
+    with reverts("deposit too small"):
         withdrawler.deposit(0, ETH_pipe_added.address, sender=accounts[0])
 
 @pytest.fixture(scope="function")
@@ -82,22 +82,22 @@ def have_stETH(stETH, accounts):
 
 def test_cannot_deposit_not_approved(withdrawler, have_stETH, ETH_pipe_added, accounts):
     with reverts("ALLOWANCE_EXCEEDED"):
-        withdrawler.deposit(1, ETH_pipe_added.address, sender=accounts[0])
+        withdrawler.deposit(100, ETH_pipe_added.address, sender=accounts[0])
 
 def test_cannot_deposit_no_balance(withdrawler, stETH, ETH_pipe_added, accounts):
     assert stETH.balanceOf(accounts[0]) == 0
-    assert stETH.approve(withdrawler.address, 1, sender=accounts[0])
+    assert stETH.approve(withdrawler.address, 100, sender=accounts[0])
     with reverts("balance"):
-        withdrawler.deposit(1, ETH_pipe_added.address, sender=accounts[0])
+        withdrawler.deposit(100, ETH_pipe_added.address, sender=accounts[0])
 
 @pytest.fixture(scope="function")
-def deposit_ETH_pipe(accounts, withdrawler, stETH, ETH_pipe_added):
+def deposit_ETH_pipe(accounts, withdrawler, have_stETH, stETH, ETH_pipe_added):
     amount = 42 * 10 ** 9
     assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
     withdrawler.deposit('42 gwei', ETH_pipe_added.address, sender=accounts[0])
     return {"amount": amount}
 
-def test_deposit_pipe_ETH(withdrawler, have_stETH, deposit_ETH_pipe, accounts):
+def test_deposit_pipe_ETH(withdrawler, deposit_ETH_pipe, accounts):
     assert withdrawler.deposits(accounts[0]).stETH == deposit_ETH_pipe["amount"]
 
 def test_deposit_pipe_rETH(withdrawler, addr, stETH, have_stETH, rETH_pipe_added, accounts):
@@ -112,10 +112,19 @@ def test_cannot_deposit_different_pipe_after_deposit(withdrawler, addr, accounts
     with reverts("pending deposit"):
         withdrawler.deposit('42 gwei', rETH_pipe_added.address, sender=accounts[0])
 
-def test_initiateWithdrawal(withdrawler, addr, accounts, stETH, have_stETH, deposit_ETH_pipe):
+@pytest.fixture(scope="function")
+def one_withdrawal_initiated(withdrawler, deposit_ETH_pipe, accounts):
     queueSize = withdrawler.queueSize()
     assert queueSize == 1
     assert withdrawler.queue(0) == accounts[0].address
     receipt = withdrawler.initiateWithdrawal([accounts[0]], sender=accounts[0])
     requestIds = receipt.return_value
-    assert len(requestIds) == 1
+    return requestIds
+
+def test_initiateWithdrawal(one_withdrawal_initiated):
+    assert len(one_withdrawal_initiated) == 1
+
+@pytest.fixture(scope="function")
+def one_withdrawal_finalized(one_withdrawal_initiated):
+    requestId = one_withdrawal_initiated[0]
+    # TODO: complete

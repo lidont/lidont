@@ -2,6 +2,8 @@
 
 MAX_REQUESTS: constant(uint256) = 32 # maximum number of requestIds to process at a time
 MAX_OUTPUT_PIPES: constant(uint256) = 32
+MAX_LIDO_DEPOSIT: constant(uint256) = 1000 * 10**18
+MIN_LIDO_DEPOSIT: constant(uint256) = 100
 
 interface StETH:
   def balanceOf(_owner: address) -> uint256: view
@@ -172,16 +174,13 @@ event Claim:
 @external
 def deposit(stETHAmount: uint256, outputPipe: address):
   assert 0 < self.outputIndex[outputPipe], "invalid pipe"
-  assert 0 < stETHAmount, "no deposit"
-  # TODO: assert stETHAmount is not too big for a single Lido withdrawal request
-  # and the total withdrawal amount is also not too big (if that is Lido-limited)
-  assert stakedEther.balanceOf(msg.sender) >= stETHAmount, "balance"
+  assert MIN_LIDO_DEPOSIT <= stETHAmount, "deposit too small"
+  assert stETHAmount <= MAX_LIDO_DEPOSIT, "deposit too large"
+  assert stETHAmount <= stakedEther.balanceOf(msg.sender), "balance"
   assert stakedEther.transferFrom(msg.sender, self, stETHAmount), "stETH transfer failed"
-  assert self.deposits[msg.sender].outputPipe == empty(address) or (
-           self.deposits[msg.sender].outputPipe == outputPipe and
-           self.deposits[msg.sender].stETH > 0), "pending deposit"
-  self.deposits[msg.sender].stETH += stETHAmount
+  assert self.deposits[msg.sender].outputPipe == empty(address) and self.deposits[msg.sender].stETH == 0, "pending deposit"
   self.deposits[msg.sender].outputPipe = outputPipe
+  self.deposits[msg.sender].stETH = stETHAmount
   self._appendQueue(msg.sender)
   log Deposit(msg.sender, stETHAmount)
 
