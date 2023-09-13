@@ -5,6 +5,11 @@ addresses = dict(mainnet =
                  dict(rocketStorageAddress = '0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46',
                       stETHAddress         = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
                       unstETHAddress       = '0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1',
+                      hashConsensus        = '0xD624B08C83bAECF0807Dd2c6880C3154a5F0B288',
+                      accountingOracle     = '0x852deD011285fe67063a08005c71a85690503Cee',
+                      withdrawalVault      = '0xB9D7934878B5FB9610B3fE8A5e441e8fad7E293f',
+                      elRewardsVault       = '0x388C818CA8B9251b393131C08a736A67ccB19297',
+                      burner               = '0xD15a672319Cf0352560eE76d9e89eAB0889046D3',
                       ),
                  goerli =
                  dict(rocketStorageAddress = '0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3',
@@ -125,6 +130,75 @@ def test_initiateWithdrawal(one_withdrawal_initiated):
     assert len(one_withdrawal_initiated) == 1
 
 @pytest.fixture(scope="function")
-def one_withdrawal_finalized(one_withdrawal_initiated):
+def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_initiated, accounts):
     requestId = one_withdrawal_initiated[0]
-    # TODO: complete
+
+    HashConsensusContract = Contract(addr['hashConsensus'])
+    AccountingOracleContract = Contract(addr['accountingOracle'])
+    WithdrawalVaultContract = Contract(addr['withdrawalVault'])
+    ELRewardsVaultContract = Contract(addr['elRewardsVault'])
+    BurnerContract = Contract(addr['burner'])
+    members = HashConsensusContract.getFastLaneMembers[0]
+    submitter = members[0]
+    refSlot = HashConsensusContract.getCurrentFrame()[0]
+    _, beaconValidators, beaconBalance = stETH.getBeaconStat()
+    shares1, shares2 = BurnerContract.getSharesRequestedToBurn()
+    _, SECONDS_PER_SLOT, GENESIS_TIME = HashConsensusContract.getChainConfig()
+    reportTime = GENESIS_TIME + refSlot * SECONDS_PER_SLOT
+    withdrawalVaultBalance = WithdrawalVaultContract.balance
+    elRewardsVaultBalance = ELRewardsVaultContract.balance
+    ONE_DAY = 24 * 60 * 60
+    postCLBalance = 0
+    postTotalPooledEther, postTotalShares, withdrawals, elRewards = stETH.call_view_method(
+            'handleOracleReport',
+            reportTime,
+            ONE_DAY,
+            beaconValidators,
+            postCLBalance,
+            withdrawalVaultBalance,
+            elRewardsVaultBalance,
+            0,
+            [],
+            0,
+            sender=AccountingOracleContract,
+        )
+    SHARE_RATE_PRECISION = 10 ** 27
+    simulatedShareRate = postTotalPooledEther * SHARE_RATE_PRECISION // postTotalShares
+    # TODO
+    withdrawalFinalizationBatches = get_finalization_batches(simulatedShareRate, withdrawals, elRewards)
+    preTotalPooledEther = stETH.getTotalPooledEther()
+    is_bunker = preTotalPooledEther > postTotalPooledEther
+    consensusVersion = AccountingOracleContract.getConsensusVersion()
+    reportData = (
+            consensusVersion,
+            refSlot,
+            beaconValidators, # numValidators
+            (beaconBalance + 10 ** 19) // 10 ** 9, # clBalanceGwei
+            [], # stakingModuleIdsWithNewlyExitedValidators
+            [], # numExitedValidatorsByStakingModule
+            withdrawalVaultBalance,
+            elRewardsVaultBalance,
+            shares1 + shares2, # sharesRequestedToBurn
+            withdrawalFinalizationBatches,
+            simulatedShareRate,
+            is_bunker,
+            0, # extraDataFormat EMPTY1
+            0, # extraDataHash -- might need to be hex string or whatever bytes32 needs
+            0, # extraDataItemsCount
+        )
+    reportHash = # TODO
+    for member in members:
+        HashConsensusContract.submitReport(refSlot, reportHash, consensusVersion, sender=member)
+    accounts[0].transfer(submitter, '10 ether')
+    AccountingOracleContract.submitReportData(
+            reportData,
+            AccountingOracleContract.getContractVersion(),
+            sender=submitter
+        )
+    hints = unstETH.findCheckpointHints([requestId], 1, unstETH.getLastCheckpointIndex())
+    receipt = withdrawler.finaliseWithdrawal([accounts[0]], hints, sender=accounts[0])
+    claimAmounts = receipt.return_value
+    return claimAmounts
+
+def test_claim(one_withdrawal_finalized):
+    assert len(one_withdrawal_finalized) == 1
