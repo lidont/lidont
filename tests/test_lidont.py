@@ -1,4 +1,5 @@
 from ape import reverts, Contract
+from eth_abi import encode
 import pytest
 
 addresses = dict(mainnet =
@@ -10,6 +11,7 @@ addresses = dict(mainnet =
                       withdrawalVault      = '0xB9D7934878B5FB9610B3fE8A5e441e8fad7E293f',
                       elRewardsVault       = '0x388C818CA8B9251b393131C08a736A67ccB19297',
                       burner               = '0xD15a672319Cf0352560eE76d9e89eAB0889046D3',
+                      sanityChecker        = '0x9305c1Dbfe22c12c66339184C0025d7006f0f1cC',
                       ),
                  goerli =
                  dict(rocketStorageAddress = '0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3',
@@ -130,7 +132,7 @@ def test_initiateWithdrawal(one_withdrawal_initiated):
     assert len(one_withdrawal_initiated) == 1
 
 @pytest.fixture(scope="function")
-def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_initiated, accounts):
+def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_initiated, chain, accounts):
     requestId = one_withdrawal_initiated[0]
 
     HashConsensusContract = Contract(addr['hashConsensus'])
@@ -138,7 +140,8 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     WithdrawalVaultContract = Contract(addr['withdrawalVault'])
     ELRewardsVaultContract = Contract(addr['elRewardsVault'])
     BurnerContract = Contract(addr['burner'])
-    members = HashConsensusContract.getFastLaneMembers[0]
+    CheckerContract = Contract(addr['sanityChecker'])
+    members = HashConsensusContract.getFastLaneMembers()[0]
     submitter = members[0]
     refSlot = HashConsensusContract.getCurrentFrame()[0]
     _, beaconValidators, beaconBalance = stETH.getBeaconStat()
@@ -164,8 +167,23 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
         )
     SHARE_RATE_PRECISION = 10 ** 27
     simulatedShareRate = postTotalPooledEther * SHARE_RATE_PRECISION // postTotalShares
-    # TODO
-    withdrawalFinalizationBatches = get_finalization_batches(simulatedShareRate, withdrawals, elRewards)
+    _, _, _, _, _, _, _, requestTimestampMargin, _ = CheckerContract.getOracleReportLimits()
+    bufferedEther = stETH.getBufferedEther()
+    unfinalizedStETH = unstETH.unfinalizedStETH()
+    reservedBuffer = min(bufferedEther, unfinalizedStETH)
+    availableETH = withdrawals + elRewards + reservedBuffer
+    maxTimestamp = chain.blocks.head.timestamp - requestTimestampMargin
+    MAX_REQUESTS_PER_CALL = 1000
+    assert availableETH
+    batchesState = unstETH.calculateFinalizationBatches(
+            simulatedShareRate, maxTimestamp, MAX_REQUESTS_PER_CALL,
+            (availableETH, False, [0 for _ in range(36)], 0)
+        )
+    while not batchesState[1]:
+        batchesState = unstETH.calculateFinalizationBatches(
+                simulatedShareRate, maxTimestamp, MAX_REQUESTS_PER_CALL, batchesState
+            )
+    withdrawalFinalizationBatches = list(filter(lambda value: value > 0, batchesState[2]))
     preTotalPooledEther = stETH.getTotalPooledEther()
     is_bunker = preTotalPooledEther > postTotalPooledEther
     consensusVersion = AccountingOracleContract.getConsensusVersion()
@@ -183,10 +201,13 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
             simulatedShareRate,
             is_bunker,
             0, # extraDataFormat EMPTY1
-            0, # extraDataHash -- might need to be hex string or whatever bytes32 needs
+            b'', # extraDataHash
             0, # extraDataItemsCount
         )
-    reportHash = # TODO
+    reportHash = encode(
+            ['(uint256,uint256,uint256,uint256,uint256[],uint256[]'
+             ',uint256,uint256,uint256,uint256[],uint256,bool,uint256,bytes32,uint256)'],
+            [reportData])
     for member in members:
         HashConsensusContract.submitReport(refSlot, reportHash, consensusVersion, sender=member)
     accounts[0].transfer(submitter, '10 ether')
