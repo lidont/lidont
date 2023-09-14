@@ -1,5 +1,6 @@
 from ape import reverts, Contract
-from eth_abi import encode
+from eth_abi.abi import encode
+from eth_utils import keccak
 import pytest
 
 addresses = dict(mainnet =
@@ -151,20 +152,34 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     withdrawalVaultBalance = WithdrawalVaultContract.balance
     elRewardsVaultBalance = ELRewardsVaultContract.balance
     ONE_DAY = 24 * 60 * 60
-    postCLBalance = 0
-    postTotalPooledEther, postTotalShares, withdrawals, elRewards = stETH.call_view_method(
-            'handleOracleReport',
-            reportTime,
-            ONE_DAY,
-            beaconValidators,
-            postCLBalance,
-            withdrawalVaultBalance,
-            elRewardsVaultBalance,
-            0,
-            [],
-            0,
-            sender=AccountingOracleContract,
-        )
+    postCLBalance = beaconBalance + 10 ** 19 # do we need to add the 10 ETH to this?
+    try:
+        postTotalPooledEther, postTotalShares, withdrawals, elRewards = stETH.call_view_method(
+                'handleOracleReport',
+                reportTime,
+                ONE_DAY,
+                beaconValidators,
+                postCLBalance,
+                withdrawalVaultBalance,
+                elRewardsVaultBalance,
+                0,
+                [],
+                0,
+                sender=AccountingOracleContract,
+            )
+    except:
+        stETH.handleOracleReport(
+                reportTime,
+                ONE_DAY,
+                beaconValidators,
+                postCLBalance,
+                withdrawalVaultBalance,
+                elRewardsVaultBalance,
+                0,
+                [],
+                0,
+                sender=AccountingOracleContract,
+            )
     SHARE_RATE_PRECISION = 10 ** 27
     simulatedShareRate = postTotalPooledEther * SHARE_RATE_PRECISION // postTotalShares
     _, _, _, _, _, _, _, requestTimestampMargin, _ = CheckerContract.getOracleReportLimits()
@@ -191,7 +206,7 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
             consensusVersion,
             refSlot,
             beaconValidators, # numValidators
-            (beaconBalance + 10 ** 19) // 10 ** 9, # clBalanceGwei
+            postCLBalance // 10 ** 9, # clBalanceGwei
             [], # stakingModuleIdsWithNewlyExitedValidators
             [], # numExitedValidatorsByStakingModule
             withdrawalVaultBalance,
@@ -204,12 +219,12 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
             b'', # extraDataHash
             0, # extraDataItemsCount
         )
-    reportHash = encode(
+    reportHash = keccak(encode(
             ['(uint256,uint256,uint256,uint256,uint256[],uint256[]'
              ',uint256,uint256,uint256,uint256[],uint256,bool,uint256,bytes32,uint256)'],
-            [reportData])
+            [reportData]))
     for member in members:
-        HashConsensusContract.submitReport(refSlot, reportHash, consensusVersion, sender=member)
+        HashConsensusContract.submitReport(refSlot, reportHash, consensusVersion, sender=accounts[member])
     accounts[0].transfer(submitter, '10 ether')
     AccountingOracleContract.submitReportData(
             reportData,
