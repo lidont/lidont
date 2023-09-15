@@ -218,6 +218,11 @@ def finaliseWithdrawal(depositors: DynArray[address, MAX_REQUESTS],
   return claimAmounts
 
 @external
+@payable
+def __default__():
+  assert msg.sender == unstETH.address, "only withdrawals accepted"
+
+@external
 def claim() -> uint256:
   recipient: address = self._popQueue()
   output: address = self.deposits[recipient].outputPipe
