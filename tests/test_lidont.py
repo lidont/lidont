@@ -142,12 +142,18 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     ELRewardsVaultContract = Contract(addr['elRewardsVault'])
     BurnerContract = Contract(addr['burner'])
     CheckerContract = Contract(addr['sanityChecker'])
+
+    SLOTS_PER_EPOCH, SECONDS_PER_SLOT, GENESIS_TIME = HashConsensusContract.getChainConfig()
+    refSlot = HashConsensusContract.getCurrentFrame()[0]
+    EPOCHS_PER_FRAME = HashConsensusContract.getFrameConfig()[1]
+    frame_start_with_offset = GENESIS_TIME + (refSlot + SLOTS_PER_EPOCH * EPOCHS_PER_FRAME + 1) * SECONDS_PER_SLOT
+    chain.mine(1, frame_start_with_offset)
+    refSlot = HashConsensusContract.getCurrentFrame()[0]
+
     members = HashConsensusContract.getFastLaneMembers()[0]
     submitter = members[0]
-    refSlot = HashConsensusContract.getCurrentFrame()[0]
     _, beaconValidators, beaconBalance = stETH.getBeaconStat()
     shares1, shares2 = BurnerContract.getSharesRequestedToBurn()
-    _, SECONDS_PER_SLOT, GENESIS_TIME = HashConsensusContract.getChainConfig()
     reportTime = GENESIS_TIME + refSlot * SECONDS_PER_SLOT
     withdrawalVaultBalance = WithdrawalVaultContract.balance
     elRewardsVaultBalance = ELRewardsVaultContract.balance
