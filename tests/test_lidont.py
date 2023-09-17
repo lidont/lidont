@@ -144,8 +144,15 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     CheckerContract = Contract(addr['sanityChecker'])
 
     SLOTS_PER_EPOCH, SECONDS_PER_SLOT, GENESIS_TIME = HashConsensusContract.getChainConfig()
-    refSlot = HashConsensusContract.getCurrentFrame()[0]
     EPOCHS_PER_FRAME = HashConsensusContract.getFrameConfig()[1]
+    MAX_REQUESTS_PER_CALL = 1000
+    ONE_DAY = 24 * 60 * 60
+    SHARE_RATE_PRECISION = 10 ** 27
+
+    # attempts = 0
+    # while unstETH.getLastFinalizedRequestId() < requestId:
+
+    refSlot = HashConsensusContract.getCurrentFrame()[0]
     frame_start_with_offset = GENESIS_TIME + (refSlot + SLOTS_PER_EPOCH * EPOCHS_PER_FRAME + 1) * SECONDS_PER_SLOT
     chain.mine(1, frame_start_with_offset)
     refSlot = HashConsensusContract.getCurrentFrame()[0]
@@ -157,36 +164,20 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     reportTime = GENESIS_TIME + refSlot * SECONDS_PER_SLOT
     withdrawalVaultBalance = WithdrawalVaultContract.balance
     elRewardsVaultBalance = ELRewardsVaultContract.balance
-    ONE_DAY = 24 * 60 * 60
     postCLBalance = beaconBalance + 10 ** 19 # do we need to add the 10 ETH to this?
-    try:
-        postTotalPooledEther, postTotalShares, withdrawals, elRewards = stETH.call_view_method(
-                'handleOracleReport',
-                reportTime,
-                ONE_DAY,
-                beaconValidators,
-                postCLBalance,
-                withdrawalVaultBalance,
-                elRewardsVaultBalance,
-                0,
-                [],
-                0,
-                sender=AccountingOracleContract,
-            )
-    except:
-        stETH.handleOracleReport(
-                reportTime,
-                ONE_DAY,
-                beaconValidators,
-                postCLBalance,
-                withdrawalVaultBalance,
-                elRewardsVaultBalance,
-                0,
-                [],
-                0,
-                sender=AccountingOracleContract,
-            )
-    SHARE_RATE_PRECISION = 10 ** 27
+    postTotalPooledEther, postTotalShares, withdrawals, elRewards = stETH.call_view_method(
+            'handleOracleReport',
+            reportTime,
+            ONE_DAY,
+            beaconValidators,
+            postCLBalance,
+            withdrawalVaultBalance,
+            elRewardsVaultBalance,
+            0,
+            [],
+            0,
+            sender=AccountingOracleContract,
+        )
     simulatedShareRate = postTotalPooledEther * SHARE_RATE_PRECISION // postTotalShares
     _, _, _, _, _, _, _, requestTimestampMargin, _ = CheckerContract.getOracleReportLimits()
     bufferedEther = stETH.getBufferedEther()
@@ -194,7 +185,6 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     reservedBuffer = min(bufferedEther, unfinalizedStETH)
     availableETH = withdrawals + elRewards + reservedBuffer
     maxTimestamp = chain.blocks.head.timestamp - requestTimestampMargin
-    MAX_REQUESTS_PER_CALL = 1000
     assert availableETH
     batchesState = unstETH.calculateFinalizationBatches(
             simulatedShareRate, maxTimestamp, MAX_REQUESTS_PER_CALL,
@@ -237,6 +227,10 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
             AccountingOracleContract.getContractVersion(),
             sender=submitter
         )
+
+    # attempts += 1
+    # assert attempts < 5
+
     hints = unstETH.findCheckpointHints([requestId], 1, unstETH.getLastCheckpointIndex())
     receipt = withdrawler.finaliseWithdrawal([accounts[0]], hints, sender=accounts[0])
     claimAmounts = receipt.return_value
