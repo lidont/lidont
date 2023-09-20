@@ -86,7 +86,7 @@ def test_cannot_deposit_no_amount(withdrawler, ETH_pipe_added, accounts):
 
 @pytest.fixture(scope="function")
 def have_stETH(stETH, accounts):
-    return stETH.submit(accounts[0], value='69 ETH', sender=accounts[0])
+    return stETH.submit(accounts[0], value='6.9 ETH', sender=accounts[0])
 
 def test_cannot_deposit_not_approved(withdrawler, have_stETH, ETH_pipe_added, accounts):
     with reverts("ALLOWANCE_EXCEEDED"):
@@ -100,7 +100,7 @@ def test_cannot_deposit_no_balance(withdrawler, stETH, ETH_pipe_added, accounts)
 
 @pytest.fixture(scope="function")
 def deposit_ETH_pipe(accounts, withdrawler, have_stETH, stETH, ETH_pipe_added):
-    amount = 42 * 10 ** 18
+    amount = 42 * 10 ** 17
     assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
     withdrawler.deposit(amount, ETH_pipe_added.address, sender=accounts[0])
     return {"amount": amount}
@@ -236,7 +236,8 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     claimAmounts = receipt.return_value
     return claimAmounts
 
-def test_claim(one_withdrawal_finalized, withdrawler, accounts):
+def test_claim(one_withdrawal_finalized, withdrawler, ETH_pipe_added, deposit_ETH_pipe, accounts):
     assert len(one_withdrawal_finalized) == 1
     receipt = withdrawler.claim(sender=accounts[0])
-    assert receipt.return_value == 42 * 10 ** 18
+    assert receipt.return_value == deposit_ETH_pipe["amount"]
+    assert ETH_pipe_added.stakes(accounts[0]).amount == receipt.return_value
