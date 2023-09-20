@@ -236,8 +236,15 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     claimAmounts = receipt.return_value
     return claimAmounts
 
-def test_claim(one_withdrawal_finalized, withdrawler, ETH_pipe_added, deposit_ETH_pipe, accounts):
+@pytest.fixture(scope="function")
+def one_withdrawal_claimed(one_withdrawal_finalized, withdrawler, accounts):
     assert len(one_withdrawal_finalized) == 1
-    receipt = withdrawler.claim(sender=accounts[0])
-    assert receipt.return_value == deposit_ETH_pipe["amount"]
-    assert ETH_pipe_added.stakes(accounts[0]).amount == receipt.return_value
+    return withdrawler.claim(sender=accounts[0])
+
+def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, accounts):
+    assert one_withdrawal_claimed.return_value == deposit_ETH_pipe["amount"]
+    assert ETH_pipe_added.stakes(accounts[0]).amount == one_withdrawal_claimed.return_value
+    logs = ETH_pipe_added.Stake.from_receipt(one_withdrawal_claimed)
+    assert len(logs) == 1
+    assert logs[0].user == accounts[0]
+    assert logs[0].amount == one_withdrawal_claimed.return_value
