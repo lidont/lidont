@@ -260,3 +260,17 @@ def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, account
     assert len(logs) == 1
     assert logs[0].user == accounts[0]
     assert logs[0].amount == one_withdrawal_claimed.return_value
+
+def test_unstake_partial(lidont, withdrawler, ETH_pipe_added, one_withdrawal_claimed, chain, accounts):
+    num_blocks = ONE_DAY_SECONDS // 12 + 128
+    chain.mine(num_blocks)
+    emission_receipt = withdrawler.triggerEmission(ETH_pipe_added.address, sender=accounts[1]) # TODO: should this be automatic in some contract?
+    mint_logs = lidont.Mint.from_receipt(emission_receipt)
+    assert len(mint_logs) == 1
+    assert mint_logs[0].recipient == ETH_pipe_added.address
+    assert mint_logs[0].amount == num_blocks * EMISSION_PER_BLOCK
+    amount = one_withdrawal_claimed.return_value // 2
+    receipt = ETH_pipe_added.unstake(amount, sender=accounts[0])
+    logs = ETH_pipe_added.Unstake.from_receipt(receipt)
+    assert len(logs) == 1
+    assert lidont.balanceOf(accounts[0]) == 39 # TODO: calculate correctly
