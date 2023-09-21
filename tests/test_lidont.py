@@ -36,10 +36,14 @@ def stETH(addr):
 def unstETH(addr):
     return Contract(addr['unstETHAddress'])
 
+EMISSION_PER_BLOCK = 10 ** 9
+
 @pytest.fixture(scope="session")
 def withdrawler(project, addr, accounts):
-    return project.withdrawler.deploy(
+    withdrawler = project.withdrawler.deploy(
             addr['stETHAddress'], addr['unstETHAddress'], sender=accounts[0])
+    withdrawler.changeEmissionRate(EMISSION_PER_BLOCK, sender=accounts[0])
+    return withdrawler
 
 @pytest.fixture(scope="session")
 def lidont(project, accounts, withdrawler):
