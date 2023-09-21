@@ -154,7 +154,11 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     while unstETH.getLastFinalizedRequestId() < requestId:
         # stake more ETH with Lido to "increase buffered ETH in the protocol"
         stETH.submit(accounts[2], value='1024 ETH', sender=accounts[2])
-        chain.mine(24, None, 2 * ONE_DAY_SECONDS)
+        chain.mine(256)
+        stETH.submit(accounts[3], value='1024 ETH', sender=accounts[3])
+        chain.mine(256, None, ONE_DAY_SECONDS)
+        stETH.submit(accounts[4], value='1024 ETH', sender=accounts[4])
+        chain.mine(256, None, 2 * ONE_DAY_SECONDS)
 
         refSlot = HashConsensusContract.getCurrentFrame()[0]
         frame_start_with_offset = GENESIS_TIME + (refSlot + SLOTS_PER_EPOCH * EPOCHS_PER_FRAME + 1) * SECONDS_PER_SLOT
