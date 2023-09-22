@@ -106,9 +106,9 @@ def setLidont(lidontAddress: address):
 def _updatePendingRewardsFor(output: address):
   # assert 0 < self.outputIndex[output], "assume the caller checks this"
   unclaimedBlocks: uint256 = block.number - self.lastRewardBlock[output]
-  if 0 < unclaimedBlocks:
-    self.lastRewardBlock[output] = block.number
-    reward: uint256 = unclaimedBlocks * self.emissionPerBlock
+  self.lastRewardBlock[output] = block.number
+  reward: uint256 = unclaimedBlocks * self.emissionPerBlock
+  if 0 < reward:
     self.lidont.mint(reward, output)
     OutputPipe(output).receiveReward(empty(address), reward)
 
@@ -149,8 +149,8 @@ def toggleValidOutput(output: address):
 def changeEmissionRate(newEmissionPerBlock: uint256):
   assert msg.sender == self.admin, "auth"
   self._updatePendingRewards()
-  log ChangeEmission(self.emissionPerBlock, newEmissionPerBlock)
   self.emissionPerBlock = newEmissionPerBlock
+  log ChangeEmission(self.emissionPerBlock, newEmissionPerBlock)
 
 # Main mechanisms:
 # - deposit stETH for (pending) ETH

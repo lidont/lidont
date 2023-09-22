@@ -27,6 +27,11 @@ def __init__(rewardTokenAddress: address):
   precision = 10 ** convert(rewardToken.decimals(), uint256)
   self.bondValue = initialBondValue
 
+event Receive:
+  amount: indexed(uint256)
+  oldBondValue: indexed(uint256)
+  newBondValue: indexed(uint256)
+
 @external
 def receiveReward(_from: address, _amount: uint256):
   assert rewardToken.transferFrom(_from, self, _amount), "transferFrom"
@@ -40,12 +45,14 @@ def receiveReward(_from: address, _amount: uint256):
     amount += self.temp
     self.temp = 0
 
+  oldBondValue: uint256 = self.bondValue
   rawReward: uint256 = amount + self.dust
   totalBonds: uint256 = self.totalStake / precision
   bondInc: uint256 = rawReward / totalBonds
   reward: uint256 = totalBonds * bondInc
   self.bondValue += bondInc
   self.dust = rawReward - reward
+  log Receive(_amount, oldBondValue, self.bondValue)
 
 event Stake:
   user: indexed(address)
