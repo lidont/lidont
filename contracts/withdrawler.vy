@@ -102,11 +102,16 @@ def setLidont(lidontAddress: address):
   assert msg.sender == self.admin, "auth"
   self.lidont = Lidont(lidontAddress)
 
+event SetLastRewardBlock:
+  pipe: indexed(address)
+  bnum: indexed(uint256)
+
 @internal
 def _updatePendingRewardsFor(output: address):
   # assert 0 < self.outputIndex[output], "assume the caller checks this"
   unclaimedBlocks: uint256 = block.number - self.lastRewardBlock[output]
   self.lastRewardBlock[output] = block.number
+  log SetLastRewardBlock(output, block.number)
   reward: uint256 = unclaimedBlocks * self.emissionPerBlock
   if 0 < reward:
     self.lidont.mint(reward, output)
@@ -143,6 +148,7 @@ def toggleValidOutput(output: address):
       self.outputPipes.append(output)
       self.outputIndex[output] = len(self.outputPipes)
     self.lastRewardBlock[output] = block.number
+    log SetLastRewardBlock(output, block.number)
   log SetOutputValidity(output, newValidity)
 
 @external
