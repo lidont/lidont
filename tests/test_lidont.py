@@ -264,6 +264,10 @@ def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, account
     assert logs[0].user == accounts[0]
     assert logs[0].amount == one_withdrawal_claimed.return_value
 
+def test_block_number(withdrawler, accounts):
+    receipt = withdrawler.testBlockNum(sender=accounts[0])
+    assert receipt.block_number == withdrawler.TestBlockNum.from_receipt(receipt)[0].blocknum
+
 def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, one_withdrawal_claimed, chain, accounts):
     stake_blocks = ONE_DAY_SECONDS // 12 + 128
     before_mine = chain.blocks.head.number
