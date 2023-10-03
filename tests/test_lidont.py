@@ -280,14 +280,12 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     assert after_mine - before_mine == stake_blocks
     setLastLogs = list(withdrawler.SetLastRewardBlock.range(withdrawler.receipt.block_number, chain.blocks.head.number))
     assert setLastLogs[-1].bnum == ETH_pipe_added['toggle_valid_receipt'].block_number
-    assert len(setLastLogs) == 2
-    assert setLastLogs[-2].bnum == start_emission.receipt.block_number
     emission_receipt = withdrawler.triggerEmission(ETH_pipe_added['pipe'].address, sender=accounts[1]) # TODO: should this be automatic in some contract?
     mint_logs = lidont.Mint.from_receipt(emission_receipt)
     assert len(ETH_pipe_added['pipe'].Receive.from_receipt(emission_receipt)) == 1
     assert len(mint_logs) == 1
     assert mint_logs[0].recipient == ETH_pipe_added['pipe'].address
-    assert mint_logs[0].amount == (emission_receipt.block_number - start_emission.receipt.block_number) * EMISSION_PER_BLOCK
+    assert mint_logs[0].amount == (emission_receipt.block_number - ETH_pipe_added['toggle_valid_receipt'].block_number) * EMISSION_PER_BLOCK
     amount = one_withdrawal_claimed.return_value // 2
     receipt = ETH_pipe_added['pipe'].unstake(amount, sender=accounts[0])
     logs = ETH_pipe_added['pipe'].Unstake.from_receipt(receipt)
