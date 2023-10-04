@@ -106,13 +106,6 @@ event SetLastRewardBlock:
   pipe: indexed(address)
   bnum: indexed(uint256)
 
-event TestBlockNum:
-  blocknum: indexed(uint256)
-
-@external
-def testBlockNum():
-  log TestBlockNum(block.number)
-
 @internal
 def _updatePendingRewardsFor(output: address):
   # assert 0 < self.outputIndex[output], "assume the caller checks this"
