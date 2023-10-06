@@ -160,11 +160,13 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     attempts = 0
     while unstETH.getLastFinalizedRequestId() < requestId:
         # stake more ETH with Lido to "increase buffered ETH in the protocol"
+        stakingLimit = stETH.getCurrentStakeLimit()
         stETH.submit(accounts[2], value='1024 ETH', sender=accounts[2])
         chain.mine(256)
         stETH.submit(accounts[3], value='1024 ETH', sender=accounts[3])
         chain.mine(256, None, ONE_DAY_SECONDS)
-        stETH.submit(accounts[4], value='1024 ETH', sender=accounts[4])
+        accounts[4].balance += int(1e24) # give 1000000 ETH
+        stETH.submit(accounts[4], value=stakingLimit, sender=accounts[4])
         chain.mine(256, None, 2 * ONE_DAY_SECONDS)
 
         refSlot = HashConsensusContract.getCurrentFrame()[0]
@@ -210,6 +212,7 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
                     simulatedShareRate, maxTimestamp, MAX_REQUESTS_PER_CALL, batchesState
                 )
         withdrawalFinalizationBatches = list(filter(lambda value: value > 0, batchesState[2]))
+        print(withdrawalFinalizationBatches)
         preTotalPooledEther = stETH.getTotalPooledEther()
         is_bunker = preTotalPooledEther > postTotalPooledEther
         consensusVersion = AccountingOracleContract.getConsensusVersion()
@@ -271,13 +274,14 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     after_mine = chain.blocks.head.number
     assert after_mine - before_mine == stake_blocks
     setLastLogs = list(withdrawler.SetLastRewardBlock.range(withdrawler.receipt.block_number, chain.blocks.head.number))
-    assert setLastLogs[-1].bnum == ETH_pipe_added['toggle_valid_receipt'].block_number
-    emission_receipt = withdrawler.triggerEmission(ETH_pipe_added['pipe'].address, sender=accounts[1]) # TODO: should this be automatic in some contract?
+    assert setLastLogs[-1].bnum == start_emission.block_number
+    assert len(setLastLogs) == 2
+    emission_receipt = withdrawler.triggerEmission(ETH_pipe_added.address, sender=accounts[1]) # TODO: should this be automatic in some contract?
     mint_logs = lidont.Mint.from_receipt(emission_receipt)
     assert len(ETH_pipe_added['pipe'].Receive.from_receipt(emission_receipt)) == 1
     assert len(mint_logs) == 1
-    assert mint_logs[0].recipient == ETH_pipe_added['pipe'].address
-    assert mint_logs[0].amount == (emission_receipt.block_number - ETH_pipe_added['toggle_valid_receipt'].block_number) * EMISSION_PER_BLOCK
+    assert mint_logs[0].recipient == ETH_pipe_added.address
+    assert mint_logs[0].amount == (emission_receipt.block_number - start_emission.block_number) * EMISSION_PER_BLOCK
     amount = one_withdrawal_claimed.return_value // 2
     receipt = ETH_pipe_added['pipe'].unstake(amount, sender=accounts[0])
     logs = ETH_pipe_added['pipe'].Unstake.from_receipt(receipt)
