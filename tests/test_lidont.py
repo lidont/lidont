@@ -160,11 +160,13 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     attempts = 0
     while unstETH.getLastFinalizedRequestId() < requestId:
         # stake more ETH with Lido to "increase buffered ETH in the protocol"
+        stakingLimit = stETH.getCurrentStakeLimit()
         stETH.submit(accounts[2], value='1024 ETH', sender=accounts[2])
         chain.mine(256)
         stETH.submit(accounts[3], value='1024 ETH', sender=accounts[3])
         chain.mine(256, None, ONE_DAY_SECONDS)
-        stETH.submit(accounts[4], value='1024 ETH', sender=accounts[4])
+        accounts[4].balance += int(1e24) # give 1000000 ETH
+        stETH.submit(accounts[4], value=stakingLimit, sender=accounts[4])
         chain.mine(256, None, 2 * ONE_DAY_SECONDS)
 
         refSlot = HashConsensusContract.getCurrentFrame()[0]
