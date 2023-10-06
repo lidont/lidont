@@ -158,15 +158,15 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     SHARE_RATE_PRECISION = 10 ** 27
 
     attempts = 0
-    print("queue", unstETH.getLastRequestId() + 1)
     while unstETH.getLastFinalizedRequestId() < requestId:
-        print("id:", unstETH.getLastFinalizedRequestId(), requestId)
         # stake more ETH with Lido to "increase buffered ETH in the protocol"
-        stETH.submit(accounts[2], value='2024 ETH', sender=accounts[2])
+        stakingLimit = stETH.getCurrentStakeLimit()
+        stETH.submit(accounts[2], value='1024 ETH', sender=accounts[2])
         chain.mine(256)
-        stETH.submit(accounts[3], value='2024 ETH', sender=accounts[3])
+        stETH.submit(accounts[3], value='1024 ETH', sender=accounts[3])
         chain.mine(256, None, ONE_DAY_SECONDS)
-        stETH.submit(accounts[4], value='2024 ETH', sender=accounts[4])
+        accounts[4].balance += int(1e24) # give 1000000 ETH
+        stETH.submit(accounts[4], value=stakingLimit, sender=accounts[4])
         chain.mine(256, None, 2 * ONE_DAY_SECONDS)
 
         refSlot = HashConsensusContract.getCurrentFrame()[0]
@@ -211,7 +211,6 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
             batchesState = unstETH.calculateFinalizationBatches(
                     simulatedShareRate, maxTimestamp, MAX_REQUESTS_PER_CALL, batchesState
                 )
-        print("state", batchesState, availableETH)
         withdrawalFinalizationBatches = list(filter(lambda value: value > 0, batchesState[2]))
         print(withdrawalFinalizationBatches)
         preTotalPooledEther = stETH.getTotalPooledEther()
@@ -283,14 +282,14 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     after_mine = chain.blocks.head.number
     assert after_mine - before_mine == stake_blocks
     setLastLogs = list(withdrawler.SetLastRewardBlock.range(withdrawler.receipt.block_number, chain.blocks.head.number))
-    assert setLastLogs[-1].bnum == start_emission.receipt.block_number
+    assert setLastLogs[-1].bnum == start_emission.block_number
     assert len(setLastLogs) == 2
     emission_receipt = withdrawler.triggerEmission(ETH_pipe_added.address, sender=accounts[1]) # TODO: should this be automatic in some contract?
     mint_logs = lidont.Mint.from_receipt(emission_receipt)
     assert len(ETH_pipe_added.Receive.from_receipt(emission_receipt)) == 1
     assert len(mint_logs) == 1
     assert mint_logs[0].recipient == ETH_pipe_added.address
-    assert mint_logs[0].amount == (emission_receipt.block_number - start_emission.receipt.block_number) * EMISSION_PER_BLOCK
+    assert mint_logs[0].amount == (emission_receipt.block_number - start_emission.block_number) * EMISSION_PER_BLOCK
     amount = one_withdrawal_claimed.return_value // 2
     receipt = ETH_pipe_added.unstake(amount, sender=accounts[0])
     logs = ETH_pipe_added.Unstake.from_receipt(receipt)
