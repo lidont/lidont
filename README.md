@@ -52,3 +52,38 @@ These functions can only be called by the current `admin` account.
 A valid output pipe should be a smart contract implementing the following functions:
   - `receive(address user) payable`: receives ether for `user`.
   - `receiveReward(address from, uint256 amount) nonpayable`: signals availability of `amount` Lidont rewards (which can be transferred from `from`).
+
+
+# Running the repo:
+
+Install (or look into package.json postinstall):
+```curl -L https://foundry.paradigm.xyz | bash```
+
+
+..then in a new shell:
+```foundryup```
+
+
+## Forking & Testing:
+
+To fork mainnet for testing add to ape-config.yaml:
+```
+foundry:
+  host: auto
+  fork:
+    ethereum:
+      mainnet:
+        upstream_provider: **endpointurl**
+```
+
+then finally:
+
+```ape run -I deploy```
+
+...Leaves open an interactive shell to get info like the get current RPC for instance
+
+```ape test``` 
+
+to run the tests
+
+

@@ -158,13 +158,15 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     SHARE_RATE_PRECISION = 10 ** 27
 
     attempts = 0
+    print("queue", unstETH.getLastRequestId() + 1)
     while unstETH.getLastFinalizedRequestId() < requestId:
+        print("id:", unstETH.getLastFinalizedRequestId(), requestId)
         # stake more ETH with Lido to "increase buffered ETH in the protocol"
-        stETH.submit(accounts[2], value='1024 ETH', sender=accounts[2])
+        stETH.submit(accounts[2], value='2024 ETH', sender=accounts[2])
         chain.mine(256)
-        stETH.submit(accounts[3], value='1024 ETH', sender=accounts[3])
+        stETH.submit(accounts[3], value='2024 ETH', sender=accounts[3])
         chain.mine(256, None, ONE_DAY_SECONDS)
-        stETH.submit(accounts[4], value='1024 ETH', sender=accounts[4])
+        stETH.submit(accounts[4], value='2024 ETH', sender=accounts[4])
         chain.mine(256, None, 2 * ONE_DAY_SECONDS)
 
         refSlot = HashConsensusContract.getCurrentFrame()[0]
@@ -209,7 +211,9 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
             batchesState = unstETH.calculateFinalizationBatches(
                     simulatedShareRate, maxTimestamp, MAX_REQUESTS_PER_CALL, batchesState
                 )
+        print("state", batchesState, availableETH)
         withdrawalFinalizationBatches = list(filter(lambda value: value > 0, batchesState[2]))
+        print(withdrawalFinalizationBatches)
         preTotalPooledEther = stETH.getTotalPooledEther()
         is_bunker = preTotalPooledEther > postTotalPooledEther
         consensusVersion = AccountingOracleContract.getConsensusVersion()
