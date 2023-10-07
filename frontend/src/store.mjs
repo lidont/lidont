@@ -6,9 +6,10 @@ import { outputPipesAbi, unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb
 const chainIdTestnet = 5
 const chainIdMainnet = 1
 
-const isProduction = false
+const isProduction = true // false
 const chainIdDefault = isProduction ? chainIdMainnet : chainIdTestnet
 
+console.log("chain id is: "+chainIdDefault)
 
 // output pipes by id, starts at 1
 //
@@ -123,6 +124,13 @@ export const store = createStore(
 
       RADIO.emit("msg", "fetching data...")
       await RELOAD()
+
+      /*
+      setInterval( async () => {
+        await getState().RELOAD()
+      },10000) // check every 10s
+      */
+
     },
 
     async RELOAD(){
@@ -146,12 +154,8 @@ export const store = createStore(
       await getDepositEvents()
       await getWithdrawEvents()
       // 
-      /*
-      setInterval( () => {
-        getState().claimStatic()
-      },30000) // check every 30s
-      */
-      RADIO.emit("msg", "<3 <3 <3")
+
+      RADIO.emit("msg", "<3")
       return
     },
 
@@ -293,11 +297,14 @@ export const store = createStore(
       const stETHAddress = detailsByChainId[chainIdDefault].steth
       const withdrawlerAddress = detailsByChainId[chainIdDefault].withdrawler
       const stETH = new ethers.Contract(stETHAddress, ERC20Abi, signer);
+
       const outputPipeKey = inputs.selectedOutputPipe
+
       const outputPipeIndex = Object.keys(outputPipes).find( key => {
         const entry = outputPipes[key]
-        return entry.value === outputPipeKey
+        return entry.i === parseInt(outputPipeKey)
       })
+
       const outputPipe = outputPipes[outputPipeIndex]
       const allowance = await getAllowanceSTETH()
 
@@ -307,6 +314,12 @@ export const store = createStore(
         await tx.wait()
         await RELOAD()
         await waitForSeconds(0.5)
+      }
+
+      if(allowance < amount){
+        await waitForSeconds(3)
+        await RELOAD()
+        await waitForSeconds(2)
       }
 
       RADIO.emit("spinner", "swapping. "+allowance+" sufficient for: "+amount)
@@ -362,9 +375,9 @@ export const store = createStore(
       const withdrawalerAddress = detailsByChainId[chainIdDefault].withdrawler
       const depositEvents = await lidontWeb3API.getEventsDEPOSIT()
 
-      setState({depositEvents})
+      console.log(depositEvents)
 
-      const addrToDeposits = Object.assign({}, getState().addrToDeposits)
+      const addrToDeposits = Object.assign({})
 
       for(const value of depositEvents){
         const addr = value.args[0]
@@ -397,7 +410,7 @@ export const store = createStore(
       setState({withdrawEvents})
 
       // filter request ids
-      const addrToRequestIds = Object.assign({}, getState().addrToRequestIds)
+      const addrToRequestIds = Object.assign({})
 
       for(const value of withdrawEvents){
         const requestIds = value.args[0].toArray()
@@ -459,7 +472,6 @@ export const store = createStore(
 
       setState({addrToRequestIds})
 
-      console.log(getState())
     },
 
     async getCheckpointHints(withdrawalRequestIds){
@@ -492,8 +504,8 @@ export const store = createStore(
         if(addrWithdrawRequests){
           // has withdrawn in the past - check amounts
           const depositAmount = addrToDeposits[addr].depositTotalAmount
-          const user = addrWithdrawRequests
-          if(depositAmount < user.amounts.total){
+          const user = addrToRequestIds[addr]
+          if(depositAmount > user.amounts.total){
             // if has more deposited than we record total requestIds
               depositorAddrArray.push(addr)
               return

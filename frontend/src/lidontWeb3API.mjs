@@ -55,6 +55,9 @@ export class lidontWeb3API {
   async initiateWithdrawal(signer, depositorsAddressArray) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
+    if(depositorsAddressArray.length === 0){
+      throw new Error("nothing to initiate")
+    }
     const tx = await contract.getFunction("initiateWithdrawal").call(who, depositorsAddressArray);
     await this.addTx(tx)
     return tx
@@ -65,6 +68,9 @@ export class lidontWeb3API {
     const contract = this.contract.connect(signer)
     console.log("depositorsAddresses: ", depositorsAddressArray)
     console.log("hints: ", hints)
+    if(hints.length === 0 || depositorsAddressArray.length === 0){
+      throw new Error("nothing to finalize")
+    }
     const tx = await contract.getFunction("finaliseWithdrawal").call(who, depositorsAddressArray, hints);
     await this.addTx(tx)
     return tx
