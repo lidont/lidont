@@ -1,7 +1,4 @@
 import * as ethers from './ethers.js';
-import { abi as Abi } from "./abi.mjs";
-import { waitForCallback, waitForSeconds } from './util.mjs';
-import { detailsByChainId } from './store.mjs';
 
 
 export class lidontWeb3API {
@@ -10,8 +7,7 @@ export class lidontWeb3API {
       throw new Error("param is missing from constructor");
     }
     this.contractAddr = contractAddr
-    this.contract = new ethers.Contract(contractAddr, Abi);
-    // pending txs
+    this.contract = new ethers.Contract(contractAddr, withdrawalerAbi);
     this.pending = []
   }
 
@@ -191,20 +187,28 @@ export class lidontWeb3API {
 /* format abis with ethers 
 */
 export function toHumanReadableAbi(abi){
+  const out = []
   const iface = new ethers.Interface(abi);
-  const formatted = iface.format("full");
-  return formatted
+  iface.format("full");
+  iface.fragments.forEach(fragment => {
+      out.push(fragment.format('full'))
+  });
+  console.log(out)
+  return out
 }
 
 
 export const ERC20Abi = [
-  "function name() view returns (string)",
-  "function symbol() view returns (string)",
-  "function decimals() view returns (uint8)",
-  "function totalSupply() view returns (uint256)",
-  "function balanceOf(address arg0) view returns (uint256)",
-  "function allowance(address arg0, address arg1) view returns (uint256)",
-  "function approve(address _spender, uint256 _value) returns (bool)"
+  'function transfer(address _to, uint256 _value) returns (bool)',
+  'function approve(address _spender, uint256 _value) returns (bool)',
+  'function transferFrom(address _from, address _to, uint256 _value) returns (bool)',
+  'function mint(uint256 amount, address recipient)',
+  'function name() view returns (string)',
+  'function symbol() view returns (string)',
+  'function decimals() view returns (uint8)',
+  'function totalSupply() view returns (uint256)',
+  'function balanceOf(address arg0) view returns (uint256)',
+  'function allowance(address arg0, address arg1) view returns (uint256)'
 ];
 
 
@@ -219,132 +223,35 @@ export const unstETHAbi = [
   "function unfinalizedStETH() view returns (uint256)"
 ];
 
-export const outputPipesAbi = `
-[{
-  "name": "Stake",
-  "inputs": [{
-      "name": "user",
-      "type": "address",
-      "indexed": true
-  }, {
-      "name": "amount",
-      "type": "uint256",
-      "indexed": true
-  }],
-  "anonymous": false,
-  "type": "event"
-}, {
-  "name": "Unstake",
-  "inputs": [{
-      "name": "user",
-      "type": "address",
-      "indexed": true
-  }, {
-      "name": "amount",
-      "type": "uint256",
-      "indexed": true
-  }, {
-      "name": "reward",
-      "type": "uint256",
-      "indexed": true
-  }],
-  "anonymous": false,
-  "type": "event"
-}, {
-  "stateMutability": "nonpayable",
-  "type": "constructor",
-  "inputs": [{
-      "name": "rewardTokenAddress",
-      "type": "address"
-  }, {
-      "name": "rocketStorageAddress",
-      "type": "address"
-  }],
-  "outputs": []
-}, {
-  "stateMutability": "nonpayable",
-  "type": "function",
-  "name": "receiveReward",
-  "inputs": [{
-      "name": "_from",
-      "type": "address"
-  }, {
-      "name": "_amount",
-      "type": "uint256"
-  }],
-  "outputs": []
-}, {
-  "stateMutability": "nonpayable",
-  "type": "function",
-  "name": "unstake",
-  "inputs": [{
-      "name": "amount",
-      "type": "uint256"
-  }],
-  "outputs": []
-}, {
-  "stateMutability": "payable",
-  "type": "function",
-  "name": "receive",
-  "inputs": [{
-      "name": "user",
-      "type": "address"
-  }],
-  "outputs": []
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "bondValue",
-  "inputs": [],
-  "outputs": [{
-      "name": "",
-      "type": "uint256"
-  }]
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "temp",
-  "inputs": [],
-  "outputs": [{
-      "name": "",
-      "type": "uint256"
-  }]
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "dust",
-  "inputs": [],
-  "outputs": [{
-      "name": "",
-      "type": "uint256"
-  }]
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "stakes",
-  "inputs": [{
-      "name": "arg0",
-      "type": "address"
-  }],
-  "outputs": [{
-      "name": "",
-      "type": "tuple",
-      "components": [{
-          "name": "amount",
-          "type": "uint256"
-      }, {
-          "name": "bondValue",
-          "type": "uint256"
-      }]
-  }]
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "totalStake",
-  "inputs": [],
-  "outputs": [{
-      "name": "",
-      "type": "uint256"
-  }]
-}]
-`
+
+export const outputPipesAbi = [
+  'function unstake(uint256 amount)',
+  'function bondValue() view returns (uint256)',
+  'function temp() view returns (uint256)',
+  'function dust() view returns (uint256)',
+  'function stakes(address arg0) view returns (tuple(uint256 amount, uint256 bondValue))',
+  'function totalStake() view returns (uint256)'
+]
+
+export const withdrawalerAbi = [
+  'function changeAdmin(address newAdmin)',
+  'function setLidont(address lidontAddress)',
+  'function triggerEmission(address output)',
+  'function toggleValidOutput(address output)',
+  'function changeEmissionRate(uint256 newEmissionPerBlock)',
+  'function deposit(uint256 stETHAmount, address outputPipe)',
+  'function initiateWithdrawal(address[] depositors) returns (uint256[])',
+  'function finaliseWithdrawal(address[] depositors, uint256[] _hints) returns (uint256[])',
+  'function claim() returns (uint256)',
+  'function lidont() view returns (address)',
+  'function deposits(address arg0) view returns (tuple(uint256 stETH, uint256 requestId, uint256 ETH, address outputPipe))',
+  'function queue(uint256 arg0) view returns (address)',
+  'function queueSize() view returns (uint256)',
+  'function queueFront() view returns (uint256)',
+  'function queueBack() view returns (uint256)',
+  'function admin() view returns (address)',
+  'function outputIndex(address arg0) view returns (uint256)',
+  'function outputPipes(uint256 arg0) view returns (address)',
+  'function emissionPerBlock() view returns (uint256)',
+  'function lastRewardBlock(address arg0) view returns (uint256)'
+]

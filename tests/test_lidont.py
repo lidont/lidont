@@ -286,17 +286,25 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     assert lidont.balanceOf(accounts[0]) == 39 # TODO: calculate correctly
 
 
-def test_pauseFE(one_withdrawal_initiated, addr, stETH, unstETH, withdrawler, chain, accounts):
+def test_manual_cycle(one_withdrawal_initiated, networks, addr, stETH, unstETH, withdrawler, chain, accounts):
+    
+    print("RPC:")
+    print(networks.network.provider.uri)
 
-    def thecall(requestId):
-        return make_withdrawal_finalized(requestId, withdrawler, addr, stETH, unstETH, chain, accounts)
+    accounts[0].transfer("0x16f59dC55B837c85e1A864247Be4660a505c5458",     1000000000000000000000)
+    accounts["0x16f59dC55B837c85e1A864247Be4660a505c5458"].transfer(stETH, 100000000000000000000)
 
+    assert 2 == 2
+
+    def cycle(requestId):
+        return make_withdrawal_finalized( withdrawler, addr, stETH, unstETH, chain, accounts)
+    
     assert 1 == 2
 
 
 # DEV for FE 
-def make_withdrawal_finalized(requestId, withdrawler, addr, stETH, unstETH, chain, accounts):
-
+def make_withdrawal_finalized(withdrawler, addr, stETH, unstETH, chain, accounts):
+    requestId = one_withdrawal_initiated[0]
     HashConsensusContract = Contract(addr['hashConsensus'])
     AccountingOracleContract = Contract(addr['accountingOracle'])
     WithdrawalVaultContract = Contract(addr['withdrawalVault'])
@@ -310,7 +318,7 @@ def make_withdrawal_finalized(requestId, withdrawler, addr, stETH, unstETH, chai
     SHARE_RATE_PRECISION = 10 ** 27
 
     attempts = 0
-    while unstETH.getLastFinalizedRequestId() < requestId:
+    while unstETH.getLastFinalizedRequestId() < requestId+1:
         # stake more ETH with Lido to "increase buffered ETH in the protocol"
         stakingLimit = stETH.getCurrentStakeLimit()
         stETH.submit(accounts[2], value='1024 ETH', sender=accounts[2])
@@ -401,7 +409,6 @@ def make_withdrawal_finalized(requestId, withdrawler, addr, stETH, unstETH, chai
         assert attempts < 5
 
     hints = unstETH.findCheckpointHints([requestId], 1, unstETH.getLastCheckpointIndex())
-    print(accounts[0])
     receipt = withdrawler.finaliseWithdrawal([accounts[0]], hints, sender=accounts[0])
     claimAmounts = receipt.return_value
     return claimAmounts

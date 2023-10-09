@@ -331,12 +331,25 @@ export const store = createStore(
     // EMISSION / OUTPUT PIPES
     //
 
-    // reads
+    // pipes reads
+    async getDataForPipe(pipeAddress){
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+      const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
+      const bondValue = await pipe.bondValue()
+      const totalStake = await pipe.totalStake()
+      const temp = await pipe.temp()
+      const dust = await pipe.dust()
+      return {
+        bondValue, totalStake, temp, dust
+      }
+    },
+
     async getStakesForPipe(pipeAddress){
       const { provider } = getState();
       const signer = await provider.getSigner();
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
-      const stakes = await pipe.stakes(signer)
+      const stakes = await pipe.getFunction("stakes").call(signer)
       const out = {
         stakesRaw: stakes,
         amount: stakes[0],
@@ -345,25 +358,29 @@ export const store = createStore(
       return out
     },
 
-    // writes
-    async claimPipeEmission(pipeAddress){
+    // pipes writes
+    //
+
+    async unstakeForPipe(pipeAddress, amount){
       const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
+      const me = await signer.getAddress()
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
       RADIO.emit("spinner", "claiming emission rewards")
-      const tx = await lidontWeb3API.stakes(signer)
+      const tx = await pipe.getFunction("unstake").call(me, amount)
       await tx.wait()
       await RELOAD()
     },
 
-    async claimPipeEmissionStatic(){
-      const { provider, lidontWeb3API, rETHStakedDetails } = getState();
+    async staticUnstakeForPipe(pipeAddress, amount){
+      const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
-      const amount = await lidontWeb3API.claimStatic(signer)
-      const newState = Object.assign({} , rETHStakedDetails)
-      newState.rewardDebt = amount
-      newState.rewardDebtFormatted = ethers.formatEther(amount)
-      setState({rETHStakedDetails: newState})
+      const me = await signer.getAddress()
+      const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
+      RADIO.emit("spinner", "claiming emission rewards")
+      const tx = await pipe.getFunction("unstake").staticCall(me, amount)
+      await tx.wait()
+      await RELOAD()
     },
 
     // DEPOSIT EVENTS

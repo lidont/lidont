@@ -480,7 +480,7 @@ customElements.define("emoji-rain", class extends HTMLElement {
         }, delay);
       }
   
-      for (var i = 0; i < 15; i++) {
+      for (var i = 0; i < 10; i++) {
         addCircle(i * 150, [10 + 0, 300], emoji[Math.floor(Math.random() * emoji.length)]);
         addCircle(i * 160, [10 + 0, -300], emoji[Math.floor(Math.random() * emoji.length)]);
         addCircle(i * 170, [10 - 200, -300], emoji[Math.floor(Math.random() * emoji.length)]);
