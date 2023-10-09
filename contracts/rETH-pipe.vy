@@ -6,28 +6,47 @@ interface ERC20:
   def transfer(_to: address, _value: uint256) -> bool: nonpayable
   def transferFrom(_from: address, _to: address, _value: uint256) -> bool: nonpayable
 
-rewardToken: immutable(ERC20)
+struct RewardPool:
+  token: ERC20
+  precision: uint256
+  bondValue: uint256
+  temp: uint256
+  dust: uint256
+
+rewardPoolLidont: public(RewardPool)
+rewardPoolRocket: public(RewardPool)
+
+rewardTokenLidont: immutable(ERC20)
+rewardTokenRocket: immutable(ERC20)
 
 initialBondValue: constant(uint256) = 100000000
 precision: immutable(uint256)
-bondValue: public(uint256)
+bondValueLidont: public(uint256)
+bondValueRocket: public(uint256)
 
-temp: public(uint256) # rewards received while there are no stakers
-dust: public(uint256) # reward dust from a receipt to be added to next receipt
+tempLidont: public(uint256) # rewards received while there are no stakers
+dustLidont: public(uint256) # reward dust from a receipt to be added to next receipt
+tempRocket: public(uint256) # rewards received while there are no stakers
+dustRocket: public(uint256) # reward dust from a receipt to be added to next receipt
 
 struct StakedBond:
   amount: uint256
-  bondValue: uint256
+  bondValueLidont: uint256
+  bondValueRocket: uint256
 
 stakes: public(HashMap[address, StakedBond])
 totalStake: public(uint256)
 
 @external
 def __init__(rewardTokenAddress: address, rocketStorageAddress: address):
-  rewardToken = ERC20(rewardTokenAddress)
-  precision = 10 ** convert(rewardToken.decimals(), uint256)
-  self.bondValue = initialBondValue
+  rewardTokenLidont = ERC20(rewardTokenAddress)
+  decimals: uint8 = rewardTokenLidont.decimals()
   rocketStorage = RocketStorage(rocketStorageAddress)
+  rewardTokenRocket = ERC20(rocketStorage.getAddress(rocketTokenKey))
+  assert rewardTokenRocket.decimals() == decimals, "decimals"
+  precision = 10 ** convert(decimals, uint256)
+  self.bondValueLidont = initialBondValue
+  self.bondValueRocket = initialBondValue
   rocketEther = ERC20(rocketStorage.getAddress(rocketEtherKey))
 
 interface RocketStorage:
@@ -39,27 +58,51 @@ interface RocketDepositPool:
 rocketStorage: immutable(RocketStorage)
 rocketEther: immutable(ERC20)
 rocketEtherKey: constant(bytes32) = keccak256("contract.addressrocketTokenRETH")
+rocketTokenKey: constant(bytes32) = keccak256("contract.addressrocketTokenRPL")
 rocketDepositPoolKey: constant(bytes32) = keccak256("contract.addressrocketDepositPool")
 
 @external
-def receiveReward(_from: address, _amount: uint256):
-  assert rewardToken.transferFrom(_from, self, _amount), "transferFrom"
+def receiveReward(_token: address, _from: address, _amount: uint256):
+  if _token == rewardTokenLidont.address:
+    assert rewardTokenLidont.transferFrom(_from, self, _amount), "transferFrom lidont"
 
-  if self.totalStake == 0:
-    self.temp += _amount
-    return
+    if self.totalStake == 0:
+      self.tempLidont += _amount
+      return
 
-  amount: uint256 = _amount
-  if 0 < self.temp:
-    amount += self.temp
-    self.temp = 0
+    amount: uint256 = _amount
+    if 0 < self.tempLidont:
+      amount += self.tempLidont
+      self.tempLidont = 0
 
-  rawReward: uint256 = amount + self.dust
-  totalBonds: uint256 = self.totalStake / precision
-  bondInc: uint256 = rawReward / totalBonds
-  reward: uint256 = totalBonds * bondInc
-  self.bondValue += bondInc
-  self.dust = rawReward - reward
+    rawReward: uint256 = amount + self.dustLidont
+    totalBonds: uint256 = self.totalStake / precision
+    bondInc: uint256 = rawReward / totalBonds
+    reward: uint256 = totalBonds * bondInc
+    self.bondValueLidont += bondInc
+    self.dustLidont = rawReward - reward
+
+  elif _token == rewardTokenRocket.address:
+    assert rewardTokenRocket.transferFrom(_from, self, _amount), "transferFrom RPL"
+
+    if self.totalStake == 0:
+      self.tempRocket += _amount
+      return
+
+    amount: uint256 = _amount
+    if 0 < self.tempRocket:
+      amount += self.tempRocket
+      self.tempRocket = 0
+
+    rawReward: uint256 = amount + self.dustRocket
+    totalBonds: uint256 = self.totalStake / precision
+    bondInc: uint256 = rawReward / totalBonds
+    reward: uint256 = totalBonds * bondInc
+    self.bondValueRocket += bondInc
+    self.dustRocket = rawReward - reward
+
+  else:
+    raise "token"
 
 event Stake:
   user: indexed(address)
@@ -68,34 +111,46 @@ event Stake:
 event Unstake:
   user: indexed(address)
   amount: indexed(uint256)
-  reward: indexed(uint256)
+  rewardLidont: uint256
+  rewardRocket: uint256
 
 @internal
 def _stake(user: address, amount: uint256):
   assert 0 < amount, "amount"
   self.totalStake += amount
-  reward: uint256 = self._reward(user, self.stakes[user].amount)
+  rewardLidont: uint256 = self._rewardLidont(user, self.stakes[user].amount)
+  rewardRocket: uint256 = self._rewardRocket(user, self.stakes[user].amount)
   self.stakes[user].amount += amount
-  bondValue: uint256 = reward * precision / self.stakes[user].amount
-  self.stakes[user].bondValue = self.bondValue - bondValue
+  bondValueLidont: uint256 = rewardLidont * precision / self.stakes[user].amount
+  bondValueRocket: uint256 = rewardRocket * precision / self.stakes[user].amount
+  self.stakes[user].bondValueLidont = self.bondValueLidont - bondValueLidont
+  self.stakes[user].bondValueRocket = self.bondValueRocket - bondValueRocket
   log Stake(user, amount)
 
 @internal
 def _unstake(user: address, amount: uint256):
   assert 0 < amount, "amount"
   assert amount <= self.stakes[user].amount, "balance"
-  reward: uint256 = self._reward(user, amount)
+  rewardLidont: uint256 = self._rewardLidont(user, amount)
+  rewardRocket: uint256 = self._rewardRocket(user, amount)
   self.totalStake -= amount
   self.stakes[user].amount -= amount
   assert rocketEther.transfer(user, amount), "send"
-  log Unstake(user, amount, reward)
-  if reward == 0: return
-  assert rewardToken.transfer(user, reward), "transfer"
+  log Unstake(user, amount, rewardLidont, rewardRocket)
+  if rewardLidont != 0:
+    assert rewardTokenLidont.transfer(user, rewardLidont), "transfer lidont"
+  if rewardRocket != 0:
+    assert rewardTokenRocket.transfer(user, rewardRocket), "transfer RPL"
 
 @internal
 @view
-def _reward(user: address, stake: uint256) -> uint256:
-  return (stake * (self.bondValue - self.stakes[user].bondValue)) / precision
+def _rewardLidont(user: address, stake: uint256) -> uint256:
+  return (stake * (self.bondValueLidont - self.stakes[user].bondValueLidont)) / precision
+
+@internal
+@view
+def _rewardRocket(user: address, stake: uint256) -> uint256:
+  return (stake * (self.bondValueRocket - self.stakes[user].bondValueRocket)) / precision
 
 @external
 def unstake(amount: uint256):

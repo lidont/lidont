@@ -20,7 +20,7 @@ interface Lidont:
 
 interface OutputPipe:
   def receive(_who: address): payable
-  def receiveReward(_from: address, _amount: uint256): nonpayable
+  def receiveReward(_token: address, _from: address, _amount: uint256): nonpayable
 
 stakedEther: immutable(StETH)
 unstETH: immutable(UnstETH)
@@ -115,7 +115,7 @@ def _updatePendingRewardsFor(output: address):
   reward: uint256 = unclaimedBlocks * self.emissionPerBlock
   if 0 < reward:
     self.lidont.mint(reward, output)
-    OutputPipe(output).receiveReward(empty(address), reward)
+    OutputPipe(output).receiveReward(self.lidont.address, empty(address), reward)
 
 @internal
 def _updatePendingRewards():

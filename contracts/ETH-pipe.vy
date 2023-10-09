@@ -33,7 +33,8 @@ event Receive:
   newBondValue: indexed(uint256)
 
 @external
-def receiveReward(_from: address, _amount: uint256):
+def receiveReward(_token: address, _from: address, _amount: uint256):
+  assert _token == rewardToken.address, "token"
   assert rewardToken.transferFrom(_from, self, _amount), "transferFrom"
 
   if self.totalStake == 0:
