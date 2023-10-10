@@ -234,6 +234,13 @@ export const outputPipesAbi = [
 ]
 
 export const withdrawalerAbi = [
+  'event ChangeAdmin(address indexed oldAdmin, address indexed newAdmin)',
+  'event SetOutputValidity(address indexed output, bool indexed valid)',
+  'event ChangeEmission(uint256 indexed oldEmissionPerBlock, uint256 indexed newEmissionPerBlock)',
+  'event SetLastRewardBlock(address indexed pipe, uint256 indexed bnum)',
+  'event Deposit(address indexed who, uint256 indexed amount)',
+  'event WithdrawalRequest(uint256[] requestIds, address[] depositors, uint256[] amounts)',
+  'event Claim(address indexed who, address indexed output, uint256 indexed amount)',
   'function changeAdmin(address newAdmin)',
   'function setLidont(address lidontAddress)',
   'function triggerEmission(address output)',

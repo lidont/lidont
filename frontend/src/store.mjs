@@ -348,8 +348,9 @@ export const store = createStore(
     async getStakesForPipe(pipeAddress){
       const { provider } = getState();
       const signer = await provider.getSigner();
+      const who = await signer.getAddress()
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
-      const stakes = await pipe.getFunction("stakes").call(signer)
+      const stakes = await pipe.getFunction("stakes").call(who, signer)
       const out = {
         stakesRaw: stakes,
         amount: stakes[0],
