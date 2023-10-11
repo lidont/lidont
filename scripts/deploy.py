@@ -27,9 +27,9 @@ def main():
     lidont = project.lidont.deploy(withdrawler.address, sender=deployer)
     withdrawler.setLidont(lidont.address, sender=deployer)
     ethPipe = project._get_attr('ETH-pipe').deploy(
-            lidont.address, sender=deployer)
+            lidont.address, withdrawler.address, sender=deployer)
     rethPipe = project._get_attr('rETH-pipe').deploy(
-            lidont.address, addr['rocketStorageAddress'], sender=deployer)
+            lidont.address, withdrawler.address,  addr['rocketStorageAddress'], sender=deployer)
     withdrawler.toggleValidOutput(ethPipe.address, sender=deployer)
     withdrawler.toggleValidOutput(rethPipe.address, sender=deployer)
 
