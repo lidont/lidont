@@ -197,6 +197,12 @@ def deposit(stETHAmount: uint256, outputPipe: address):
   log Deposit(msg.sender, stETHAmount)
 
 @external
+def changeOutput(outputPipe: address):
+  assert self.deposits[msg.sender].outputPipe != empty(address), "no deposit"
+  assert 0 < self.outputIndex[outputPipe], "invalid pipe"
+  self.deposits[msg.sender].outputPipe = outputPipe
+
+@external
 def initiateWithdrawal(depositors: DynArray[address, MAX_REQUESTS]) -> DynArray[uint256, MAX_REQUESTS]:
   requestAmounts: DynArray[uint256, MAX_REQUESTS] = []
   totalRequestAmount: uint256 = 0
