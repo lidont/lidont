@@ -188,7 +188,7 @@ export const store = createStore(
     },
 
     async getAllOutputPipes(){
-      const { lidontWeb3API , getStakesForPipe } = getState()
+      const { lidontWeb3API , getStakesForPipe, staticUnstakeForPipe } = getState()
       const { provider } = getState();
       const signer = await provider.getSigner();
 
@@ -199,46 +199,48 @@ export const store = createStore(
         try{
           const addr = await lidontWeb3API.getOutputPipes(signer, i)
           const stakes = await getStakesForPipe(addr)
+          const claimableLidont = await staticUnstakeForPipe(addr)
+          console.log(claimableLidont)
           console.log("got pipe "+i, addr)
-          outputPipes[i] = {i, addr, stakes}
+          outputPipes[i] = {i, addr, stakes, claimableLidont}
           addrToOutputPipes[addr] = {i, addr, stakes}
         } catch(e){
-          // console.log(e)
-          console.log("pipes total: "+i)
+          console.log(e)
+          console.log("pipes total: "+(i))
           break
         }
       }
 
       setState({outputPipes, addrToOutputPipes})
     },
-/*
-    async getOutputPipesManual(){
-      const { lidontWeb3API } = getState()
-      const { provider } = getState();
-      const signer = await provider.getSigner();
+    /*
+        async getOutputPipesManual(){
+          const { lidontWeb3API } = getState()
+          const { provider } = getState();
+          const signer = await provider.getSigner();
 
-      for(let [key, value] of pipes){ 
-        const id = key
-        console.log("getting pipe "+id, value)
-        try{
-          const addr = await lidontWeb3API.getOutputPipes(signer, id)
-          const newState = Object.assign({}, getState().outputPipes)
-          newState[id] = {value, id, addr}
+          for(let [key, value] of pipes){ 
+            const id = key
+            console.log("getting pipe "+id, value)
+            try{
+              const addr = await lidontWeb3API.getOutputPipes(signer, id)
+              const newState = Object.assign({}, getState().outputPipes)
+              newState[id] = {value, id, addr}
 
-          const byAddress = Object.assign({},getState().addrToOutputPipes)
-          byAddress[addr] = byAddress[addr] || {}
-          byAddress[addr].id = id
-          byAddress[addr].value = value
-          byAddress[addr].addr = addr
+              const byAddress = Object.assign({},getState().addrToOutputPipes)
+              byAddress[addr] = byAddress[addr] || {}
+              byAddress[addr].id = id
+              byAddress[addr].value = value
+              byAddress[addr].addr = addr
 
-          setState({outputPipes: newState, addrToOutputPipes: byAddress})
-        } catch(e){
-          console.log(e)
-          break
-        }
-      }
-    },
-*/
+              setState({outputPipes: newState, addrToOutputPipes: byAddress})
+            } catch(e){
+              console.log(e)
+              break
+            }
+          }
+        },
+    */
     async getDeposits(){
       const { lidontWeb3API } = getState()
       const { provider } = getState();
@@ -362,8 +364,8 @@ export const store = createStore(
     // pipes writes
     //
 
-    async unstakeForPipe(pipeAddress, amount){
-      const { provider, lidontWeb3API } = getState();
+    async unstakeForPipe(pipeAddress, amount = 1){
+      const { provider, lidontWeb3API, RELOAD } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
@@ -373,15 +375,19 @@ export const store = createStore(
       await RELOAD()
     },
 
-    async staticUnstakeForPipe(pipeAddress, amount){
+    async staticUnstakeForPipe(pipeAddress, amount = 1){
       const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
-      RADIO.emit("spinner", "claiming emission rewards")
-      const tx = await pipe.getFunction("unstake").staticCall(me, amount)
-      await tx.wait()
-      await RELOAD()
+      RADIO.emit("spinner", "...getting emissions")
+      try {
+        const res = await pipe.unstake.staticCall(amount)
+        return res
+      } catch (e) {
+        console.log(e)
+        return null
+      }
     },
 
     // DEPOSIT EVENTS

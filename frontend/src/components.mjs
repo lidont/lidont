@@ -195,12 +195,18 @@ customElements.define("button-connected",class extends HTMLElement {
       }
       // executes store action with same name on click if found
       const actionName = this.getAttribute("data-action");
+      const id = this.getAttribute("data-id");
       if (actionName) {
         this.addEventListener("click",async (event) => {
             event.preventDefault();
             const actions = store.getState();
             if (actions[actionName]) {
-              await actions[actionName]();
+              if(id){
+                await actions[actionName](id);
+              }
+              if(!id) {
+                await actions[actionName]();
+              }
             }
         }, false );
       }
@@ -279,6 +285,23 @@ customElements.define("button-deposit", class extends HTMLElement {
 }
 );
 
+customElements.define("button-unstake",class extends HTMLElement {
+  constructor() { 
+    super();
+    const address = this.getAttribute("pipeAddr")
+    const amount = this.getAttribute("amount")
+
+      this.innerHTML = html`<button class="button"><span class="force-center">${this.innerText}</span></button>`;
+    
+      this.addEventListener("click",async (event) => {
+          event.preventDefault();
+          const { unstakeForPipe } = store.getState();
+          await unstakeForPipe(address, amount);
+      })
+  }
+});
+
+
 
 // list of pipes and rewards / unclaim
 //
@@ -316,17 +339,17 @@ customElements.define("list-pipes", class extends HTMLElement {
       ${pipes.map( (value, index) => { 
         console.log(value)
         return html`
-          <sub>${index} - ${value.addr}</sub>
-          <div class="stack row flex-between">
-          <sub>amount: ${value.stakes.amount}; bondValue: ${value.stakes.bondValue}</sub>
-                  <div class="flex flex-around">
-            <button-connected data-action="claimEmission">Claim</button-connected>
-        </div>  
-        <br/>
-        <div class="flex flex-right">
-            <sub>Claimable: <value-connected data-node="rainbow" data-path="rETHStakedDetails.rewardDebtFormatted" ></value-connected></sub>
-        </div>
-        <!--button-connected class="flex-right" data-action="claimEmissionStatic">update</button-connected-->
+        <sub>${index} - ${value.addr}</sub>
+        <div class="stack row flex-between">
+          <sub>amount: ${ethers.formatEther(value.stakes.amount)} bondValue: ${ethers.formatEther(value.stakes.bondValue)}</sub>
+          <div class="flex flex-around">
+            <button-unstake pipeAddr="${value.addr}" amount="${value.stakes.amount}">Unstake ${value.stakes.amount}</button-unstake>
+          </div>  
+          <br/>
+          <div class="flex flex-right">
+            <sub>Claimable: <rainbow>${value.emissionLidont}</rainbow></sub>
+          </div>
+          <!--button-connected class="flex-right" data-id="${value.addr}" data-action="staticUnstakeForPipes">update</button-connected-->
         </div>
           
         `.trim()}).join('')

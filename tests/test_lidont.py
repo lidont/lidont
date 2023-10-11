@@ -293,17 +293,19 @@ def test_manual_cycle(one_withdrawal_initiated, networks, addr, stETH, unstETH, 
 
     accounts[0].transfer("0x16f59dC55B837c85e1A864247Be4660a505c5458",     1000000000000000000000)
     accounts["0x16f59dC55B837c85e1A864247Be4660a505c5458"].transfer(stETH, 100000000000000000000)
+    accounts[0].transfer("0xc2acFAEF11656eF9b69aC65480221Faec830f1C4",     100000000000000000000)
+    accounts["0xc2acFAEF11656eF9b69aC65480221Faec830f1C4"].transfer(stETH, 10000000000000000000)
 
     assert 2 == 2
 
-    def cycle(requestId):
-        return make_withdrawal_finalized( withdrawler, addr, stETH, unstETH, chain, accounts)
+    def cycle():
+        return make_withdrawal_finalized( one_withdrawal_initiated, withdrawler, addr, stETH, unstETH, chain, accounts)
     
     assert 1 == 2
 
 
 # DEV for FE 
-def make_withdrawal_finalized(withdrawler, addr, stETH, unstETH, chain, accounts):
+def make_withdrawal_finalized( one_withdrawal_initiated, withdrawler, addr, stETH, unstETH, chain, accounts):
     requestId = one_withdrawal_initiated[0]
     HashConsensusContract = Contract(addr['hashConsensus'])
     AccountingOracleContract = Contract(addr['accountingOracle'])
@@ -318,7 +320,7 @@ def make_withdrawal_finalized(withdrawler, addr, stETH, unstETH, chain, accounts
     SHARE_RATE_PRECISION = 10 ** 27
 
     attempts = 0
-    while unstETH.getLastFinalizedRequestId() < requestId+1:
+    while unstETH.getLastFinalizedRequestId() < requestId+2:
         # stake more ETH with Lido to "increase buffered ETH in the protocol"
         stakingLimit = stETH.getCurrentStakeLimit()
         stETH.submit(accounts[2], value='1024 ETH', sender=accounts[2])
