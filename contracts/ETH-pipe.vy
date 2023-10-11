@@ -1,11 +1,15 @@
 # @version 0.3.9
 
+interface Withdrawler:
+  def triggerEmission(_pipe: address): nonpayable
+
 interface RewardToken:
   def decimals() -> uint8: view
   def transfer(_to: address, _value: uint256) -> bool: nonpayable
   def transferFrom(_from: address, _to: address, _value: uint256) -> bool: nonpayable
 
 rewardToken: immutable(RewardToken)
+withdrawler: immutable(Withdrawler)
 
 initialBondValue: constant(uint256) = 100000000
 precision: immutable(uint256)
@@ -22,8 +26,9 @@ stakes: public(HashMap[address, StakedBond])
 totalStake: public(uint256)
 
 @external
-def __init__(rewardTokenAddress: address):
+def __init__(rewardTokenAddress: address, withdrawlerAddress: address):
   rewardToken = RewardToken(rewardTokenAddress)
+  withdrawler = Withdrawler(withdrawlerAddress)
   precision = 10 ** convert(rewardToken.decimals(), uint256)
   self.bondValue = initialBondValue
 
@@ -98,6 +103,7 @@ def _reward(user: address, stake: uint256) -> uint256:
 
 @external
 def unstake(amount: uint256):
+  withdrawler.triggerEmission(self)
   self._unstake(msg.sender, amount)
 
 @external
