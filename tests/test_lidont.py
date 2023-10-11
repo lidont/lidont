@@ -286,7 +286,7 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     assert lidont.balanceOf(accounts[0]) == 39 # TODO: calculate correctly
 
 
-def test_manual_cycle(one_withdrawal_initiated, networks, addr, stETH, unstETH, withdrawler, chain, accounts):
+def test_cycle(one_withdrawal_initiated, networks, addr, stETH, unstETH, withdrawler, chain, accounts):
     
     print("RPC:")
     print(networks.network.provider.uri)
