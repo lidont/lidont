@@ -67,6 +67,7 @@ def _popQueue() -> address:
 # Output pipes
 
 admin: public(address)
+newMinter: public(address)
 outputIndex: public(HashMap[address, uint256]) # 0 is invalid, otherwise 1+index in outputPipes
 outputPipes: public(DynArray[address, MAX_OUTPUT_PIPES])
 
@@ -101,6 +102,11 @@ def changeAdmin(newAdmin: address):
 def setLidont(lidontAddress: address):
   assert msg.sender == self.admin, "auth"
   self.lidont = Lidont(lidontAddress)
+
+@external
+def setUpgrade(upgradeAddress: address):
+  assert msg.sender == self.admin, "auth"
+  self.newMinter = upgradeAddress
 
 event SetLastRewardBlock:
   pipe: indexed(address)
