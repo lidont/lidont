@@ -24,7 +24,7 @@ totalStake: public(uint256)
 @external
 def __init__(rewardTokenAddress: address):
   rewardToken = RewardToken(rewardTokenAddress)
-  precision = 10 ** convert(rewardToken.decimals(), uint256)
+  precision = 10 ** convert(rewardToken.decimals() / 2, uint256)
   self.bondValue = initialBondValue
 
 event Receive:
