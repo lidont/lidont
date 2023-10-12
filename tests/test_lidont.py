@@ -55,12 +55,12 @@ def lidont(project, accounts, withdrawler):
     return lidont
 
 @pytest.fixture(scope="session")
-def ETH_pipe(project, lidont, accounts):
-    return project._get_attr('ETH-pipe').deploy(lidont.address, sender=accounts[0])
+def ETH_pipe(project, lidont, withdrawler, accounts):
+    return project._get_attr('ETH-pipe').deploy(lidont.address, withdrawler.address, sender=accounts[0])
 
 @pytest.fixture(scope="session")
-def rETH_pipe(project, lidont, accounts, addr):
-    return project._get_attr('rETH-pipe').deploy(lidont.address, addr["rocketStorageAddress"], sender=accounts[0])
+def rETH_pipe(project, lidont, withdrawler, accounts, addr):
+    return project._get_attr('rETH-pipe').deploy(lidont.address, withdrawler.address, addr["rocketStorageAddress"], sender=accounts[0])
 
 
 def test_lidont_symbol_decimals(lidont):
@@ -274,14 +274,13 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     assert after_mine - before_mine == stake_blocks
     setLastLogs = list(withdrawler.SetLastRewardBlock.range(withdrawler.receipt.block_number, chain.blocks.head.number))
     assert setLastLogs[-1].bnum == ETH_pipe_added['toggle_valid_receipt'].block_number
-    emission_receipt = withdrawler.triggerEmission(ETH_pipe_added['pipe'].address, sender=accounts[1]) # TODO: should this be automatic in some contract?
-    mint_logs = lidont.Mint.from_receipt(emission_receipt)
-    assert len(ETH_pipe_added['pipe'].Receive.from_receipt(emission_receipt)) == 1
-    assert len(mint_logs) == 1
-    assert mint_logs[0].recipient == ETH_pipe_added['pipe'].address
-    assert mint_logs[0].amount == (emission_receipt.block_number - ETH_pipe_added['toggle_valid_receipt'].block_number) * EMISSION_PER_BLOCK
     amount = one_withdrawal_claimed.return_value // 2
     receipt = ETH_pipe_added['pipe'].unstake(amount, sender=accounts[0])
+    mint_logs = lidont.Mint.from_receipt(receipt)
+    assert len(ETH_pipe_added['pipe'].Receive.from_receipt(receipt)) == 1
+    assert len(mint_logs) == 1
+    assert mint_logs[0].recipient == ETH_pipe_added['pipe'].address
+    assert mint_logs[0].amount == (receipt.block_number - ETH_pipe_added['toggle_valid_receipt'].block_number) * EMISSION_PER_BLOCK
     logs = ETH_pipe_added['pipe'].Unstake.from_receipt(receipt)
     assert len(logs) == 1
     assert lidont.balanceOf(accounts[0]) == 39 # TODO: calculate correctly

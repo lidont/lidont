@@ -1,5 +1,10 @@
 # @version 0.3.9
 
+interface Withdrawler:
+  def triggerEmission(_pipe: address): nonpayable
+
+withdrawler: immutable(Withdrawler)
+
 interface ERC20:
   def decimals() -> uint8: view
   def balanceOf(_owner: address) -> uint256: view
@@ -38,7 +43,8 @@ stakes: public(HashMap[address, StakedBond])
 totalStake: public(uint256)
 
 @external
-def __init__(rewardTokenAddress: address, rocketStorageAddress: address):
+def __init__(rewardTokenAddress: address, withdrawlerAddress: address, rocketStorageAddress: address):
+  withdrawler = Withdrawler(withdrawlerAddress)
   rewardTokenLidont = ERC20(rewardTokenAddress)
   decimals: uint8 = rewardTokenLidont.decimals()
   rocketStorage = RocketStorage(rocketStorageAddress)
@@ -154,6 +160,7 @@ def _rewardRocket(user: address, stake: uint256) -> uint256:
 
 @external
 def unstake(amount: uint256):
+  withdrawler.triggerEmission(self)
   self._unstake(msg.sender, amount)
 
 @external

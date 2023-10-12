@@ -21,11 +21,20 @@ event Approval:
   _spender: indexed(address)
   _value: uint256
 
-minter: immutable(address)
+interface Minter:
+  def newMinter() -> address: view
+
+minter: Minter
 
 @external
 def __init__(m: address):
-  minter = m
+  self.minter = Minter(m)
+
+@external
+def setMinter():
+  m: address = self.minter.newMinter()
+  if m != empty(address):
+    self.minter = Minter(m)
 
 # ERC20 functions
 
@@ -76,7 +85,7 @@ event Mint:
 
 @external
 def mint(amount: uint256, recipient: address):
-  assert msg.sender == minter, "auth"
+  assert msg.sender == self.minter.address, "auth"
   self.totalSupply += amount
   self.balanceOf[empty(address)] += amount
   self.allowance[empty(address)][recipient] += amount
