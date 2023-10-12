@@ -5,6 +5,8 @@ import pytest
 
 addresses = dict(mainnet =
                  dict(rocketStorageAddress = '0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46',
+                      stETHAddress         = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+                      unstETHAddress       = '0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1',
                       ),
                  )
 
@@ -19,8 +21,14 @@ def lidont(project, accounts):
     return lidont
 
 @pytest.fixture(scope="session")
-def ETH_pipe(project, lidont, accounts):
-    return project._get_attr('ETH-pipe').deploy(lidont.address, sender=accounts[0])
+def withdrawler(project, addr, accounts):
+    withdrawler = project.withdrawler.deploy(
+            addr['stETHAddress'], addr['unstETHAddress'], sender=accounts[0])
+    return withdrawler
+
+@pytest.fixture(scope="session")
+def ETH_pipe(project, lidont, withdrawler, accounts):
+    return project._get_attr('ETH-pipe').deploy(lidont.address, withdrawler.address, sender=accounts[0])
 
 @pytest.fixture(scope="function")
 def mint_lidont(lidont, project, accounts):
@@ -96,4 +104,3 @@ def test_unstake_eth_with_rewards(ETH_pipe, lidont, mint_lidont, setup_allowance
     ETH_pipe.unstake(stake_ETH['stake1'], sender=accounts[1])
     assert ETH_pipe.totalStake() == stake_ETH['stake0']
     lidont.balanceOf(accounts[1]) == reward
-    
