@@ -312,7 +312,9 @@ export const store = createStore(
 
       if(allowance < amount){
         RADIO.emit("spinner", "stETH allowance: "+allowance+" approving "+amount)
-        const tx = await stETH.getFunction("approve").call(ownAddress, withdrawlerAddress, amount)
+        const bufferedAmount = parseInt(amount)
+        const finalAmount = bufferedAmount + (bufferedAmount*0.0001)
+        const tx = await stETH.getFunction("approve").call(ownAddress, withdrawlerAddress, finalAmount.toString())
         await tx.wait()
         await RELOAD()
         await waitForSeconds(0.5)
