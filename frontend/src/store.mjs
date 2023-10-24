@@ -144,7 +144,7 @@ export const store = createStore(
       // allowances
       await getAllowanceSTETH()
       // pipes
-      await getAllOutputPipes()
+      // await getAllOutputPipes()
       // await getOutputPipesManual()
       // queue
       await getQueue()

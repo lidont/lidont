@@ -438,6 +438,10 @@ button-deposit {
   filter: none !important;
 }
 
+.radio--icon--selected--permanent {
+  filter: none !important;
+}
+
 .img-icon {
   margin: 0 auto;
   height: 3rem;

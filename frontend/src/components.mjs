@@ -339,15 +339,16 @@ customElements.define("list-pipes", class extends HTMLElement {
       ${pipes.map( (value, index) => { 
         console.log(value)
         return html`
-        <sub>${index} - ${value.addr}</sub>
+        <sub>${index}</sub>
+        <icon-comp large class="radio--icon radio--icon--selected--permanent" icon="${index}"></icon-comp>
         <div class="stack row flex-between">
-          <sub>amount: ${ethers.formatEther(value.stakes.amount)} bondValue: ${ethers.formatEther(value.stakes.bondValue)}</sub>
+          <sub>${ethers.formatEther(value.stakes.amount)} bond: ${ethers.formatEther(value.stakes.bondValue)}</sub>
           <div class="flex flex-around">
             <button-unstake pipeAddr="${value.addr}" amount="${value.stakes.amount}">Unstake ${value.stakes.amount}</button-unstake>
           </div>  
           <br/>
           <div class="flex flex-right">
-            <sub>Claimable: <rainbow>${value.emissionLidont}</rainbow></sub>
+            ${value.emissionLidont ? `<sub>Claimable: <rainbow>${value.emissionLidont}"</rainbow></sub>` : '' }
           </div>
           <!--button-connected class="flex-right" data-id="${value.addr}" data-action="staticUnstakeForPipes">update</button-connected-->
         </div>
