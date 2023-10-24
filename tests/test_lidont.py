@@ -290,6 +290,7 @@ def test_cycle(one_withdrawal_initiated, networks, addr, stETH, unstETH, withdra
     
     print("RPC:")
     print(networks.network.provider.uri)
+    print(accounts[0])
 
     accounts[0].transfer("0x16f59dC55B837c85e1A864247Be4660a505c5458",     1000000000000000000000)
     accounts["0x16f59dC55B837c85e1A864247Be4660a505c5458"].transfer(stETH, 100000000000000000000)
