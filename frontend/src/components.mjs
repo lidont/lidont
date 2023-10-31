@@ -350,7 +350,7 @@ customElements.define("list-pipes", class extends HTMLElement {
           <div class="flex flex-right">
             ${value.emissionLidont ? `<sub>Claimable: <rainbow>${value.emissionLidont}"</rainbow></sub>` : '' }
           </div>
-          <!--button-connected class="flex-right" data-id="${value.addr}" data-action="staticUnstakeForPipes">update</button-connected-->
+          <!--button-connected class="flex-right" data-id="${value.addr}" data-action="staticUnstakeForPipe">update</button-connected-->
         </div>
           
         `.trim()}).join('')

@@ -140,7 +140,6 @@ export class lidontWeb3API {
     return events
   }
 
-
   // Transaction Queue
   //
   async updatePendingTransactions() {
@@ -225,11 +224,33 @@ export const unstETHAbi = [
 
 
 export const outputPipesAbi = [
+  'event Receive(uint256 indexed amount, uint256 indexed oldBondValue, uint256 indexed newBondValue)',
+  'event Stake(address indexed user, uint256 indexed amount)',        
+  'event Unstake(address indexed user, uint256 indexed amount, uint256 indexed reward)',
+  'function receiveReward(address _token, address _from, uint256 _amount)',
   'function unstake(uint256 amount)',
   'function bondValue() view returns (uint256)',
   'function temp() view returns (uint256)',
   'function dust() view returns (uint256)',
   'function stakes(address arg0) view returns (tuple(uint256 amount, uint256 bondValue))',
+  'function totalStake() view returns (uint256)'
+]
+
+export const outputPipesRETH = [
+  'event Stake(address indexed user, uint256 indexed amount)',        
+  'event Unstake(address indexed user, uint256 indexed amount, uint256 rewardLidont, uint256 rewardRocket)',
+  'function receiveReward(address _token, address _from, uint256 _amount)',
+  'function unstake(uint256 amount)',
+  'function receive(address user) payable',
+  'function rewardPoolLidont() view returns (tuple(address token, uint256 precision, uint256 bondValue, uint256 temp, uint256 dust))',      
+  'function rewardPoolRocket() view returns (tuple(address token, uint256 precision, uint256 bondValue, uint256 temp, uint256 dust))',      
+  'function bondValueLidont() view returns (uint256)',
+  'function bondValueRocket() view returns (uint256)',
+  'function tempLidont() view returns (uint256)',
+  'function dustLidont() view returns (uint256)',
+  'function tempRocket() view returns (uint256)',
+  'function dustRocket() view returns (uint256)',
+  'function stakes(address arg0) view returns (tuple(uint256 amount, uint256 bondValueLidont, uint256 bondValueRocket))',
   'function totalStake() view returns (uint256)'
 ]
 
@@ -243,12 +264,15 @@ export const withdrawalerAbi = [
   'event Claim(address indexed who, address indexed output, uint256 indexed amount)',
   'function changeAdmin(address newAdmin)',
   'function setLidont(address lidontAddress)',
+  'function setUpgrade(address upgradeAddress)',
   'function triggerEmission(address output)',
   'function toggleValidOutput(address output)',
   'function changeEmissionRate(uint256 newEmissionPerBlock)',
   'function deposit(uint256 stETHAmount, address outputPipe)',
+  'function changeOutput(address outputPipe)',
   'function initiateWithdrawal(address[] depositors) returns (uint256[])',
   'function finaliseWithdrawal(address[] depositors, uint256[] _hints) returns (uint256[])',
+  'fallback() payable',
   'function claim() returns (uint256)',
   'function lidont() view returns (address)',
   'function deposits(address arg0) view returns (tuple(uint256 stETH, uint256 requestId, uint256 ETH, address outputPipe))',
@@ -257,8 +281,28 @@ export const withdrawalerAbi = [
   'function queueFront() view returns (uint256)',
   'function queueBack() view returns (uint256)',
   'function admin() view returns (address)',
+  'function newMinter() view returns (address)',
   'function outputIndex(address arg0) view returns (uint256)',
   'function outputPipes(uint256 arg0) view returns (address)',
   'function emissionPerBlock() view returns (uint256)',
   'function lastRewardBlock(address arg0) view returns (uint256)'
 ]
+
+
+export const lidontAbi = [
+  'event Transfer(address indexed _from, address indexed _to, uint256 _value)',
+  'event Approval(address indexed _owner, address indexed _spender, uint256 _value)',
+  'event Mint(uint256 indexed amount, address indexed recipient)',
+  'function setMinter()',
+  'function transfer(address _to, uint256 _value) returns (bool)',
+  'function approve(address _spender, uint256 _value) returns (bool)',
+  'function transferFrom(address _from, address _to, uint256 _value) returns (bool)',
+  'function mint(uint256 amount, address recipient)',
+  'function name() view returns (string)',
+  'function symbol() view returns (string)',
+  'function decimals() view returns (uint8)',
+  'function totalSupply() view returns (uint256)',
+  'function balanceOf(address arg0) view returns (uint256)',
+  'function allowance(address arg0, address arg1) view returns (uint256)'
+]
+

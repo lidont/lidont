@@ -377,14 +377,15 @@ export const store = createStore(
       await RELOAD()
     },
 
-    async staticUnstakeForPipe(pipeAddress, amount = 1){
+    async staticUnstakeForPipe(pipeAddress, amount = 1000000000){
       const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
       RADIO.emit("spinner", "...getting emissions")
       try {
-        const res = await pipe.unstake.staticCall(amount)
+        const res = await pipe.unstake.staticCall(amount, {from: await signer.getAddress()})
+        console.log(res)
         return res
       } catch (e) {
         console.log(e)
