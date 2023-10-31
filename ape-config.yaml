@@ -8,7 +8,3 @@ ethereum:
     default_provider: foundry
 foundry:
   host: auto
-  fork:
-    ethereum:
-      mainnet:
-        upstream_provider: https://mainnet.infura.io/v3/713d3fd4fea04f0582ee78560e6c47e4
