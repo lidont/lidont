@@ -39,8 +39,8 @@ const template = html`
         <sub>2. Choose Output Pipe & Bribes:</sub>
         <hr/>
         <div class="stack flex-center">
-            <input-connected class="flex-center radio" icon label="ETH" id="ETH" type="radio" name="selectedOutputPipe"></input-connected>
-            <input-connected class="flex-center radio" icon label="rETH" id="rETH" type="radio" name="selectedOutputPipe"></input-connected>
+            <input-connected class="flex-center radio" icon label="ETH"  id="0" type="radio" name="selectedOutputPipe"></input-connected>
+            <input-connected class="flex-center radio" icon label="rETH" id="1" type="radio" name="selectedOutputPipe"></input-connected>
         </div>
         <br/>
         <sub>3. Deposit:</sub>

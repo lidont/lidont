@@ -6,9 +6,10 @@ import { outputPipesAbi, unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb
 const chainIdTestnet = 5
 const chainIdMainnet = 1
 
-const isProduction = false
+const isProduction = true // false
 const chainIdDefault = isProduction ? chainIdMainnet : chainIdTestnet
 
+console.log("chain id is: "+chainIdDefault)
 
 // output pipes by id, starts at 1
 //
@@ -123,6 +124,13 @@ export const store = createStore(
 
       RADIO.emit("msg", "fetching data...")
       await RELOAD()
+
+      /*
+      setInterval( async () => {
+        await getState().RELOAD()
+      },10000) // check every 10s
+      */
+
     },
 
     async RELOAD(){
@@ -136,7 +144,7 @@ export const store = createStore(
       // allowances
       await getAllowanceSTETH()
       // pipes
-      await getAllOutputPipes()
+      // await getAllOutputPipes()
       // await getOutputPipesManual()
       // queue
       await getQueue()
@@ -146,12 +154,8 @@ export const store = createStore(
       await getDepositEvents()
       await getWithdrawEvents()
       // 
-      /*
-      setInterval( () => {
-        getState().claimStatic()
-      },30000) // check every 30s
-      */
-      RADIO.emit("msg", "<3 <3 <3")
+
+      RADIO.emit("msg", "<3")
       return
     },
 
@@ -184,7 +188,7 @@ export const store = createStore(
     },
 
     async getAllOutputPipes(){
-      const { lidontWeb3API , getStakesForPipe } = getState()
+      const { lidontWeb3API , getStakesForPipe, staticUnstakeForPipe } = getState()
       const { provider } = getState();
       const signer = await provider.getSigner();
 
@@ -195,46 +199,48 @@ export const store = createStore(
         try{
           const addr = await lidontWeb3API.getOutputPipes(signer, i)
           const stakes = await getStakesForPipe(addr)
+          const claimableLidont = await staticUnstakeForPipe(addr)
+          console.log(claimableLidont)
           console.log("got pipe "+i, addr)
-          outputPipes[i] = {i, addr, stakes}
+          outputPipes[i] = {i, addr, stakes, claimableLidont}
           addrToOutputPipes[addr] = {i, addr, stakes}
         } catch(e){
-          // console.log(e)
-          console.log("pipes total: "+i)
+          console.log(e)
+          console.log("pipes total: "+(i))
           break
         }
       }
 
       setState({outputPipes, addrToOutputPipes})
     },
-/*
-    async getOutputPipesManual(){
-      const { lidontWeb3API } = getState()
-      const { provider } = getState();
-      const signer = await provider.getSigner();
+    /*
+        async getOutputPipesManual(){
+          const { lidontWeb3API } = getState()
+          const { provider } = getState();
+          const signer = await provider.getSigner();
 
-      for(let [key, value] of pipes){ 
-        const id = key
-        console.log("getting pipe "+id, value)
-        try{
-          const addr = await lidontWeb3API.getOutputPipes(signer, id)
-          const newState = Object.assign({}, getState().outputPipes)
-          newState[id] = {value, id, addr}
+          for(let [key, value] of pipes){ 
+            const id = key
+            console.log("getting pipe "+id, value)
+            try{
+              const addr = await lidontWeb3API.getOutputPipes(signer, id)
+              const newState = Object.assign({}, getState().outputPipes)
+              newState[id] = {value, id, addr}
 
-          const byAddress = Object.assign({},getState().addrToOutputPipes)
-          byAddress[addr] = byAddress[addr] || {}
-          byAddress[addr].id = id
-          byAddress[addr].value = value
-          byAddress[addr].addr = addr
+              const byAddress = Object.assign({},getState().addrToOutputPipes)
+              byAddress[addr] = byAddress[addr] || {}
+              byAddress[addr].id = id
+              byAddress[addr].value = value
+              byAddress[addr].addr = addr
 
-          setState({outputPipes: newState, addrToOutputPipes: byAddress})
-        } catch(e){
-          console.log(e)
-          break
-        }
-      }
-    },
-*/
+              setState({outputPipes: newState, addrToOutputPipes: byAddress})
+            } catch(e){
+              console.log(e)
+              break
+            }
+          }
+        },
+    */
     async getDeposits(){
       const { lidontWeb3API } = getState()
       const { provider } = getState();
@@ -293,20 +299,31 @@ export const store = createStore(
       const stETHAddress = detailsByChainId[chainIdDefault].steth
       const withdrawlerAddress = detailsByChainId[chainIdDefault].withdrawler
       const stETH = new ethers.Contract(stETHAddress, ERC20Abi, signer);
+
       const outputPipeKey = inputs.selectedOutputPipe
+
       const outputPipeIndex = Object.keys(outputPipes).find( key => {
         const entry = outputPipes[key]
-        return entry.value === outputPipeKey
+        return entry.i === parseInt(outputPipeKey)
       })
+
       const outputPipe = outputPipes[outputPipeIndex]
       const allowance = await getAllowanceSTETH()
 
       if(allowance < amount){
         RADIO.emit("spinner", "stETH allowance: "+allowance+" approving "+amount)
-        const tx = await stETH.getFunction("approve").call(ownAddress, withdrawlerAddress, amount)
+        const bufferedAmount = parseInt(amount)
+        const finalAmount = bufferedAmount + (bufferedAmount*0.0001)
+        const tx = await stETH.getFunction("approve").call(ownAddress, withdrawlerAddress, finalAmount.toString())
         await tx.wait()
         await RELOAD()
         await waitForSeconds(0.5)
+      }
+
+      if(allowance < amount){
+        await waitForSeconds(3)
+        await RELOAD()
+        await waitForSeconds(2)
       }
 
       RADIO.emit("spinner", "swapping. "+allowance+" sufficient for: "+amount)
@@ -318,12 +335,26 @@ export const store = createStore(
     // EMISSION / OUTPUT PIPES
     //
 
-    // reads
-    async getStakesForPipe(pipeAddress){
+    // pipes reads
+    async getDataForPipe(pipeAddress){
       const { provider } = getState();
       const signer = await provider.getSigner();
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
-      const stakes = await pipe.stakes(signer)
+      const bondValue = await pipe.bondValue()
+      const totalStake = await pipe.totalStake()
+      const temp = await pipe.temp()
+      const dust = await pipe.dust()
+      return {
+        bondValue, totalStake, temp, dust
+      }
+    },
+
+    async getStakesForPipe(pipeAddress){
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+      const who = await signer.getAddress()
+      const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
+      const stakes = await pipe.getFunction("stakes").call(who, signer)
       const out = {
         stakesRaw: stakes,
         amount: stakes[0],
@@ -332,25 +363,34 @@ export const store = createStore(
       return out
     },
 
-    // writes
-    async claimPipeEmission(pipeAddress){
-      const { provider, lidontWeb3API } = getState();
+    // pipes writes
+    //
+
+    async unstakeForPipe(pipeAddress, amount = 1){
+      const { provider, lidontWeb3API, RELOAD } = getState();
       const signer = await provider.getSigner();
+      const me = await signer.getAddress()
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
       RADIO.emit("spinner", "claiming emission rewards")
-      const tx = await lidontWeb3API.stakes(signer)
+      const tx = await pipe.getFunction("unstake").call(me, amount)
       await tx.wait()
       await RELOAD()
     },
 
-    async claimPipeEmissionStatic(){
-      const { provider, lidontWeb3API, rETHStakedDetails } = getState();
+    async staticUnstakeForPipe(pipeAddress, amount = 1000000000){
+      const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
-      const amount = await lidontWeb3API.claimStatic(signer)
-      const newState = Object.assign({} , rETHStakedDetails)
-      newState.rewardDebt = amount
-      newState.rewardDebtFormatted = ethers.formatEther(amount)
-      setState({rETHStakedDetails: newState})
+      const me = await signer.getAddress()
+      const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
+      RADIO.emit("spinner", "...getting emissions")
+      try {
+        const res = await pipe.unstake.staticCall(amount, {from: await signer.getAddress()})
+        console.log(res)
+        return res
+      } catch (e) {
+        console.log(e)
+        return null
+      }
     },
 
     // DEPOSIT EVENTS
@@ -362,9 +402,9 @@ export const store = createStore(
       const withdrawalerAddress = detailsByChainId[chainIdDefault].withdrawler
       const depositEvents = await lidontWeb3API.getEventsDEPOSIT()
 
-      setState({depositEvents})
+      console.log(depositEvents)
 
-      const addrToDeposits = Object.assign({}, getState().addrToDeposits)
+      const addrToDeposits = Object.assign({})
 
       for(const value of depositEvents){
         const addr = value.args[0]
@@ -397,7 +437,7 @@ export const store = createStore(
       setState({withdrawEvents})
 
       // filter request ids
-      const addrToRequestIds = Object.assign({}, getState().addrToRequestIds)
+      const addrToRequestIds = Object.assign({})
 
       for(const value of withdrawEvents){
         const requestIds = value.args[0].toArray()
@@ -459,7 +499,6 @@ export const store = createStore(
 
       setState({addrToRequestIds})
 
-      console.log(getState())
     },
 
     async getCheckpointHints(withdrawalRequestIds){
@@ -492,8 +531,8 @@ export const store = createStore(
         if(addrWithdrawRequests){
           // has withdrawn in the past - check amounts
           const depositAmount = addrToDeposits[addr].depositTotalAmount
-          const user = addrWithdrawRequests
-          if(depositAmount < user.amounts.total){
+          const user = addrToRequestIds[addr]
+          if(depositAmount > user.amounts.total){
             // if has more deposited than we record total requestIds
               depositorAddrArray.push(addr)
               return

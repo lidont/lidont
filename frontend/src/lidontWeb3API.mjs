@@ -1,7 +1,4 @@
 import * as ethers from './ethers.js';
-import { abi as Abi } from "./abi.mjs";
-import { waitForCallback, waitForSeconds } from './util.mjs';
-import { detailsByChainId } from './store.mjs';
 
 
 export class lidontWeb3API {
@@ -10,8 +7,7 @@ export class lidontWeb3API {
       throw new Error("param is missing from constructor");
     }
     this.contractAddr = contractAddr
-    this.contract = new ethers.Contract(contractAddr, Abi);
-    // pending txs
+    this.contract = new ethers.Contract(contractAddr, withdrawalerAbi);
     this.pending = []
   }
 
@@ -55,6 +51,9 @@ export class lidontWeb3API {
   async initiateWithdrawal(signer, depositorsAddressArray) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
+    if(depositorsAddressArray.length === 0){
+      throw new Error("nothing to initiate")
+    }
     const tx = await contract.getFunction("initiateWithdrawal").call(who, depositorsAddressArray);
     await this.addTx(tx)
     return tx
@@ -65,6 +64,9 @@ export class lidontWeb3API {
     const contract = this.contract.connect(signer)
     console.log("depositorsAddresses: ", depositorsAddressArray)
     console.log("hints: ", hints)
+    if(hints.length === 0 || depositorsAddressArray.length === 0){
+      throw new Error("nothing to finalize")
+    }
     const tx = await contract.getFunction("finaliseWithdrawal").call(who, depositorsAddressArray, hints);
     await this.addTx(tx)
     return tx
@@ -138,7 +140,6 @@ export class lidontWeb3API {
     return events
   }
 
-
   // Transaction Queue
   //
   async updatePendingTransactions() {
@@ -185,20 +186,28 @@ export class lidontWeb3API {
 /* format abis with ethers 
 */
 export function toHumanReadableAbi(abi){
+  const out = []
   const iface = new ethers.Interface(abi);
-  const formatted = iface.format("full");
-  return formatted
+  iface.format("full");
+  iface.fragments.forEach(fragment => {
+      out.push(fragment.format('full'))
+  });
+  console.log(out)
+  return out
 }
 
 
 export const ERC20Abi = [
-  "function name() view returns (string)",
-  "function symbol() view returns (string)",
-  "function decimals() view returns (uint8)",
-  "function totalSupply() view returns (uint256)",
-  "function balanceOf(address arg0) view returns (uint256)",
-  "function allowance(address arg0, address arg1) view returns (uint256)",
-  "function approve(address _spender, uint256 _value) returns (bool)"
+  'function transfer(address _to, uint256 _value) returns (bool)',
+  'function approve(address _spender, uint256 _value) returns (bool)',
+  'function transferFrom(address _from, address _to, uint256 _value) returns (bool)',
+  'function mint(uint256 amount, address recipient)',
+  'function name() view returns (string)',
+  'function symbol() view returns (string)',
+  'function decimals() view returns (uint8)',
+  'function totalSupply() view returns (uint256)',
+  'function balanceOf(address arg0) view returns (uint256)',
+  'function allowance(address arg0, address arg1) view returns (uint256)'
 ];
 
 
@@ -213,132 +222,87 @@ export const unstETHAbi = [
   "function unfinalizedStETH() view returns (uint256)"
 ];
 
-export const outputPipesAbi = `
-[{
-  "name": "Stake",
-  "inputs": [{
-      "name": "user",
-      "type": "address",
-      "indexed": true
-  }, {
-      "name": "amount",
-      "type": "uint256",
-      "indexed": true
-  }],
-  "anonymous": false,
-  "type": "event"
-}, {
-  "name": "Unstake",
-  "inputs": [{
-      "name": "user",
-      "type": "address",
-      "indexed": true
-  }, {
-      "name": "amount",
-      "type": "uint256",
-      "indexed": true
-  }, {
-      "name": "reward",
-      "type": "uint256",
-      "indexed": true
-  }],
-  "anonymous": false,
-  "type": "event"
-}, {
-  "stateMutability": "nonpayable",
-  "type": "constructor",
-  "inputs": [{
-      "name": "rewardTokenAddress",
-      "type": "address"
-  }, {
-      "name": "rocketStorageAddress",
-      "type": "address"
-  }],
-  "outputs": []
-}, {
-  "stateMutability": "nonpayable",
-  "type": "function",
-  "name": "receiveReward",
-  "inputs": [{
-      "name": "_from",
-      "type": "address"
-  }, {
-      "name": "_amount",
-      "type": "uint256"
-  }],
-  "outputs": []
-}, {
-  "stateMutability": "nonpayable",
-  "type": "function",
-  "name": "unstake",
-  "inputs": [{
-      "name": "amount",
-      "type": "uint256"
-  }],
-  "outputs": []
-}, {
-  "stateMutability": "payable",
-  "type": "function",
-  "name": "receive",
-  "inputs": [{
-      "name": "user",
-      "type": "address"
-  }],
-  "outputs": []
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "bondValue",
-  "inputs": [],
-  "outputs": [{
-      "name": "",
-      "type": "uint256"
-  }]
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "temp",
-  "inputs": [],
-  "outputs": [{
-      "name": "",
-      "type": "uint256"
-  }]
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "dust",
-  "inputs": [],
-  "outputs": [{
-      "name": "",
-      "type": "uint256"
-  }]
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "stakes",
-  "inputs": [{
-      "name": "arg0",
-      "type": "address"
-  }],
-  "outputs": [{
-      "name": "",
-      "type": "tuple",
-      "components": [{
-          "name": "amount",
-          "type": "uint256"
-      }, {
-          "name": "bondValue",
-          "type": "uint256"
-      }]
-  }]
-}, {
-  "stateMutability": "view",
-  "type": "function",
-  "name": "totalStake",
-  "inputs": [],
-  "outputs": [{
-      "name": "",
-      "type": "uint256"
-  }]
-}]
-`
+
+export const outputPipesAbi = [
+  'event Receive(uint256 indexed amount, uint256 indexed oldBondValue, uint256 indexed newBondValue)',
+  'event Stake(address indexed user, uint256 indexed amount)',        
+  'event Unstake(address indexed user, uint256 indexed amount, uint256 indexed reward)',
+  'function receiveReward(address _token, address _from, uint256 _amount)',
+  'function unstake(uint256 amount)',
+  'function bondValue() view returns (uint256)',
+  'function temp() view returns (uint256)',
+  'function dust() view returns (uint256)',
+  'function stakes(address arg0) view returns (tuple(uint256 amount, uint256 bondValue))',
+  'function totalStake() view returns (uint256)'
+]
+
+export const outputPipesRETH = [
+  'event Stake(address indexed user, uint256 indexed amount)',        
+  'event Unstake(address indexed user, uint256 indexed amount, uint256 rewardLidont, uint256 rewardRocket)',
+  'function receiveReward(address _token, address _from, uint256 _amount)',
+  'function unstake(uint256 amount)',
+  'function receive(address user) payable',
+  'function rewardPoolLidont() view returns (tuple(address token, uint256 precision, uint256 bondValue, uint256 temp, uint256 dust))',      
+  'function rewardPoolRocket() view returns (tuple(address token, uint256 precision, uint256 bondValue, uint256 temp, uint256 dust))',      
+  'function bondValueLidont() view returns (uint256)',
+  'function bondValueRocket() view returns (uint256)',
+  'function tempLidont() view returns (uint256)',
+  'function dustLidont() view returns (uint256)',
+  'function tempRocket() view returns (uint256)',
+  'function dustRocket() view returns (uint256)',
+  'function stakes(address arg0) view returns (tuple(uint256 amount, uint256 bondValueLidont, uint256 bondValueRocket))',
+  'function totalStake() view returns (uint256)'
+]
+
+export const withdrawalerAbi = [
+  'event ChangeAdmin(address indexed oldAdmin, address indexed newAdmin)',
+  'event SetOutputValidity(address indexed output, bool indexed valid)',
+  'event ChangeEmission(uint256 indexed oldEmissionPerBlock, uint256 indexed newEmissionPerBlock)',
+  'event SetLastRewardBlock(address indexed pipe, uint256 indexed bnum)',
+  'event Deposit(address indexed who, uint256 indexed amount)',
+  'event WithdrawalRequest(uint256[] requestIds, address[] depositors, uint256[] amounts)',
+  'event Claim(address indexed who, address indexed output, uint256 indexed amount)',
+  'function changeAdmin(address newAdmin)',
+  'function setLidont(address lidontAddress)',
+  'function setUpgrade(address upgradeAddress)',
+  'function triggerEmission(address output)',
+  'function toggleValidOutput(address output)',
+  'function changeEmissionRate(uint256 newEmissionPerBlock)',
+  'function deposit(uint256 stETHAmount, address outputPipe)',
+  'function changeOutput(address outputPipe)',
+  'function initiateWithdrawal(address[] depositors) returns (uint256[])',
+  'function finaliseWithdrawal(address[] depositors, uint256[] _hints) returns (uint256[])',
+  'fallback() payable',
+  'function claim() returns (uint256)',
+  'function lidont() view returns (address)',
+  'function deposits(address arg0) view returns (tuple(uint256 stETH, uint256 requestId, uint256 ETH, address outputPipe))',
+  'function queue(uint256 arg0) view returns (address)',
+  'function queueSize() view returns (uint256)',
+  'function queueFront() view returns (uint256)',
+  'function queueBack() view returns (uint256)',
+  'function admin() view returns (address)',
+  'function newMinter() view returns (address)',
+  'function outputIndex(address arg0) view returns (uint256)',
+  'function outputPipes(uint256 arg0) view returns (address)',
+  'function emissionPerBlock() view returns (uint256)',
+  'function lastRewardBlock(address arg0) view returns (uint256)'
+]
+
+
+export const lidontAbi = [
+  'event Transfer(address indexed _from, address indexed _to, uint256 _value)',
+  'event Approval(address indexed _owner, address indexed _spender, uint256 _value)',
+  'event Mint(uint256 indexed amount, address indexed recipient)',
+  'function setMinter()',
+  'function transfer(address _to, uint256 _value) returns (bool)',
+  'function approve(address _spender, uint256 _value) returns (bool)',
+  'function transferFrom(address _from, address _to, uint256 _value) returns (bool)',
+  'function mint(uint256 amount, address recipient)',
+  'function name() view returns (string)',
+  'function symbol() view returns (string)',
+  'function decimals() view returns (uint8)',
+  'function totalSupply() view returns (uint256)',
+  'function balanceOf(address arg0) view returns (uint256)',
+  'function allowance(address arg0, address arg1) view returns (uint256)'
+]
+

@@ -19,7 +19,9 @@ window.RADIO.emit("msg", "App Init!")
 
 
 try {
-    store.getState().INIT()
+    const actions = store.getState()
+    await actions.INIT()
+    await actions.getAllOutputPipes()
 }
 catch (e) {
     console.log(e)
