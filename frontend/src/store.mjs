@@ -388,6 +388,7 @@ export const store = createStore(
         console.log(res)
         return res
       } catch (e) {
+        RADIO.emit("ERROR", e)
         console.log(e)
         return null
       }
