@@ -197,16 +197,17 @@ customElements.define("button-connected",class extends HTMLElement {
       }
       // executes store action with same name on click if found
       const actionName = this.getAttribute("data-action");
-      const id = this.getAttribute("data-id");
+      const dataid = this.getAttribute("data-id");
       if (actionName) {
         this.addEventListener("click",async (event) => {
             event.preventDefault();
             const actions = store.getState();
             if (actions[actionName]) {
-              if(id){
-                await actions[actionName](id);
+              console.log(dataid)
+              if(dataid && dataid !== ""){
+                await actions[actionName](dataid);
               }
-              if(!id) {
+              if(!dataid || dataid === "") {
                 await actions[actionName]();
               }
             }
@@ -395,8 +396,9 @@ customElements.define("list-pipes", class extends HTMLElement {
           <icon-comp class="radio--icon radio--icon--selected--permanent" icon="${index}"></icon-comp>
           <sub>#${index} ${label}</sub>
           <sub>bond: ${ethers.formatEther(value.stakes.bondValue)}</sub>
-          <div class="flex flex-around">
+          <div class="flex flex-around col">
             <button-unstake pipeAddr="${value.addr}" amount="${value.stakes.amount}">Unstake ${ethers.formatEther(value.stakes.amount)} ${label}</button-unstake>
+            <button-connected class="flex-right" data-id="${value.addr}" data-action="changeOutput">Switch to Pipe</button-connected-->
           </div>  
           <!--button-connected class="flex-right" data-id="${value.addr}" data-action="staticUnstakeForPipe">update</button-connected-->
         </div>

@@ -468,6 +468,7 @@ button-deposit {
   z-index: 0;
   border-radius: var(--radius);
   font-size: 1rem;
+  margin-bottom: 0.6rem;
 }
 
 .button--large {

@@ -133,12 +133,10 @@ export const store = createStore(
       RADIO.emit("msg", "fetching data...")
       await RELOAD()
 
-      /*
       setInterval( async () => {
         await getState().RELOAD()
-      },10000) // check every 10s
-      */
-
+      },20000) // check every 20s
+      
     },
 
     async RELOAD(){
@@ -331,7 +329,7 @@ export const store = createStore(
       }
 
       if(allowance < amount){
-        await waitForSeconds(3)
+        await waitForSeconds(2)
         await RELOAD()
         await waitForSeconds(2)
       }
@@ -344,6 +342,24 @@ export const store = createStore(
     } catch(e) {
       const err = getState().errors
       setState({errors: {...err, userDeposit: e}})
+      RADIO.emit("ERROR", e)
+    }
+    },
+
+    async changeOutput(addr){
+      const { provider, inputs, lidontWeb3API, RELOAD } = getState();
+
+      try {
+      const signer = await provider.getSigner();
+      const ownAddress = await signer.getAddress()
+      RADIO.emit("spinner", "changing output pipe: "+addr)
+      const tx = await lidontWeb3API.changeOutput(signer, addr)
+      await tx.wait()
+      await RELOAD()
+      setState({success: {...success, changeOutput: "Changed Output"}})
+    } catch(e) {
+      const err = getState().errors
+      setState({errors: {...err, changeOutput: e}})
       RADIO.emit("ERROR", e)
     }
     },
