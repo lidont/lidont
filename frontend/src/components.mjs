@@ -1,6 +1,6 @@
 import { store } from "./store.mjs";
 import * as ethers from './ethers.js';
-import { formatDisplayAddr, RADIO, RAINBOWS, debounce, html, shallowCompare } from "./util.mjs";
+import { formatDisplayAddr, RADIO, RAINBOWS, debounce, html, shallowCompare, isObjectEmpty } from "./util.mjs";
 import { lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
@@ -278,7 +278,6 @@ customElements.define("button-deposit", class extends HTMLElement {
     }
     this.innerHTML = html`
       <button-connected large icon class="vampire flex-center" data-action="deposit">🧛</button-connected>
-      <sup>receive ${pipe} - stake for lidont & bribes*</sup>
     `;
   }
   attributeChangedCallback() { this.render(); }
@@ -302,17 +301,15 @@ customElements.define("button-unstake",class extends HTMLElement {
 });
 
 
-
-// list of pipes and rewards / unclaim
+// select output pipes
 //
-customElements.define("list-pipes", class extends HTMLElement {
+
+customElements.define("select-pipes", class extends HTMLElement {
   constructor() { 
     super(); 
   }
   connectedCallback() { 
-
     this.prevValue = {} // only re-render when value changed
-    this.prevValue2 = {}
 
     store.subscribe( () => {
       const { outputPipes } = store.getState()
@@ -331,7 +328,52 @@ customElements.define("list-pipes", class extends HTMLElement {
   attributeChangedCallback() { this.render(); }
   render(){
     const { outputPipes } = store.getState()
-    if(!outputPipes){ return this.innerHTML = "<div class='spinner'></div>" }
+    if(isObjectEmpty(outputPipes)){ return this.innerHTML = "<div class='spinner'></div>" }
+    const pipes = Object.values(outputPipes)
+    console.log("rerender select")
+    this.innerHTML = `
+    <div class="stack flex-center">
+    ${pipes.map( (value, index) => { 
+      console.log(value)
+      let label = index === 0 ? "ETH" : "rETH"
+      return html`
+        <input-connected class="flex-center radio" icon label="${label}"  id="${index}" type="radio" name="selectedOutputPipe"></input-connected>
+      `.trim()}).join('')
+    }
+    </div>
+    `
+  }
+}
+);
+
+// list outpipes and rewards / unclaim
+//
+customElements.define("list-pipes", class extends HTMLElement {
+  constructor() { 
+    super(); 
+  }
+  connectedCallback() { 
+
+    this.prevValue = {} // only re-render when value changed
+
+    store.subscribe( () => {
+      const { outputPipes } = store.getState()
+
+      if(shallowCompare(this.prevValue, outputPipes)){ return }
+      if(!shallowCompare(this.prevValue, outputPipes)){ 
+        this.prevValue = outputPipes
+        return this.render()
+      }
+
+
+    })
+
+    this.render(); 
+  }
+  attributeChangedCallback() { this.render(); }
+  render(){
+    const { outputPipes } = store.getState()
+    if(isObjectEmpty(outputPipes)){ return this.innerHTML = "<div class='spinner'></div>" }
     const pipes = Object.values(outputPipes)
     console.log("rerender pipes")
     this.innerHTML = `

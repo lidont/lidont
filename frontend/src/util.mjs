@@ -74,9 +74,14 @@ config(
   api
 )
 
-export const isObjectEmpty = (objectName) => {
-  return JSON.stringify(objectName) === "{}";
-};
+export const isObjectEmpty = (obj) => {
+    for (const prop in obj) {
+      if (Object.hasOwn(obj, prop)) {
+        return false;
+      }
+    }
+    return true;
+}
 
 // waits for x seconds, returns promise
 //

@@ -581,9 +581,9 @@ button-deposit {
 }
 
 .spinner {
-  width: 1rem;
-  height: 1rem;
-  border: 0.05rem solid #ffffff;
+  width: 2rem;
+  height: 2rem;
+  border: 0.05rem solid #6776b9;
   border-bottom: 0.25rem solid rgba(0,0,0,0);
   border-radius: 50%;
   animation: spin 0.75s linear infinite;

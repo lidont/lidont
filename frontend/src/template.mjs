@@ -16,6 +16,8 @@ const template = html`
     </div>
     <div class="flex-center"><img class="logo" src="logo2.png" /></div>
 
+    <template-errors></template-errors>
+
     <template-admin></template-admin>
 
     <hr/>
@@ -38,10 +40,7 @@ const template = html`
         <br/>
         <sub>2. Choose Output Pipe & Bribes:</sub>
         <hr/>
-        <div class="stack flex-center">
-            <input-connected class="flex-center radio" icon label="ETH"  id="0" type="radio" name="selectedOutputPipe"></input-connected>
-            <input-connected class="flex-center radio" icon label="rETH" id="1" type="radio" name="selectedOutputPipe"></input-connected>
-        </div>
+        <select-pipes></select-pipes>
         <br/>
         <sub>3. Deposit:</sub>
         <hr/>
@@ -51,6 +50,7 @@ const template = html`
         <sub>After the withdraw cycle your LST is staked to earn rewards</sub>
         
     </div>
+    <template-success></template-success>
     <emoji-rain></emoji-rain>
     <hr />
     <div class="card">
@@ -143,7 +143,7 @@ customElements.define("template-admin", class extends HTMLElement {
                     <!--sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub-->
                 </div>
             </div>
-            <sub>xxxx stETH waiting to be saved</sub>
+            <sub></sub>
             <div class="stack flex-center">
                 <button-connected large class="flex-center" data-action="initiateWithdrawal">Initiate Withdraw</button-connected>
             </div>
@@ -156,9 +156,59 @@ customElements.define("template-admin", class extends HTMLElement {
                 <button-connected large class="flex-center" data-action="claimWithdrawal">Claim</button-connected>
             </div>
             
-            <sub>Next Batch:</sub>
             <list-finalize></list-finalize>
         </div>
+    </section>
+      `;
+    }
+  }
+  );
+
+
+
+// error
+//
+customElements.define("template-error", class extends HTMLElement {
+    constructor() { 
+      super(); 
+      this.hidden = true
+    }
+    connectedCallback() { 
+  
+      RADIO.on("ERROR", (e) => {
+        this.render(e)
+      })
+  
+    }
+    render(e){
+      console.log(e)
+      this.innerHTML = html`
+      <section>
+        <hr/> ERROR:
+    </section>
+      `;
+    }
+  }
+  );
+
+
+  customElements.define("template-success", class extends HTMLElement {
+    constructor() { 
+      super(); 
+      this.hidden = true
+    }
+    connectedCallback() { 
+  
+      RADIO.on("SUCCESS", (e) => {
+        this.render(e)
+      })
+  
+    }
+    render(e){
+      console.log(e)
+      this.innerHTML = html`
+      <section>
+        <hr/>
     </section>
       `;
     }
