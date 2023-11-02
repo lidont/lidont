@@ -84,6 +84,10 @@ export const store = createStore(
       // size, back, front, map
     },
 
+    errors: {
+
+    },
+
     // raw events
     depositEvents: [],
     withdrawEvents: [],
@@ -205,8 +209,8 @@ export const store = createStore(
           outputPipes[i] = {i, addr, stakes, claimableLidont}
           addrToOutputPipes[addr] = {i, addr, stakes}
         } catch(e){
-          console.log(e)
-          console.log("pipes total: "+(i))
+          // console.log(e)
+          console.log("catch! pipes total: "+(i))
           break
         }
       }
@@ -389,7 +393,6 @@ export const store = createStore(
         return res
       } catch (e) {
         RADIO.emit("ERROR", e)
-        console.log(e)
         return null
       }
     },

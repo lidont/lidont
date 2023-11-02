@@ -348,6 +348,12 @@ customElements.define("select-pipes", class extends HTMLElement {
 
 // list outpipes and rewards / unclaim
 //
+
+const pipelabels = {
+  0: "ETH",
+  1: "rETH"
+}
+
 customElements.define("list-pipes", class extends HTMLElement {
   constructor() { 
     super(); 
@@ -380,21 +386,21 @@ customElements.define("list-pipes", class extends HTMLElement {
     <div>
       ${pipes.map( (value, index) => { 
         console.log(value)
+        let label = pipelabels[index]
         return html`
-        <sub>${index}</sub>
-        <icon-comp large class="radio--icon radio--icon--selected--permanent" icon="${index}"></icon-comp>
-        <div class="stack row flex-between">
-          <sub>${ethers.formatEther(value.stakes.amount)} bond: ${ethers.formatEther(value.stakes.bondValue)}</sub>
+        <div class="flex">
+        <div class="flex stack row flex-between">
+          <icon-comp class="radio--icon radio--icon--selected--permanent" icon="${index}"></icon-comp>
+          <sub>#${index} ${label}</sub>
+          <sub>bond: ${ethers.formatEther(value.stakes.bondValue)}</sub>
           <div class="flex flex-around">
-            <button-unstake pipeAddr="${value.addr}" amount="${value.stakes.amount}">Unstake ${value.stakes.amount}</button-unstake>
+            <button-unstake pipeAddr="${value.addr}" amount="${value.stakes.amount}">Unstake ${ethers.formatEther(value.stakes.amount)} ${label}</button-unstake>
           </div>  
-          <br/>
-          <div class="flex flex-right">
-            ${value.emissionLidont ? `<sub>Claimable: <rainbow>${value.emissionLidont}"</rainbow></sub>` : '' }
-          </div>
           <!--button-connected class="flex-right" data-id="${value.addr}" data-action="staticUnstakeForPipe">update</button-connected-->
         </div>
-          
+        ${value.emissionLidont ? `<sub>Claimable: <rainbow>${value.emissionLidont}"</rainbow></sub>` : '<sub></sub>' }
+        </div>
+        <hr/>
         `.trim()}).join('')
       }
     </div>
@@ -533,7 +539,7 @@ customElements.define("emoji-rain", class extends HTMLElement {
     
 
     setTimeout( () => {
-      var emoji = ['💰', '💎', '🏴‍☠️', '⚔️', '🍺', '🔓', '🦜', '💍', '💴', '💶', '🪙'];
+      var emoji = ['💰', '💎', '🏴‍☠️', '⚔️', '🔓', '🦜', '💍', '💴', '💶', '🪙'];
       var circles = [];
 
       function addCircle(delay, range, color) {

@@ -26,7 +26,7 @@ const template = html`
             <span class="text-big">Deposit stETH</span>
             <div>
                 <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.stETH.balance"></value-connected>  stETH</sub>
-                <sub>Allowance: <value-connected data-format="formatDecimals" data-path="stETHAllowance"></value-connected> stETH</sub>
+                <!--sub>Allowance: <value-connected data-format="formatDecimals" data-path="stETHAllowance"></value-connected> stETH</sub-->
             </div>
         </div>
         <div class="flex-center">
@@ -138,22 +138,22 @@ customElements.define("template-admin", class extends HTMLElement {
             <div class="rainbow-bg"></div>
             </div>
             <div class="flex flex-between">
-                <span class="text-big">Attack</span>
+                <!--span class="text-big">Attack</span-->
                 <div>
                     <!--sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub-->
                 </div>
             </div>
             <sub></sub>
             <div class="stack flex-center">
-                <button-connected large class="flex-center" data-action="initiateWithdrawal">Initiate Withdraw</button-connected>
+                <button-connected large class="flex-center" data-action="initiateWithdrawal">1: pre-lido: Init Withdraw</button-connected>
             </div>
 
             <div class="stack flex-center">
-                <button-connected large class="flex-center" data-action="finalizeWithdrawal">Finalize Batch</button-connected>
+                <button-connected large class="flex-center" data-action="finalizeWithdrawal">2: post-lido: Finalize Batch</button-connected>
             </div>
 
             <div class="stack flex-center">
-                <button-connected large class="flex-center" data-action="claimWithdrawal">Claim</button-connected>
+                <button-connected large class="flex-center" data-action="claimWithdrawal">3: Claim</button-connected>
             </div>
             
             <list-finalize></list-finalize>
