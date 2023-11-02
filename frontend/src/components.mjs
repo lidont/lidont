@@ -146,6 +146,7 @@ constructor() {
   let prevValue = null
   store.subscribe( () => {
     const nowState = store.getState()
+    if(!path) return
     const stateValue = Object.byString(nowState, path) //!
     const isEqual = prevValue === stateValue
     if(isEqual){ return }
@@ -158,10 +159,11 @@ constructor() {
 render(stateValue){
   let node = "div"
   const propNode = this.getAttribute("data-node")
+  const hideSpinner = this.getAttribute("hideSpinner")
   if(propNode){ node = propNode }
   const format = this.getAttribute("data-format")
   const isDefined = stateValue !== undefined
-  this.innerHTML = `${!isDefined ? '<div class="spinner"/>' : format ? `<${node}>${this.formatter(format)(stateValue)}</${node}>` : `<${node}>${stateValue}</${node}>` }`;
+  this.innerHTML = `${!isDefined ? hideSpinner === "" ? '' : '<div class="spinner"/>' : format ? `<${node}>${this.formatter(format)(stateValue)}</${node}>` : `<${node}>${stateValue}</${node}>` }`;
   if(node === "rainbow"){
     RAINBOWS()
   }

@@ -5,7 +5,7 @@ import { RADIO, html } from "./util.mjs";
 const template = html`
 <main>
 <logger-radio></logger-radio>
-<sub class="text-light">RC0.2</sub>
+<sub class="text-light">RC1.0</sub>
 <div class="container">
     <div class="nav">
         <div class="stack">
@@ -47,7 +47,10 @@ const template = html`
         <div class="stack flex-center">
             <button-deposit></button-deposit>
         </div>
-        <sub>After the withdraw cycle your LST is staked to earn rewards</sub>
+        <sub><value-connected class="success" hideSpinner data-path="success.userDeposit"></value-connected></sub>
+        <sub><value-connected class="error" hideSpinner data-path="errors.userDeposit"></value-connected></sub>
+
+        <sub>After the withdraw cycle your LST is staked to earn rewards (this can take hours to days)</sub>
         
     </div>
     <template-success></template-success>
@@ -147,10 +150,14 @@ customElements.define("template-admin", class extends HTMLElement {
             <div class="stack flex-center">
                 <button-connected large class="flex-center" data-action="initiateWithdrawal">1: pre-lido: Init Withdraw</button-connected>
             </div>
+            <sub><value-connected class="success" hideSpinner data-path="success.initWithdraw"></value-connected></sub>
+            <sub><value-connected class="error" hideSpinner data-path="errors.initWithdraw"></value-connected></sub>
 
             <div class="stack flex-center">
                 <button-connected large class="flex-center" data-action="finalizeWithdrawal">2: post-lido: Finalize Batch</button-connected>
             </div>
+            <sub><value-connected class="success" hideSpinner data-path="success.finalizeWithdraw"></value-connected></sub>
+            <sub><value-connected class="error" hideSpinner data-path="errors.finalizeWithdraw"></value-connected></sub>
 
             <div class="stack flex-center">
                 <button-connected large class="flex-center" data-action="claimWithdrawal">3: Claim</button-connected>

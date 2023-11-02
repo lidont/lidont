@@ -85,7 +85,11 @@ export const store = createStore(
     },
 
     errors: {
+      test: true,
+    },
 
+    success: {
+      test: true,
     },
 
     // raw events
@@ -297,6 +301,8 @@ export const store = createStore(
 
     async deposit(){
       const { provider, inputs, lidontWeb3API, RELOAD, getAllowanceSTETH, outputPipes } = getState();
+
+      try {
       const signer = await provider.getSigner();
       const amount = ethers.parseUnits(inputs.stETHAmount, 18)
       const ownAddress = await signer.getAddress()
@@ -334,6 +340,12 @@ export const store = createStore(
       const tx = await lidontWeb3API.deposit(signer, amount, outputPipe.addr)
       await tx.wait()
       await RELOAD()
+      setState({success: {...success, userDeposit: "Deposit successful: "+ethers.formatEther(amount)+" stETH"}})
+    } catch(e) {
+      const err = getState().errors
+      setState({errors: {...err, userDeposit: e}})
+      RADIO.emit("ERROR", e)
+    }
     },
 
     // EMISSION / OUTPUT PIPES
@@ -521,6 +533,8 @@ export const store = createStore(
       const signer = await provider.getSigner();
       RADIO.emit("msg", "initiating withdrawal")
 
+      try {
+
       const depositorAddrArray = []
 
       Object.keys(addrToDeposits).forEach( addr => {
@@ -549,6 +563,12 @@ export const store = createStore(
       const tx = await lidontWeb3API.initiateWithdrawal(signer, depositorAddrArray)
       await tx.wait()
       await waitForSeconds(0.3)
+      setState({success: {...success, initWithdraw: "Withdrawing for # of Addresses: "+depositorAddrArray.length}})
+    } catch(e) {
+      const err = getState().errors
+      setState({errors: {...err, initWithdraw: e}})
+      RADIO.emit("ERROR", e)
+    }
 
     },
 
@@ -587,16 +607,21 @@ export const store = createStore(
     },
 
     async finalizeWithdrawal(){
-      const { provider, inputs, lidontWeb3API, getCheckpointHints, assembleFinalizationBatch } = getState();
-      const signer = await provider.getSigner();
-
-      const batch = await assembleFinalizationBatch()
-
-      RADIO.emit("msg", "getting hints...")
-      const hints = await getCheckpointHints(batch.requestIds)
-      RADIO.emit("msg", "finalizing withdrawal")
-      // const test = [detailsByChainId[chainIdDefault].withdrawler]
-      await lidontWeb3API.finaliseWithdrawal(signer, batch.depositors, hints.toArray())
+      const { provider, inputs, lidontWeb3API, getCheckpointHints, assembleFinalizationBatch, errors, success } = getState();
+      try {
+        const signer = await provider.getSigner();
+        const batch = await assembleFinalizationBatch()
+        RADIO.emit("msg", "getting hints...")
+        const hints = await getCheckpointHints(batch.requestIds)
+        RADIO.emit("msg", "finalizing withdrawal")
+        // const test = [detailsByChainId[chainIdDefault].withdrawler]
+        await lidontWeb3API.finaliseWithdrawal(signer, batch.depositors, hints.toArray())
+        setState({success: {...success, finalizeWithdraw: "finalizing withdrawal for # of requests: "+hints.length}})
+      } catch(e) {
+        const err = getState().errors
+        setState({errors: {...err, finalizeWithdraw: e}})
+        RADIO.emit("ERROR", e)
+      }
     },
 
     async claimWithdrawal(){
