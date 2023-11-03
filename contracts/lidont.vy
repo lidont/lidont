@@ -1,4 +1,4 @@
-# @version 0.3.9
+# @version ^0.3.9
 
 interface ERC20:
   def name() -> String[64]: view
