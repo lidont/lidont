@@ -107,6 +107,11 @@ def unstake(amount: uint256):
   self._unstake(msg.sender, amount)
 
 @external
+def previewUnstake(user: address, amount: uint256) -> uint256:
+  withdrawler.triggerEmission(self)
+  return self._reward(user, amount)
+
+@external
 @payable
 def receive(user: address):
   self._stake(user, msg.value)
