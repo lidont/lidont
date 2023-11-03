@@ -394,7 +394,7 @@ customElements.define("list-pipes", class extends HTMLElement {
         <div class="flex">
         <div class="flex stack row flex-between">
           <icon-comp class="radio--icon radio--icon--selected--permanent" icon="${index}"></icon-comp>
-          <sub>#${index} ${label}</sub>
+          <sub>Output Pipe No.${index}: ${label}</sub>
           <sub>bond: ${ethers.formatEther(value.stakes.bondValue)}</sub>
           <div class="flex flex-around row">
             <button-unstake pipeAddr="${value.addr}" amount="${value.stakes.amount}">Unstake ${ethers.formatEther(value.stakes.amount)} ${label}</button-unstake>
@@ -457,7 +457,7 @@ customElements.define("list-deposits", class extends HTMLElement {
         return html`
           <div class="stack row flex-between">
           <sub>${id} - ${ethers.formatEther(reqId.amount)} ETH</sub>
-          ${requests.unfinalized && requests.claimed && requests.claimed[id] ? '<sub class="flex-right">claimed 🎯 </sub>' : ''}
+          <sub class="flex-right">${!requests.unfinalized && requests.claimed && requests.claimed[id] ? 'claimed 🎯' : ''}</sub>
           ${requests.unfinalized && requests.unfinalized[id] ? '<sub class="flex-right">unfinalized ⚡</sub>' : ''}
           </div>
         `.trim()}).join('')
