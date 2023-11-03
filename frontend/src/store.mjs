@@ -133,9 +133,11 @@ export const store = createStore(
       RADIO.emit("msg", "fetching data...")
       await RELOAD()
 
+      /*
       setInterval( async () => {
         await getState().RELOAD()
       },20000) // check every 20s
+      */
       
     },
 
@@ -338,7 +340,8 @@ export const store = createStore(
       const tx = await lidontWeb3API.deposit(signer, amount, outputPipe.addr)
       await tx.wait()
       await RELOAD()
-      setState({success: {...success, userDeposit: "Deposit successful: "+ethers.formatEther(amount)+" stETH"}})
+      const succ = getState().success
+      setState({success: {...succ, userDeposit: "Deposit successful: "+ethers.formatEther(amount)+" stETH"}})
     } catch(e) {
       const err = getState().errors
       setState({errors: {...err, userDeposit: e}})
@@ -356,7 +359,8 @@ export const store = createStore(
       const tx = await lidontWeb3API.changeOutput(signer, addr)
       await tx.wait()
       await RELOAD()
-      setState({success: {...success, changeOutput: "Changed Output"}})
+      const succ = getState().success
+      setState({success: {...succ, changeOutput: "Changed Output"}})
     } catch(e) {
       const err = getState().errors
       setState({errors: {...err, changeOutput: e}})
@@ -409,17 +413,20 @@ export const store = createStore(
       await RELOAD()
     },
 
-    async staticUnstakeForPipe(pipeAddress, amount = 1000000000){
+    async staticUnstakeForPipe(pipeAddress, amount = 100){
       const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
       RADIO.emit("spinner", "...getting emissions")
       try {
-        const res = await pipe.unstake.staticCall(amount, {from: await signer.getAddress()})
+        console.log(me)
+        console.log(pipeAddress)
+        const res = await pipe.unstake.staticCall(amount, {from: me})
         console.log(res)
         return res
       } catch (e) {
+        console.log(e)
         RADIO.emit("ERROR", e)
         return null
       }
@@ -579,7 +586,8 @@ export const store = createStore(
       const tx = await lidontWeb3API.initiateWithdrawal(signer, depositorAddrArray)
       await tx.wait()
       await waitForSeconds(0.3)
-      setState({success: {...success, initWithdraw: "Withdrawing for # of Addresses: "+depositorAddrArray.length}})
+      const succ = getState().success
+      setState({success: {...succ, initWithdraw: "Withdrawing for # of Addresses: "+depositorAddrArray.length}})
     } catch(e) {
       const err = getState().errors
       setState({errors: {...err, initWithdraw: e}})
@@ -632,7 +640,8 @@ export const store = createStore(
         RADIO.emit("msg", "finalizing withdrawal")
         // const test = [detailsByChainId[chainIdDefault].withdrawler]
         await lidontWeb3API.finaliseWithdrawal(signer, batch.depositors, hints.toArray())
-        setState({success: {...success, finalizeWithdraw: "finalizing withdrawal for # of requests: "+hints.length}})
+        const succ = getState().success
+        setState({success: {...succ, finalizeWithdraw: "finalizing withdrawal for # of requests: "+hints.length}})
       } catch(e) {
         const err = getState().errors
         setState({errors: {...err, finalizeWithdraw: e}})
