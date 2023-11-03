@@ -446,7 +446,7 @@ export const store = createStore(
       const addrToDeposits = Object.assign({})
 
       for(const value of depositEvents){
-        const addr = value.args[0]
+        const addr = (value.args[0]).toLowerCase()
         const amount = value.args[1]
         addrToDeposits[addr] = addrToDeposits[addr] || {}
 
@@ -486,7 +486,7 @@ export const store = createStore(
 
         // map all request Ids an address has
         requestIds.forEach( (requestId, index) => {
-          const depositor = depositors[index]
+          const depositor = (depositors[index]).toLowerCase()
           const status = requestsStatus[index]
           
           addrToRequestIds[depositor]           = addrToRequestIds[depositor] || {}
@@ -560,8 +560,9 @@ export const store = createStore(
 
       const depositorAddrArray = []
 
-      Object.keys(addrToDeposits).forEach( addr => {
+      Object.keys(addrToDeposits).forEach( address => {
         // check map addr -> deposit amount
+        const addr = address.toLowerCase()
         const addrWithdrawRequests = addrToRequestIds[addr]
 
         if(!addrWithdrawRequests){
@@ -604,7 +605,8 @@ export const store = createStore(
       const depositors = []
       const requestIds = []
 
-      Object.keys(addrToRequestIds).forEach( addr => {
+      Object.keys(addrToRequestIds).forEach( address => {
+        const addr = address.toLowerCase()
         const depositor = addrToRequestIds[addr]
 
         if(depositor.finalized){

@@ -396,10 +396,10 @@ customElements.define("list-pipes", class extends HTMLElement {
           <icon-comp class="radio--icon radio--icon--selected--permanent" icon="${index}"></icon-comp>
           <sub>#${index} ${label}</sub>
           <sub>bond: ${ethers.formatEther(value.stakes.bondValue)}</sub>
-          <div class="flex flex-around col">
+          <div class="flex flex-around row">
             <button-unstake pipeAddr="${value.addr}" amount="${value.stakes.amount}">Unstake ${ethers.formatEther(value.stakes.amount)} ${label}</button-unstake>
-            <button-connected class="flex-right" data-id="${value.addr}" data-action="changeOutput">Switch to Pipe</button-connected-->
-          </div>  
+            <button-connected class="flex-right" data-id="${value.addr}" data-action="changeOutput">Switch Deposit to this Pipe*</button-connected>
+            </div>  
           <!--button-connected class="flex-right" data-id="${value.addr}" data-action="staticUnstakeForPipe">update</button-connected-->
         </div>
         ${value.emissionLidont ? `<sub>Claimable: <rainbow>${value.emissionLidont}"</rainbow></sub>` : '<sub></sub>' }
@@ -407,6 +407,7 @@ customElements.define("list-pipes", class extends HTMLElement {
         <hr/>
         `.trim()}).join('')
       }
+      <sup>* Hint: Changing Pipes can be done before a Claim - (if changed your mind, unstuck funds from an old pipe, etc.)</sup>
     </div>
     `
   }
@@ -417,7 +418,7 @@ customElements.define("list-pipes", class extends HTMLElement {
 
 // list of pending withdrawals and management of them
 //
-customElements.define("list-finalize", class extends HTMLElement {
+customElements.define("list-deposits", class extends HTMLElement {
   constructor() { 
     super(); 
   }
@@ -426,39 +427,43 @@ customElements.define("list-finalize", class extends HTMLElement {
     let prevValue = null // only re-render when value changed
     store.subscribe( () => {
       const state = store.getState()
-      if(prevValue === state.withdrawEvents){ return }
-      if(prevValue !== state.withdrawEvents){ 
-        prevValue = state.withdrawEvents
-        return this.render(state.withdrawEvents)
+      const address = state.address
+      const ids = state.addrToRequestIds
+      const now = ids[address]
+
+      if(prevValue === now){ return }
+      if(prevValue !== now){ 
+        prevValue = now
+        return this.render(now)
       }
     })
+
     this.render(); 
 
   }
   attributeChangedCallback() { this.render(); }
   render(requests){
-
     if(!requests || requests.length === 0){ return this.innerHTML = "<div class='spinner'></div>" }
+
+    const ids = Object.keys(requests.allRequestIds)
+
     this.innerHTML = `
     <div>
-      ${requests.map( (value, index) => { 
-
-        let amount, shares, timestamp
-        Object.keys(value).forEach( key => {
-          const obj = value[key]
-          amount = obj.amountOfStETH
-          shares = obj.amountOfShares
-          timestamp = obj.timestamp
-        })
-
-        if(!amount || !shares || !timestamp) return
-
+    <sub class="flex flex-right">Total Queued: ${requests.amounts && ethers.formatEther(requests.amounts.unfinalized)} ETH </sub>
+    <hr/>
+      ${ids.map( (id, index) => { 
+        const reqId = requests.allRequestIds[id]
+        console.log(id, reqId, requests)
         return html`
           <div class="stack row flex-between">
-          <sub>${ethers.formatEther(shares)} shares bought on ${timestamp}</sub>
+          <sub>${id} - ${ethers.formatEther(reqId.amount)} ETH</sub>
+          <sub class="flex-right">${!requests.unfinalized && requests.claimed && requests.claimed[id] ? 'claimed 🎯' : ''}</sub>
+          ${requests.unfinalized && requests.unfinalized[id] ? '<sub class="flex-right">unfinalized ⚡</sub>' : ''}
           </div>
         `.trim()}).join('')
       }
+      <hr/>
+      <sub class="flex flex-right">Total Claimed: ${requests.amounts && ethers.formatEther(requests.amounts.claimed)} ETH </sub>
     </div>
     `
   }

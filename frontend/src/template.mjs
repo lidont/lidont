@@ -56,15 +56,16 @@ const template = html`
     <template-success></template-success>
     <emoji-rain></emoji-rain>
     <hr />
+    <deposit-status></deposit-status>
     <div class="card">
         <div class="flex flex-between">
-            <span class="text-big">Receive Tokens</span>
+            <span class="text-big">Token Output:</span>
             <sub>Balance: <value-connected data-format="formatDecimals" data-path="balancesBySymbol.LIDONT.balance"></value-connected> LIDONT</sub>
         </div>
         <div class="flex-center">
-            <p class="spin"><icon-comp icon="lidont"></icon-comp></p>
+            <!--p class="spin"><icon-comp icon="lidont"></icon-comp></p-->
         </div>
-        <sub>Ouput Pipes:</sub>
+        <sub>Pipes:</sub>
         <hr/>
 
         <list-pipes></list-pipes>
@@ -143,7 +144,7 @@ customElements.define("template-admin", class extends HTMLElement {
             <div class="flex flex-between">
                 <!--span class="text-big">Attack</span-->
                 <div>
-                    <!--sub>Balance: <value-connected data-format="formatDecimals" data-path="balanceOfLidontSTETH"></value-connected> stETH available to withdraw</sub-->
+                    <sub>Public Vampire Attack Functions</sub>
                 </div>
             </div>
             <sub></sub>
@@ -162,8 +163,7 @@ customElements.define("template-admin", class extends HTMLElement {
             <div class="stack flex-center">
                 <button-connected large class="flex-center" data-action="claimWithdrawal">3: Claim</button-connected>
             </div>
-            
-            <list-finalize></list-finalize>
+        
         </div>
     </section>
       `;
@@ -216,6 +216,41 @@ customElements.define("template-error", class extends HTMLElement {
       this.innerHTML = html`
       <section>
         <hr/>
+    </section>
+      `;
+    }
+  }
+  );
+
+
+// deposit status
+//
+customElements.define("deposit-status", class extends HTMLElement {
+    constructor() { 
+      super(); 
+      this.hidden = false
+    }
+    connectedCallback() { 
+  
+      this.render(); 
+  
+    }
+    attributeChangedCallback() { this.render(); }
+    render(){
+      if(this.hidden){ return this.innerHTML = `` }
+      this.innerHTML = html`
+      <section>
+        <hr/>
+        <div class="card">
+        <div class="flex flex-between">
+            <span class="text-big">Your Deposits:</span>
+        </div>
+        <div class="flex-center">
+            <p class="spin"><icon-comp icon="lidont"></icon-comp></p>
+        </div>
+        <hr/>
+        <list-deposits></list-deposits>
+        </div>
     </section>
       `;
     }
