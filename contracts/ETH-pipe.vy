@@ -1,4 +1,4 @@
-# @version 0.3.9
+# @version ^0.3.9
 
 interface Withdrawler:
   def triggerEmission(_pipe: address): nonpayable
@@ -105,6 +105,11 @@ def _reward(user: address, stake: uint256) -> uint256:
 def unstake(amount: uint256):
   withdrawler.triggerEmission(self)
   self._unstake(msg.sender, amount)
+
+@external
+def previewUnstake(user: address, amount: uint256) -> uint256:
+  withdrawler.triggerEmission(self)
+  return self._reward(user, amount)
 
 @external
 @payable
