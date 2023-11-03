@@ -256,7 +256,7 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
 @pytest.fixture(scope="function")
 def one_withdrawal_claimed(one_withdrawal_finalized, withdrawler, accounts):
     assert len(one_withdrawal_finalized) == 1
-    return withdrawler.claim(sender=accounts[0])
+    return withdrawler.claim(b'', sender=accounts[0])
 
 def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, accounts):
     assert one_withdrawal_claimed.return_value == deposit_ETH_pipe["amount"]

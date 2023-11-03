@@ -4,6 +4,7 @@ interface Withdrawler:
   def triggerEmission(_pipe: address): nonpayable
 
 withdrawler: immutable(Withdrawler)
+MAX_DATA: constant(uint256) = 32 * 4
 
 interface ERC20:
   def decimals() -> uint8: view
@@ -58,14 +59,14 @@ def __init__(rewardTokenAddress: address, withdrawlerAddress: address, rocketSto
 interface RocketStorage:
   def getAddress(_key: bytes32) -> address: view
 
-interface RocketDepositPool:
-  def deposit(): payable
+interface SwapRouter:
+  def swapTo(_uniswap: uint256, _balancer: uint256, _minOut: uint256, _idealOut: uint256): payable
 
 rocketStorage: immutable(RocketStorage)
 rocketEther: immutable(ERC20)
 rocketEtherKey: constant(bytes32) = keccak256("contract.addressrocketTokenRETH")
 rocketTokenKey: constant(bytes32) = keccak256("contract.addressrocketTokenRPL")
-rocketDepositPoolKey: constant(bytes32) = keccak256("contract.addressrocketDepositPool")
+rocketSwapRouterKey: constant(bytes32) = keccak256("contract.addressrocketSwapRouter")
 
 @external
 def receiveReward(_token: address, _from: address, _amount: uint256):
@@ -165,8 +166,14 @@ def unstake(amount: uint256):
 
 @external
 @payable
-def receive(user: address):
+def receive(user: address, data: Bytes[MAX_DATA]):
   rETHBefore: uint256 = rocketEther.balanceOf(self)
-  RocketDepositPool(rocketStorage.getAddress(rocketDepositPoolKey)).deposit(value = msg.value)
+  uniswapPortion: uint256 = empty(uint256)
+  balancerPortion: uint256 = empty(uint256)
+  minOut: uint256 = empty(uint256)
+  idealOut: uint256 = empty(uint256)
+  uniswapPortion, balancerPortion, minOut, idealOut = _abi_decode(data, (uint256, uint256, uint256, uint256))
+  SwapRouter(rocketStorage.getAddress(rocketSwapRouterKey)).swapTo(
+    uniswapPortion, balancerPortion, minOut, idealOut, value = msg.value)
   rETHMinted: uint256 = rocketEther.balanceOf(self) - rETHBefore
   self._stake(user, rETHMinted)

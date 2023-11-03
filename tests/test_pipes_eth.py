@@ -49,8 +49,8 @@ def mint_lidont(lidont, project, withdrawler, accounts):
 def stake_ETH(ETH_pipe, accounts):
     amount0 = 10**18
     amount1 = 5 * 10**17
-    ETH_pipe.receive(accounts[0].address, value=amount0, sender=accounts[0])
-    ETH_pipe.receive(accounts[1].address, value=amount1, sender=accounts[0])
+    ETH_pipe.receive(accounts[0].address, b'', value=amount0, sender=accounts[0])
+    ETH_pipe.receive(accounts[1].address, b'', value=amount1, sender=accounts[0])
     return {"stake0":amount0, "stake1":amount1}
 
 @pytest.fixture(scope="function")

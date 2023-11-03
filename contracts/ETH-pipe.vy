@@ -113,5 +113,5 @@ def previewUnstake(user: address, amount: uint256) -> uint256:
 
 @external
 @payable
-def receive(user: address):
+def receive(user: address, unused_data: Bytes[1]):
   self._stake(user, msg.value)

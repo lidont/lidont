@@ -4,6 +4,7 @@ MAX_REQUESTS: constant(uint256) = 32 # maximum number of requestIds to process a
 MAX_OUTPUT_PIPES: constant(uint256) = 32
 MAX_LIDO_DEPOSIT: constant(uint256) = 1000 * 10**18
 MIN_LIDO_DEPOSIT: constant(uint256) = 100
+MAX_PIPE_DATA: constant(uint256) = 32 * 16
 
 interface StETH:
   def balanceOf(_owner: address) -> uint256: view
@@ -19,7 +20,7 @@ interface Lidont:
   def mint(amount: uint256, recipient: address): nonpayable
 
 interface OutputPipe:
-  def receive(_who: address): payable
+  def receive(_who: address, _data: Bytes[MAX_PIPE_DATA]): payable
   def receiveReward(_token: address, _from: address, _amount: uint256): nonpayable
 
 stakedEther: immutable(StETH)
@@ -241,13 +242,13 @@ def __default__():
   assert msg.sender == unstETH.address, "only withdrawals accepted"
 
 @external
-def claim() -> uint256:
+def claim(data: Bytes[MAX_PIPE_DATA]) -> uint256:
   recipient: address = self._popQueue()
   output: address = self.deposits[recipient].outputPipe
   assert output != empty(address), "not deposited" # TODO: impossible?
   amount: uint256 = self.deposits[recipient].ETH
   assert 0 < amount, "not finalised"
-  OutputPipe(output).receive(recipient, value=amount)
+  OutputPipe(output).receive(recipient, data, value=amount)
   self.deposits[recipient].ETH = 0
   self.deposits[recipient].outputPipe = empty(address)
   log Claim(recipient, output, amount)
