@@ -457,7 +457,7 @@ customElements.define("list-deposits", class extends HTMLElement {
         return html`
           <div class="stack row flex-between">
           <sub>${id} - ${ethers.formatEther(reqId.amount)} ETH</sub>
-          <sub class="flex-right">${!requests.unfinalized && requests.claimed && requests.claimed[id] ? 'claimed 🎯' : ''}</sub>
+          ${requests.unfinalized && requests.claimed && requests.claimed[id] ? '<sub class="flex-right">claimed 🎯 </sub>' : ''}
           ${requests.unfinalized && requests.unfinalized[id] ? '<sub class="flex-right">unfinalized ⚡</sub>' : ''}
           </div>
         `.trim()}).join('')
