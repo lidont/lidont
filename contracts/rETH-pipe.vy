@@ -165,6 +165,11 @@ def unstake(amount: uint256):
   self._unstake(msg.sender, amount)
 
 @external
+def previewUnstake(user: address, amount: uint256) -> (uint256, uint256):
+  withdrawler.triggerEmission(self)
+  return (self._rewardLidont(user, amount), self._rewardRocket(user, amount))
+
+@external
 @payable
 def receive(user: address, data: Bytes[MAX_DATA]):
   rETHBefore: uint256 = rocketEther.balanceOf(self)
