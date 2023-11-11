@@ -22,11 +22,11 @@ struct RewardPool:
 rewardPoolLidont: public(RewardPool)
 rewardPoolRocket: public(RewardPool)
 
-rewardTokenLidont: immutable(ERC20)
-rewardTokenRocket: immutable(ERC20)
+rewardTokenLidont: public(immutable(ERC20))
+rewardTokenRocket: public(immutable(ERC20))
 
 initialBondValue: constant(uint256) = 100000000
-precision: immutable(uint256)
+precision: public(immutable(uint256))
 bondValueLidont: public(uint256)
 bondValueRocket: public(uint256)
 
