@@ -22,11 +22,11 @@ struct RewardPool:
 rewardPoolLidont: public(RewardPool)
 rewardPoolRocket: public(RewardPool)
 
-rewardTokenLidont: immutable(ERC20)
-rewardTokenRocket: immutable(ERC20)
+rewardTokenLidont: public(immutable(ERC20))
+rewardTokenRocket: public(immutable(ERC20))
 
 initialBondValue: constant(uint256) = 100000000
-precision: immutable(uint256)
+precision: public(immutable(uint256))
 bondValueLidont: public(uint256)
 bondValueRocket: public(uint256)
 
@@ -55,6 +55,7 @@ def __init__(rewardTokenAddress: address, withdrawlerAddress: address, rocketSto
   self.bondValueLidont = initialBondValue
   self.bondValueRocket = initialBondValue
   rocketEther = ERC20(rocketStorage.getAddress(rocketEtherKey))
+  rocketSwapRouter = SwapRouter(0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C)
 
 interface RocketStorage:
   def getAddress(_key: bytes32) -> address: view
@@ -66,7 +67,7 @@ rocketStorage: immutable(RocketStorage)
 rocketEther: immutable(ERC20)
 rocketEtherKey: constant(bytes32) = keccak256("contract.addressrocketTokenRETH")
 rocketTokenKey: constant(bytes32) = keccak256("contract.addressrocketTokenRPL")
-rocketSwapRouterKey: constant(bytes32) = keccak256("contract.addressrocketSwapRouter")
+rocketSwapRouter: public(immutable(SwapRouter))
 
 @external
 def receiveReward(_token: address, _from: address, _amount: uint256):
@@ -178,7 +179,7 @@ def receive(user: address, data: Bytes[MAX_DATA]):
   minOut: uint256 = empty(uint256)
   idealOut: uint256 = empty(uint256)
   uniswapPortion, balancerPortion, minOut, idealOut = _abi_decode(data, (uint256, uint256, uint256, uint256))
-  SwapRouter(rocketStorage.getAddress(rocketSwapRouterKey)).swapTo(
+  rocketSwapRouter.swapTo(
     uniswapPortion, balancerPortion, minOut, idealOut, value = msg.value)
   rETHMinted: uint256 = rocketEther.balanceOf(self) - rETHBefore
   self._stake(user, rETHMinted)
