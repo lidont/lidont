@@ -1,8 +1,8 @@
 import * as ethers from 'ethers';
-import lArtifact from '../.build/lidont.json' assert { type: 'json' };
-import wArtifact from '../.build/withdrawler.json' assert { type: 'json' };
-import pipeETHArtifact from '../.build/ETH-pipe.json' assert { type: 'json' };
-import pipeRETHArtifact from '../.build/rETH-pipe.json' assert { type: 'json' };
+import lArtifact from '../abis/lidont.json' assert { type: 'json' };
+import wArtifact from '../abis/withdrawler.json' assert { type: 'json' };
+import pipeETHArtifact from '../abis/ETH-pipe.json' assert { type: 'json' };
+import pipeRETHArtifact from '../abis/rETH-pipe.json' assert { type: 'json' };
 
 // converts ABI to human readable short format
 //
@@ -13,13 +13,19 @@ function convert(jsonAbi){
     const iface = new ethers.Interface(jsonAbi);
     iface.format("full");
     iface.fragments.forEach(fragment => {
+        if(fragment.payable) return
+        if(fragment.type === "constructor") return
         out.push(fragment.format('full'))
     });
     console.log(out)
     return out
 }
 
-convert(lArtifact.abi)
-convert(wArtifact.abi)
-convert(pipeETHArtifact.abi)
-
+console.log("lidont")
+convert(lArtifact)
+console.log("withdrawler")
+convert(wArtifact)
+console.log("pipe ETH")
+convert(pipeETHArtifact)
+console.log("pipe rETH")
+convert(pipeRETHArtifact)
