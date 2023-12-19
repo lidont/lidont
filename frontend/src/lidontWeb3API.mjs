@@ -37,10 +37,11 @@ export class lidontWeb3API {
     return tx
   }
 
-  async claim(signer) {
+  async claim(signer, bytesData) {
     const who = await signer.getAddress()
     const contract = this.contract.connect(signer)
-    const tx = await contract.getFunction("claim").call(who);
+    console.log(bytesData)
+    const tx = await contract.getFunction("claim").call(who, bytesData);
     this.addTx(tx)
     return tx
   }
@@ -297,7 +298,7 @@ export const outputPipesAbi = [
   'function totalStake() view returns (uint256)'
 ]
 
-export const outputPipesRETH = [
+export const outputPipesRETHAbi = [
   'event Stake(address indexed user, uint256 indexed amount)',
   'event Unstake(address indexed user, uint256 indexed amount, uint256 rewardLidont, uint256 rewardRocket)',
   'function receiveReward(address _token, address _from, uint256 _amount)',
@@ -314,3 +315,29 @@ export const outputPipesRETH = [
   'function stakes(address arg0) view returns (tuple(uint256 amount, uint256 bondValueLidont, uint256 bondValueRocket))',
   'function totalStake() view returns (uint256)'
 ]
+
+
+// rocket swap router abi
+export const rocketSwapRouterAbi = [{
+  "inputs": [{
+      "internalType": "uint256",
+      "name": "_amount",
+      "type": "uint256"
+  }, {
+      "internalType": "uint256",
+      "name": "_steps",
+      "type": "uint256"
+  }],
+  "name": "optimiseSwapTo",
+  "outputs": [{
+      "internalType": "uint256[2]",
+      "name": "portions",
+      "type": "uint256[2]"
+  }, {
+      "internalType": "uint256",
+      "name": "amountOut",
+      "type": "uint256"
+  }],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}]

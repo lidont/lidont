@@ -1,6 +1,6 @@
 import * as ethers from './ethers.js';
 import { createStore, RADIO, log, waitForSeconds, isObjectEmpty} from "./util.mjs";
-import { outputPipesAbi, unstETHAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
+import { outputPipesAbi, unstETHAbi, rocketSwapRouterAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
 const chainIdTestnet = 5
@@ -27,6 +27,7 @@ export const detailsByChainId = {
       lidont: "0xBcF7FFFD8B256Ec51a36782a52D0c34f6474D951",
       reth: "",
       rocketStorage: "0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46",
+      rocketSwapRouter: "0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C",
       steth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
       unsteth: "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
       SCAN: 'https://etherscan.io/',
@@ -38,6 +39,7 @@ export const detailsByChainId = {
       lidont: "0x055EC52e9fC20Acf31495d4dC57a47a372faDe04",
       reth: "0x178E141a0E3b34152f73Ff610437A7bf9B83267A",
       rocketStorage: "0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3",
+      rocketSwapRouter: "0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C",
       steth: "0x1643E812aE58766192Cf7D2Cf9567dF2C37e9B7F",
       unsteth: "0xCF117961421cA9e546cD7f50bC73abCdB3039533",
       SCAN: 'https://goerli.etherscan.io/',
@@ -142,7 +144,7 @@ export const store = createStore(
     },
 
     async RELOAD(){
-      const { getQueue, getAllOutputPipes, getDepositEvents, getWithdrawEvents, getOutputPipesManual, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
+      const { getDeposits, getQueue, getAllOutputPipes, getDepositEvents, getWithdrawEvents, getOutputPipesManual, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
       // eth
       if(intervalIdEmissions) clearInterval(intervalIdEmissions)
       await updateBalance() 
@@ -161,7 +163,8 @@ export const store = createStore(
       // withdrawals
       await getDepositEvents()
       await getWithdrawEvents()
-      // 
+      // deposits
+      await getDeposits()
 
       RADIO.emit("msg", "<3")
       return
@@ -169,14 +172,17 @@ export const store = createStore(
 
     async openMenu(){
       RADIO.emit("ADMIN")
-      await getState().getDepositEvents()
-      await getState().getWithdrawEvents()
+      const { getDepositEvents, getWithdrawEvents, getNextClaim } = getState()
+      await getDepositEvents()
+      await getWithdrawEvents()
+      // await getNextClaim()
     },
 
     async fetchWithdrawals(){
-      await getState().getLidontSTETHBalance()
-      await getState().getDepositEvents()
-      await getState().getWithdrawRequests()
+      const { getLidontSTETHBalance, getDepositEvents, getWithdrawRequests } = getState()
+      await getLidontSTETHBalance()
+      await getDepositEvents()
+      await getWithdrawRequests()
     },
 
     async getQueue(){
@@ -249,6 +255,24 @@ export const store = createStore(
           }
         },
     */
+
+    async getNextClaim(){
+      const { queue, queueDetails, getDepositsOfAddress} = getState()
+      console.log(queue, queueDetails)
+      const nextAddrInQueue = queue[queueDetails.front]
+      const depositOfAddress = await getDepositsOfAddress(nextAddrInQueue)
+      console.log(nextAddrInQueue, depositOfAddress)
+      return depositOfAddress
+    },
+
+    async getDepositsOfAddress(addr){
+      const { lidontWeb3API } = getState()
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+      const me = await signer.getAddress()
+      return await lidontWeb3API.getDeposits(signer, addr)
+    },
+
     async getDeposits(){
       const { lidontWeb3API } = getState()
       const { provider } = getState();
@@ -326,14 +350,13 @@ export const store = createStore(
         const finalAmount = bufferedAmount + (bufferedAmount*0.0001)
         const tx = await stETH.getFunction("approve").call(ownAddress, withdrawlerAddress, finalAmount.toString())
         await tx.wait()
-        await RELOAD()
-        await waitForSeconds(0.5)
+        await waitForSeconds(1)
       }
 
       if(allowance < amount){
-        await waitForSeconds(2)
+        await waitForSeconds(0.5)
         await RELOAD()
-        await waitForSeconds(2)
+        await waitForSeconds(0.5)
       }
 
       RADIO.emit("spinner", "swapping. "+allowance+" sufficient for: "+amount)
@@ -420,8 +443,6 @@ export const store = createStore(
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
       RADIO.emit("spinner", "...getting emissions")
       try {
-        console.log(me)
-        console.log(pipeAddress)
         const res = await pipe.unstake.staticCall(amount, {from: me})
         console.log(res)
         return res
@@ -432,6 +453,26 @@ export const store = createStore(
       }
     },
 
+    // Rocket Swap Router
+    //
+    async rocketSwapStaticOptimiseSwapTo(amount){
+      const { provider, lidontWeb3API } = getState();
+      const signer = await provider.getSigner();
+      const me = await signer.getAddress()
+      const swapRouter = new ethers.Contract(detailsByChainId[chainIdDefault].rocketSwapRouter, rocketSwapRouterAbi, signer);
+      RADIO.emit("spinner", "calling rocketSwap: "+amount.toString())
+      try {
+        const steps = 10 // https://etherscan.io/address/0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C#code#F19#L268
+        const res = await swapRouter.optimiseSwapTo.staticCall(amount, steps, {from: me})
+        return res
+      } catch (e) {
+        console.log(e)
+        RADIO.emit("ERROR", e)
+        return null
+      }
+    },
+
+
     // DEPOSIT EVENTS
     //
     async getDepositEvents(){
@@ -441,7 +482,7 @@ export const store = createStore(
       const withdrawalerAddress = detailsByChainId[chainIdDefault].withdrawler
       const depositEvents = await lidontWeb3API.getEventsDEPOSIT()
 
-      console.log(depositEvents)
+      // console.log(depositEvents)
 
       const addrToDeposits = Object.assign({})
 
@@ -652,10 +693,37 @@ export const store = createStore(
     },
 
     async claimWithdrawal(){
-      const { provider, inputs, lidontWeb3API, getCheckpointHints, assembleFinalizationBatch } = getState();
+      const { provider, rocketSwapStaticOptimiseSwapTo, lidontWeb3API, getNextClaim, getCheckpointHints, assembleFinalizationBatch } = getState();
       const signer = await provider.getSigner();
       RADIO.emit("msg", "claiming")
-      await lidontWeb3API.claim(signer)
+      const nextClaim = await getNextClaim()
+      // tuple(uint256 stETH, uint256 requestId, uint256 ETH, address outputPipe)
+      const pipeAddr = nextClaim[3]
+      const abiCoder = ethers.AbiCoder.defaultAbiCoder()
+      
+      let bytesData = []
+
+      // pipe claiming strategies
+      
+      // 0 : ETH
+      if(pipeAddr === "0x4B3E65104805A303c274f078127D5a7E9F9b47b2"){
+        console.log("ETH claim strategy")
+      }
+
+      // 1: rETH
+      if(pipeAddr === "0x6Af9BB9Cf7307AC439cc7E37859bdD844874ebc1"){
+        console.log("rETH claim strategy")
+        const data = await rocketSwapStaticOptimiseSwapTo(nextClaim[2])
+        // uniswapPortion, balancerPortion, minOut, idealOut = _abi_decode(data, (uint256, uint256, uint256, uint256))
+        const portions = data[0]
+        const amountOut = data[1]
+        const types = ["uint256", "uint256", "uint256", "uint256"]
+        const values = [portions[0], portions[1], amountOut, amountOut]
+        console.log(portions, amountOut)
+        bytesData = abiCoder.encode(types, values)
+      }
+
+      await lidontWeb3API.claim(signer, bytesData)
     },
 
     // wallet
@@ -814,6 +882,7 @@ export const store = createStore(
       
       return {symbol, name, decimals, balance, balanceFormatted}
   }
+
 
   }))
 );
