@@ -117,11 +117,15 @@ def deposit_ETH_pipe(accounts, withdrawler, have_stETH, stETH, ETH_pipe_added):
 def test_deposit_pipe_ETH(withdrawler, deposit_ETH_pipe, accounts):
     assert withdrawler.deposits(accounts[0]).stETH == deposit_ETH_pipe["amount"]
 
-def test_deposit_pipe_rETH(withdrawler, addr, stETH, have_stETH, rETH_pipe_added, accounts):
+@pytest.fixture(scope="function")
+def deposit_rETH_pipe(accounts, withdrawler, have_stETH, stETH, rETH_pipe_added):
     amount = 42 * 10 ** 9
     assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
     withdrawler.deposit('42 gwei', rETH_pipe_added.address, sender=accounts[0])
-    assert withdrawler.deposits(accounts[0]).stETH == amount
+    return {"amount": amount}
+
+def test_deposit_pipe_rETH(withdrawler, deposit_rETH_pipe, accounts):
+    assert withdrawler.deposits(accounts[0]).stETH == deposit_rETH_pipe["amount"]
 
 def test_cannot_deposit_different_pipe_after_deposit(withdrawler, addr, accounts, stETH, have_stETH, rETH_pipe_added, deposit_ETH_pipe):
     amount = 42 * 10 ** 9
@@ -138,13 +142,19 @@ def one_withdrawal_initiated(withdrawler, deposit_ETH_pipe, accounts):
     requestIds = receipt.return_value
     return requestIds
 
+@pytest.fixture(scope="function")
+def reth_withdrawal_initiated(withdrawler, deposit_rETH_pipe, accounts):
+    queueSize = withdrawler.queueSize()
+    assert queueSize == 1
+    assert withdrawler.queue(0) == accounts[0].address
+    receipt = withdrawler.initiateWithdrawal([accounts[0]], sender=accounts[0])
+    requestIds = receipt.return_value
+    return requestIds
+
 def test_initiateWithdrawal(one_withdrawal_initiated):
     assert len(one_withdrawal_initiated) == 1
 
-@pytest.fixture(scope="function")
-def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_initiated, chain, accounts):
-    requestId = one_withdrawal_initiated[0]
-
+def finalize(requestId, withdrawler, addr, stETH, unstETH, chain, accounts):
     HashConsensusContract = Contract(addr['hashConsensus'])
     AccountingOracleContract = Contract(addr['accountingOracle'])
     WithdrawalVaultContract = Contract(addr['withdrawalVault'])
@@ -254,8 +264,23 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     return claimAmounts
 
 @pytest.fixture(scope="function")
+def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_initiated, chain, accounts):
+    requestId = one_withdrawal_initiated[0]
+    return finalize(requestId, withdrawler, addr, stETH, unstETH, chain, accounts)
+
+@pytest.fixture(scope="function")
+def reth_withdrawal_finalized(withdrawler, addr, stETH, unstETH, reth_withdrawal_initiated, chain, accounts):
+    requestId = reth_withdrawal_initiated[0]
+    return finalize(requestId, withdrawler, addr, stETH, unstETH, chain, accounts)
+
+@pytest.fixture(scope="function")
 def one_withdrawal_claimed(one_withdrawal_finalized, withdrawler, accounts):
     assert len(one_withdrawal_finalized) == 1
+    return withdrawler.claim(b'', sender=accounts[0])
+
+@pytest.fixture(scope="function")
+def reth_withdrawal_claimed(reth_withdrawal_finalized, withdrawler, accounts):
+    assert len(reth_withdrawal_finalized) == 1
     return withdrawler.claim(b'', sender=accounts[0])
 
 def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, accounts):
