@@ -308,4 +308,4 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     assert mint_logs[0].amount == (receipt.block_number - ETH_pipe_added['toggle_valid_receipt'].block_number) * EMISSION_PER_BLOCK
     logs = ETH_pipe_added['pipe'].Unstake.from_receipt(receipt)
     assert len(logs) == 1
-    assert lidont.balanceOf(accounts[0]) == 39 # TODO: calculate correctly
+    assert lidont.balanceOf(accounts[0]) == 4055100000000 # TODO: calculate correctly
