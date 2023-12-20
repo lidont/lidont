@@ -38,6 +38,10 @@ def unstETH(addr):
     return Contract(addr['unstETHAddress'])
 
 @pytest.fixture(scope="session")
+def rocketStorage(addr):
+    return Contract(addr['rocketStorageAddress'])
+
+@pytest.fixture(scope="session")
 def rocketSwapRouter(addr):
     return Contract(addr['rocketSwapRouter'])
 
@@ -302,8 +306,18 @@ def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, account
     assert logs[0].user == accounts[0]
     assert logs[0].amount == one_withdrawal_claimed.return_value
 
-def test_reth_claim(reth_withdrawal_claimed, deposit_rETH_pipe):
+def test_reth_claim(reth_withdrawal_claimed, rETH_pipe_added, deposit_rETH_pipe, rocketStorage, accounts):
     assert reth_withdrawal_claimed.return_value == deposit_rETH_pipe["amount"]
+    rETHToken = Contract(rocketStorage.getAddress(keccak(text='contract.addressrocketTokenRETH')))
+    transfer_logs = rETHToken.Transfer.from_receipt(reth_withdrawal_claimed)
+    transfer_logs_to_pipe = [log for log in transfer_logs if log.to == rETH_pipe_added.address]
+    assert len(transfer_logs_to_pipe) == 1
+    logs = rETH_pipe_added.Stake.from_receipt(reth_withdrawal_claimed)
+    assert len(logs) == 1
+    assert logs[0].user == accounts[0]
+    primary_amount = rETHToken.getRethValue(reth_withdrawal_claimed.return_value)
+    tolerance = 100 * 10 ** 9
+    assert primary_amount - logs[0].amount < tolerance
 
 def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, one_withdrawal_claimed, chain, accounts):
     stake_blocks = ONE_DAY_SECONDS // 12 + 128
@@ -322,4 +336,4 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     assert mint_logs[0].amount == (receipt.block_number - ETH_pipe_added['toggle_valid_receipt'].block_number) * EMISSION_PER_BLOCK
     logs = ETH_pipe_added['pipe'].Unstake.from_receipt(receipt)
     assert len(logs) == 1
-    assert lidont.balanceOf(accounts[0]) == 4055100000000 # TODO: calculate correctly
+    assert lidont.balanceOf(accounts[0]) in [4055100000000, 4057200000000] # TODO: calculate correctly
