@@ -13,6 +13,7 @@ addresses = dict(mainnet =
                       elRewardsVault       = '0x388C818CA8B9251b393131C08a736A67ccB19297',
                       burner               = '0xD15a672319Cf0352560eE76d9e89eAB0889046D3',
                       sanityChecker        = '0x9305c1Dbfe22c12c66339184C0025d7006f0f1cC',
+                      rocketSwapRouter     = '0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C',
                       ),
                  goerli =
                  dict(rocketStorageAddress = '0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3',
@@ -35,6 +36,10 @@ def stETH(addr):
 @pytest.fixture(scope="session")
 def unstETH(addr):
     return Contract(addr['unstETHAddress'])
+
+@pytest.fixture(scope="session")
+def rocketSwapRouter(addr):
+    return Contract(addr['rocketSwapRouter'])
 
 EMISSION_PER_BLOCK = 10 ** 9
 
@@ -279,9 +284,15 @@ def one_withdrawal_claimed(one_withdrawal_finalized, withdrawler, accounts):
     return withdrawler.claim(b'', sender=accounts[0])
 
 @pytest.fixture(scope="function")
-def reth_withdrawal_claimed(reth_withdrawal_finalized, withdrawler, accounts):
+def reth_withdrawal_claimed(reth_withdrawal_finalized, withdrawler, rocketSwapRouter, accounts):
     assert len(reth_withdrawal_finalized) == 1
-    return withdrawler.claim(b'', sender=accounts[0])
+    amount = reth_withdrawal_finalized[0]
+    result = rocketSwapRouter.call_view_method('optimiseSwapTo', amount, 10, sender=accounts[0])
+    portions = result[0]
+    amountOut = result[1]
+    data = (portions[0], portions[1], amountOut, amountOut)
+    byteData = encode(['(uint256,uint256,uint256,uint256)'], [data])
+    return withdrawler.claim(byteData, sender=accounts[0])
 
 def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, accounts):
     assert one_withdrawal_claimed.return_value == deposit_ETH_pipe["amount"]
@@ -290,6 +301,9 @@ def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, account
     assert len(logs) == 1
     assert logs[0].user == accounts[0]
     assert logs[0].amount == one_withdrawal_claimed.return_value
+
+def test_reth_claim(reth_withdrawal_claimed, deposit_rETH_pipe):
+    assert reth_withdrawal_claimed.return_value == deposit_rETH_pipe["amount"]
 
 def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, one_withdrawal_claimed, chain, accounts):
     stake_blocks = ONE_DAY_SECONDS // 12 + 128
