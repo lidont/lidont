@@ -202,7 +202,7 @@ export const store = createStore(
     },
 
     async getAllOutputPipes(){
-      const { lidontWeb3API , getStakesForPipe, staticUnstakeForPipe } = getState()
+      const { lidontWeb3API , getStakesForPipe, previewUnstake } = getState()
       const { provider } = getState();
       const signer = await provider.getSigner();
 
@@ -213,11 +213,11 @@ export const store = createStore(
         try{
           const addr = await lidontWeb3API.getOutputPipes(signer, i)
           const stakes = await getStakesForPipe(addr)
-          const claimableLidont = await staticUnstakeForPipe(addr)
-          console.log(claimableLidont)
+          const claimable = await previewUnstake(addr, stakes.amount)
           console.log("got pipe "+i, addr)
-          outputPipes[i] = {i, addr, stakes, claimableLidont}
-          addrToOutputPipes[addr] = {i, addr, stakes}
+          outputPipes[i] = {i, addr, stakes, claimable}
+          addrToOutputPipes[addr] = {i, addr, stakes, claimable}
+
         } catch(e){
           // console.log(e)
           console.log("catch! pipes total: "+(i))
@@ -290,7 +290,7 @@ export const store = createStore(
       const front = await lidontWeb3API.getQueueFront(signer)
       const back = await lidontWeb3API.getQueueBack(signer)
       const queue = []
-      for(let index = 0; index < size; index++){
+      for(let index = 0; index <= size; index++){
         const entry = await lidontWeb3API.getQueue(signer, index)
         queue.push(entry)
       }
@@ -436,14 +436,14 @@ export const store = createStore(
       await RELOAD()
     },
 
-    async staticUnstakeForPipe(pipeAddress, amount = 100){
+    async previewUnstake(pipeAddress, amount){
       const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
       const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
-      RADIO.emit("spinner", "...getting emissions")
+      RADIO.emit("spinner", "...getting emissions for: "+amount)
       try {
-        const res = await pipe.unstake.staticCall(amount, {from: me})
+        const res = await pipe.previewUnstake.staticCall(me, amount)
         console.log(res)
         return res
       } catch (e) {
@@ -708,6 +708,9 @@ export const store = createStore(
       // 0 : ETH
       if(pipeAddr === "0x4B3E65104805A303c274f078127D5a7E9F9b47b2"){
         console.log("ETH claim strategy")
+        const types = ["uint256", "uint256", "uint256", "uint256"]
+        const values = [0, 0, 0, 0]
+        bytesData = "0x00" // abiCoder.encode(types, values)
       }
 
       // 1: rETH
@@ -715,6 +718,7 @@ export const store = createStore(
         console.log("rETH claim strategy")
         const data = await rocketSwapStaticOptimiseSwapTo(nextClaim[2])
         // uniswapPortion, balancerPortion, minOut, idealOut = _abi_decode(data, (uint256, uint256, uint256, uint256))
+        console.log(data)
         const portions = data[0]
         const amountOut = data[1]
         const types = ["uint256", "uint256", "uint256", "uint256"]

@@ -392,17 +392,20 @@ customElements.define("list-pipes", class extends HTMLElement {
         let label = pipelabels[index]
         return html`
         <div class="flex">
-        <div class="flex stack row flex-between">
-          <icon-comp class="radio--icon radio--icon--selected--permanent" icon="${index}"></icon-comp>
-          <sub>Output Pipe No.${index}: ${label}</sub>
+        <div class="flex stack col flex-between">
+          <div class="flex stack row">
+            <sub>[${index}]</sub>
+            <icon-comp class="radio--icon radio--icon--selected--permanent" icon="${index}"></icon-comp>
+          </div>
+          <sub>${ethers.formatEther(value.stakes.amount)} ${label}</sub>
           <sub>bond: ${ethers.formatEther(value.stakes.bondValue)}</sub>
           <div class="flex flex-around row">
-            <button-unstake pipeAddr="${value.addr}" amount="${value.stakes.amount}">Unstake ${ethers.formatEther(value.stakes.amount)} ${label}</button-unstake>
-            <button-connected class="flex-right" data-id="${value.addr}" data-action="changeOutput">Switch Deposit to this Pipe*</button-connected>
+            <button-unstake pipeAddr="${value.addr}" amount="${value.stakes.amount}">Unstake</button-unstake>
+            <button-connected class="flex-right" data-id="${value.addr}" data-action="changeOutput">Set ${label} as Output Pipe*</button-connected>
             </div>  
           <!--button-connected class="flex-right" data-id="${value.addr}" data-action="staticUnstakeForPipe">update</button-connected-->
         </div>
-        ${value.emissionLidont ? `<sub>Claimable: <rainbow>${value.emissionLidont}"</rainbow></sub>` : '<sub></sub>' }
+        ${value.claimable ? `<sub>Claimable: <rainbow>${value.claimable}"</rainbow></sub>` : '<sub></sub>' }
         </div>
         <hr/>
         `.trim()}).join('')
@@ -457,8 +460,10 @@ customElements.define("list-deposits", class extends HTMLElement {
         return html`
           <div class="stack row flex-between">
           <sub>${id} - ${ethers.formatEther(reqId.amount)} ETH</sub>
-          <sub class="flex-right">${!requests.unfinalized && requests.claimed && requests.claimed[id] ? 'claimed 🎯' : ''}</sub>
-          ${requests.unfinalized && requests.unfinalized[id] ? '<sub class="flex-right">unfinalized ⚡</sub>' : ''}
+
+          ${requests.claimed && requests.claimed[id] ? '<sub class="flex-right">🎯 claimed 🎯</sub>' : ''}
+          ${requests.unfinalized && requests.unfinalized[id] ? '<sub class="flex-right">⚡ unfinalized ⚡</sub>' : ''}
+
           </div>
         `.trim()}).join('')
       }
@@ -548,7 +553,7 @@ customElements.define("emoji-rain", class extends HTMLElement {
     
 
     setTimeout( () => {
-      var emoji = ['💰', '💎', '🏴‍☠️', '⚔️', '🔓', '🦜', '💍', '💴', '💶', '🪙'];
+      var emoji = ['💰', '💎', '🏴‍☠️', '⚔️', '🔓', '💴', '💶', '🪙'];
       var circles = [];
 
       function addCircle(delay, range, color) {
