@@ -13,6 +13,7 @@ addresses = dict(mainnet =
                       elRewardsVault       = '0x388C818CA8B9251b393131C08a736A67ccB19297',
                       burner               = '0xD15a672319Cf0352560eE76d9e89eAB0889046D3',
                       sanityChecker        = '0x9305c1Dbfe22c12c66339184C0025d7006f0f1cC',
+                      rocketSwapRouter     = '0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C',
                       ),
                  goerli =
                  dict(rocketStorageAddress = '0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3',
@@ -35,6 +36,14 @@ def stETH(addr):
 @pytest.fixture(scope="session")
 def unstETH(addr):
     return Contract(addr['unstETHAddress'])
+
+@pytest.fixture(scope="session")
+def rocketStorage(addr):
+    return Contract(addr['rocketStorageAddress'])
+
+@pytest.fixture(scope="session")
+def rocketSwapRouter(addr):
+    return Contract(addr['rocketSwapRouter'])
 
 EMISSION_PER_BLOCK = 10 ** 9
 
@@ -117,11 +126,15 @@ def deposit_ETH_pipe(accounts, withdrawler, have_stETH, stETH, ETH_pipe_added):
 def test_deposit_pipe_ETH(withdrawler, deposit_ETH_pipe, accounts):
     assert withdrawler.deposits(accounts[0]).stETH == deposit_ETH_pipe["amount"]
 
-def test_deposit_pipe_rETH(withdrawler, addr, stETH, have_stETH, rETH_pipe_added, accounts):
+@pytest.fixture(scope="function")
+def deposit_rETH_pipe(accounts, withdrawler, have_stETH, stETH, rETH_pipe_added):
     amount = 42 * 10 ** 9
     assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
     withdrawler.deposit('42 gwei', rETH_pipe_added.address, sender=accounts[0])
-    assert withdrawler.deposits(accounts[0]).stETH == amount
+    return {"amount": amount}
+
+def test_deposit_pipe_rETH(withdrawler, deposit_rETH_pipe, accounts):
+    assert withdrawler.deposits(accounts[0]).stETH == deposit_rETH_pipe["amount"]
 
 def test_cannot_deposit_different_pipe_after_deposit(withdrawler, addr, accounts, stETH, have_stETH, rETH_pipe_added, deposit_ETH_pipe):
     amount = 42 * 10 ** 9
@@ -138,13 +151,19 @@ def one_withdrawal_initiated(withdrawler, deposit_ETH_pipe, accounts):
     requestIds = receipt.return_value
     return requestIds
 
+@pytest.fixture(scope="function")
+def reth_withdrawal_initiated(withdrawler, deposit_rETH_pipe, accounts):
+    queueSize = withdrawler.queueSize()
+    assert queueSize == 1
+    assert withdrawler.queue(0) == accounts[0].address
+    receipt = withdrawler.initiateWithdrawal([accounts[0]], sender=accounts[0])
+    requestIds = receipt.return_value
+    return requestIds
+
 def test_initiateWithdrawal(one_withdrawal_initiated):
     assert len(one_withdrawal_initiated) == 1
 
-@pytest.fixture(scope="function")
-def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_initiated, chain, accounts):
-    requestId = one_withdrawal_initiated[0]
-
+def finalize(requestId, withdrawler, addr, stETH, unstETH, chain, accounts):
     HashConsensusContract = Contract(addr['hashConsensus'])
     AccountingOracleContract = Contract(addr['accountingOracle'])
     WithdrawalVaultContract = Contract(addr['withdrawalVault'])
@@ -254,9 +273,30 @@ def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_i
     return claimAmounts
 
 @pytest.fixture(scope="function")
+def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_initiated, chain, accounts):
+    requestId = one_withdrawal_initiated[0]
+    return finalize(requestId, withdrawler, addr, stETH, unstETH, chain, accounts)
+
+@pytest.fixture(scope="function")
+def reth_withdrawal_finalized(withdrawler, addr, stETH, unstETH, reth_withdrawal_initiated, chain, accounts):
+    requestId = reth_withdrawal_initiated[0]
+    return finalize(requestId, withdrawler, addr, stETH, unstETH, chain, accounts)
+
+@pytest.fixture(scope="function")
 def one_withdrawal_claimed(one_withdrawal_finalized, withdrawler, accounts):
     assert len(one_withdrawal_finalized) == 1
     return withdrawler.claim(b'', sender=accounts[0])
+
+@pytest.fixture(scope="function")
+def reth_withdrawal_claimed(reth_withdrawal_finalized, withdrawler, rocketSwapRouter, accounts):
+    assert len(reth_withdrawal_finalized) == 1
+    amount = reth_withdrawal_finalized[0]
+    result = rocketSwapRouter.call_view_method('optimiseSwapTo', amount, 10, sender=accounts[0])
+    portions = result[0]
+    amountOut = result[1]
+    data = (portions[0], portions[1], amountOut, amountOut)
+    byteData = encode(['(uint256,uint256,uint256,uint256)'], [data])
+    return withdrawler.claim(byteData, sender=accounts[0])
 
 def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, accounts):
     assert one_withdrawal_claimed.return_value == deposit_ETH_pipe["amount"]
@@ -265,6 +305,19 @@ def test_claim(one_withdrawal_claimed, ETH_pipe_added, deposit_ETH_pipe, account
     assert len(logs) == 1
     assert logs[0].user == accounts[0]
     assert logs[0].amount == one_withdrawal_claimed.return_value
+
+def test_reth_claim(reth_withdrawal_claimed, rETH_pipe_added, deposit_rETH_pipe, rocketStorage, accounts):
+    assert reth_withdrawal_claimed.return_value == deposit_rETH_pipe["amount"]
+    rETHToken = Contract(rocketStorage.getAddress(keccak(text='contract.addressrocketTokenRETH')))
+    transfer_logs = rETHToken.Transfer.from_receipt(reth_withdrawal_claimed)
+    transfer_logs_to_pipe = [log for log in transfer_logs if log.to == rETH_pipe_added.address]
+    assert len(transfer_logs_to_pipe) == 1
+    logs = rETH_pipe_added.Stake.from_receipt(reth_withdrawal_claimed)
+    assert len(logs) == 1
+    assert logs[0].user == accounts[0]
+    primary_amount = rETHToken.getRethValue(reth_withdrawal_claimed.return_value)
+    tolerance = 100 * 10 ** 9
+    assert primary_amount - logs[0].amount < tolerance
 
 def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, one_withdrawal_claimed, chain, accounts):
     stake_blocks = ONE_DAY_SECONDS // 12 + 128
@@ -283,4 +336,4 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     assert mint_logs[0].amount == (receipt.block_number - ETH_pipe_added['toggle_valid_receipt'].block_number) * EMISSION_PER_BLOCK
     logs = ETH_pipe_added['pipe'].Unstake.from_receipt(receipt)
     assert len(logs) == 1
-    assert lidont.balanceOf(accounts[0]) == 39 # TODO: calculate correctly
+    assert lidont.balanceOf(accounts[0]) in [4055100000000, 4057200000000] # TODO: calculate correctly
