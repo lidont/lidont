@@ -79,7 +79,7 @@ const template = html`
         <div class="stack flex-center">
             <a href="https://dao.evmavericks.xyz/"><icon-comp large icon="evm"></icon-comp></a>
             &
-            <icon-comp large icon="rocketlion"></icon-comp>
+            <a href="https://discord.gg/rocketpool"><icon-comp large icon="rocketlion"></icon-comp></a>
         </div>
     </div>
 
