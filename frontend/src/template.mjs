@@ -5,7 +5,7 @@ import { RADIO, html } from "./util.mjs";
 const template = html`
 <main>
 <logger-radio></logger-radio>
-<sub class="text-light">RC0.4</sub>
+<sub class="text-light">RC1.0</sub>
 <div class="container">
     <div class="nav">
         <div class="stack">
