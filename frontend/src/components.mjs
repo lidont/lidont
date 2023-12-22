@@ -410,10 +410,10 @@ customElements.define("list-pipes", class extends HTMLElement {
         </div>
         </div>
         <br/>
-        <div>
-          ${!value.claimable[0] ? `<sub>Claimable: <rainbow>${ethers.formatEther(value.claimable)} Lidont</rainbow></sub>` : '<sub></sub>' }
-          ${value.claimable[0] ? `<sub>Claimable: <rainbow>${ethers.formatEther(value.claimable[0])} Lidont</rainbow></sub>` : '<sub></sub>' }
-          ${value.claimable[1] ? `<sub>other: ${ethers.formatEther(value.claimable[1])}"</sub>` : '<sub></sub>' }
+        <div style="display: flex; flex-direction: row-reverse;">
+          ${!value.claimable[0] ? `<sub>Claimable: <rainbow>${parseFloat(ethers.formatEther(value.claimable)).toFixed(3)} Lidont</rainbow></sub>` : '<sub></sub>' }
+          ${value.claimable[0] ? `<sub>Claimable: <rainbow>${parseFloat(ethers.formatEther(value.claimable[0])).toFixed(3)} Lidont</rainbow></sub>` : '<sub></sub>' }
+          ${value.claimable[1] ? `<sub>other: ${parseFloat(ethers.formatEther(value.claimable[1])).toFixed(3)}"</sub>` : '<sub></sub>' }
         </div>
         <hr/>
         `.trim()}).join('')
