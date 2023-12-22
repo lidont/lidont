@@ -1,6 +1,12 @@
 import * as ethers from './ethers.js';
 import { createStore, RADIO, log, waitForSeconds, isObjectEmpty} from "./util.mjs";
-import { outputPipesAbi, unstETHAbi, rocketSwapRouterAbi, ERC20Abi, lidontWeb3API } from "./lidontWeb3API.mjs";
+import { 
+  outputPipesAbi,
+  outputPipesRETHAbi, 
+  unstETHAbi, 
+  rocketSwapRouterAbi, 
+  ERC20Abi, 
+lidontWeb3API } from "./lidontWeb3API.mjs";
 
 
 const chainIdTestnet = 5
@@ -425,11 +431,20 @@ export const store = createStore(
     // pipes writes
     //
 
-    async unstakeForPipe(pipeAddress, amount = 1){
+    async unstakeForPipe(pipeAddress, amount){
       const { provider, lidontWeb3API, RELOAD } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
-      const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
+      let pipe
+      // 0 : ETH
+      if(pipeAddress === "0x4B3E65104805A303c274f078127D5a7E9F9b47b2"){
+        pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
+      }
+
+      // 1: rETH
+      if(pipeAddress === "0x6Af9BB9Cf7307AC439cc7E37859bdD844874ebc1"){
+        pipe = new ethers.Contract(pipeAddress, outputPipesRETHAbi, signer);
+      }
       RADIO.emit("spinner", "claiming emission rewards")
       const tx = await pipe.getFunction("unstake").call(me, amount)
       await tx.wait()
@@ -440,7 +455,18 @@ export const store = createStore(
       const { provider, lidontWeb3API } = getState();
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
-      const pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
+
+      let pipe
+      // 0 : ETH
+      if(pipeAddress === "0x4B3E65104805A303c274f078127D5a7E9F9b47b2"){
+        pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
+      }
+
+      // 1: rETH
+      if(pipeAddress === "0x6Af9BB9Cf7307AC439cc7E37859bdD844874ebc1"){
+        pipe = new ethers.Contract(pipeAddress, outputPipesRETHAbi, signer);
+      }
+
       RADIO.emit("spinner", "...getting emissions for: "+amount)
       try {
         const res = await pipe.previewUnstake.staticCall(me, amount)
@@ -710,7 +736,7 @@ export const store = createStore(
         console.log("ETH claim strategy")
         const types = ["uint256", "uint256", "uint256", "uint256"]
         const values = [0, 0, 0, 0]
-        bytesData = "0x00" // abiCoder.encode(types, values)
+        bytesData = "0x" // abiCoder.encode(types, values)
       }
 
       // 1: rETH

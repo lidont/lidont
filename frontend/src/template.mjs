@@ -77,7 +77,7 @@ const template = html`
             <sub>Initiative by:</sub>
         </div>
         <div class="stack flex-center">
-            <icon-comp large icon="evm"></icon-comp>
+            <a href="https://dao.evmavericks.xyz/"><icon-comp large icon="evm"></icon-comp></a>
             &
             <icon-comp large icon="rocketlion"></icon-comp>
         </div>

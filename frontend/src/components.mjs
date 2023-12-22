@@ -371,15 +371,18 @@ customElements.define("list-pipes", class extends HTMLElement {
       if(shallowCompare(this.prevValue, outputPipes)){ return }
       if(!shallowCompare(this.prevValue, outputPipes)){ 
         this.prevValue = outputPipes
-        return this.render()
+        this.render()
+        RAINBOWS()
+        return
       }
 
 
     })
 
     this.render(); 
+    RAINBOWS()
   }
-  attributeChangedCallback() { this.render(); }
+  attributeChangedCallback() { this.render(); RAINBOWS()}
   render(){
     const { outputPipes } = store.getState()
     if(isObjectEmpty(outputPipes)){ return this.innerHTML = "<div class='spinner'></div>" }
@@ -405,7 +408,12 @@ customElements.define("list-pipes", class extends HTMLElement {
             </div>  
           <!--button-connected class="flex-right" data-id="${value.addr}" data-action="staticUnstakeForPipe">update</button-connected-->
         </div>
-        ${value.claimable ? `<sub>Claimable: <rainbow>${value.claimable}"</rainbow></sub>` : '<sub></sub>' }
+        </div>
+        <br/>
+        <div>
+          ${!value.claimable[0] ? `<sub>Claimable: <rainbow>${ethers.formatEther(value.claimable)} Lidont</rainbow></sub>` : '<sub></sub>' }
+          ${value.claimable[0] ? `<sub>Claimable: <rainbow>${ethers.formatEther(value.claimable[0])} Lidont</rainbow></sub>` : '<sub></sub>' }
+          ${value.claimable[1] ? `<sub>other: ${ethers.formatEther(value.claimable[1])}"</sub>` : '<sub></sub>' }
         </div>
         <hr/>
         `.trim()}).join('')
