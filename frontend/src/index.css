@@ -245,8 +245,8 @@ input[type=checkbox] {
 
 logger-radio {
   position: fixed;
-  right: 2rem;
-  top: -1.25rem;
+  left: 0.25rem;
+  bottom: 0rem;
 }
 
 logger-radio > div > sub{
@@ -417,6 +417,7 @@ button-deposit {
   font-size: 2rem;
   line-height: 2rem;
 }
+
 
 .radio--icon {
   pointer-events: none;

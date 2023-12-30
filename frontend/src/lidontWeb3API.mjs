@@ -42,8 +42,6 @@ export class lidontWeb3API {
     const contract = this.contract.connect(signer)
     console.log(bytesData)
     console.log(typeof bytesData)
-    console.log(bytesData.length)
-    debugger
     const tx = await contract.getFunction("claim").call(who, bytesData);
     this.addTx(tx)
     return tx

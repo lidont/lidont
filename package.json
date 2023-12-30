@@ -11,9 +11,15 @@
         "serve::live": "cd frontend && npx http-server -o /frontend -a 0.0.0.0",
         "postinstall": "npm run install::ape && npm run install::foundry",
         "install::foundry": "curl -L https://foundry.paradigm.xyz | bash",
-        "install::ape": "pip install -U pip && pip install eth-ape && pip install ape-foundry && ape plugins install ."
+        "install::ape": "pip install -U pip && pip install eth-ape && pip install ape-foundry && ape plugins install .",
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
     },
     "dependencies": {
         "ethers": "6.6.0"
+    },
+    "devDependencies": {
+        "vite": "^5.0.8"
     }
 }

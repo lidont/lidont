@@ -203,7 +203,6 @@ customElements.define("button-connected",class extends HTMLElement {
             event.preventDefault();
             const actions = store.getState();
             if (actions[actionName]) {
-              console.log(dataid)
               if(dataid && dataid !== ""){
                 await actions[actionName](dataid);
               }
@@ -273,7 +272,6 @@ customElements.define("button-deposit", class extends HTMLElement {
     const state = store.getState()
     const pipe = state.inputs && state.inputs.selectedOutputPipe
     const amount = state.inputs && state.inputs.stETHAmount
-    console.log("rerender btn")
     if(!amount || !pipe || parseFloat(amount) <= 0){
       return this.innerHTML = html`
         <button-connected disabled large icon class="disabled vampire--off flex-center" data-action="deposit">🧛</button-connected>
@@ -333,11 +331,9 @@ customElements.define("select-pipes", class extends HTMLElement {
     const { outputPipes } = store.getState()
     if(isObjectEmpty(outputPipes)){ return this.innerHTML = "<div class='spinner'></div>" }
     const pipes = Object.values(outputPipes)
-    console.log("rerender select")
     this.innerHTML = `
     <div class="stack flex-center">
     ${pipes.map( (value, index) => { 
-      console.log(value)
       let label = index === 0 ? "ETH" : "rETH"
       return html`
         <input-connected class="flex-center radio" icon label="${label}"  id="${index}" type="radio" name="selectedOutputPipe"></input-connected>
@@ -387,11 +383,9 @@ customElements.define("list-pipes", class extends HTMLElement {
     const { outputPipes } = store.getState()
     if(isObjectEmpty(outputPipes)){ return this.innerHTML = "<div class='spinner'></div>" }
     const pipes = Object.values(outputPipes)
-    console.log("rerender pipes")
     this.innerHTML = `
     <div>
       ${pipes.map( (value, index) => { 
-        console.log(value)
         let label = pipelabels[index]
         return html`
         <div class="flex">
@@ -411,9 +405,9 @@ customElements.define("list-pipes", class extends HTMLElement {
         </div>
         <br/>
         <div style="display: flex; flex-direction: row-reverse;">
-          ${!value.claimable[0] ? `<sub>Claimable: <rainbow>${parseFloat(ethers.formatEther(value.claimable)).toFixed(3)} Lidont</rainbow></sub>` : '<sub></sub>' }
-          ${value.claimable[0] ? `<sub>Claimable: <rainbow>${parseFloat(ethers.formatEther(value.claimable[0])).toFixed(3)} Lidont</rainbow></sub>` : '<sub></sub>' }
-          ${value.claimable[1] ? `<sub>other: ${parseFloat(ethers.formatEther(value.claimable[1])).toFixed(3)}"</sub>` : '<sub></sub>' }
+          ${value.claimable && !value.claimable.length ? `<sub>Claimable: <rainbow>${parseFloat(ethers.formatEther(value.claimable)).toFixed(3)} Lidont</rainbow></sub>` : '<sub></sub>' }
+          ${value.claimable && value.claimable[0] ? `<sub>Claimable: <rainbow>${parseFloat(ethers.formatEther(value.claimable[0])).toFixed(3)} Lidont</rainbow></sub>` : '<sub></sub>' }
+          ${value.claimable && value.claimable[1] ? `<sub>other: ${parseFloat(ethers.formatEther(value.claimable[1])).toFixed(3)}"</sub>` : '<sub></sub>' }
         </div>
         <hr/>
         `.trim()}).join('')
@@ -500,7 +494,7 @@ customElements.define("logger-radio", class extends HTMLElement {
   render(msgObj, error = false, spinner = false){
 
     this.innerHTML = html`
-    <div class="stack col">
+    <div class="stack col card">
       <div>${spinner ? `<div class="spinner float-r"></div>`: ''}</div>
       <sub>${msgObj}</sub>
     <div/>`;

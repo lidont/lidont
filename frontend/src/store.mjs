@@ -17,21 +17,19 @@ const chainIdDefault = isProduction ? chainIdMainnet : chainIdTestnet
 
 console.log("chain id is: "+chainIdDefault)
 
-// output pipes by id, starts at 1
+// output pipes
 //
-const mapAddrToProtocol = new Map()
-mapAddrToProtocol.set("0x0", "ETH")
-mapAddrToProtocol.set("0x1", "rETH")
-
+const mapOfPipes = {}
+mapOfPipes["ETH"] = "0x8D69e9bD46D3234a43fac3861b2A591C23546eC2"
+mapOfPipes["rETH"] = "0x61c8a978e078a03c671303Cc521D31bdD0A4Df87"
 
 
 // addresses
 //
 export const detailsByChainId = {
   1: {
-      withdrawler: "0x274b028b03A250cA03644E6c578D81f019eE1323",
-      lidont: "0xBcF7FFFD8B256Ec51a36782a52D0c34f6474D951",
-      reth: "",
+      withdrawler: "0x272347f941fb5f35854d8f5dbdcedef1a515db41",
+      lidont: "0xf68513fC61A040A29F3947fFff47A42E7C81082b",
       rocketStorage: "0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46",
       rocketSwapRouter: "0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C",
       steth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
@@ -43,7 +41,6 @@ export const detailsByChainId = {
   5: {
       withdrawler: "0x3fAA7e474B810c2Bf9590D69368E0ba7D7AD1146",
       lidont: "0x055EC52e9fC20Acf31495d4dC57a47a372faDe04",
-      reth: "0x178E141a0E3b34152f73Ff610437A7bf9B83267A",
       rocketStorage: "0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3",
       rocketSwapRouter: "0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C",
       steth: "0x1643E812aE58766192Cf7D2Cf9567dF2C37e9B7F",
@@ -139,7 +136,14 @@ export const store = createStore(
       })
 
       RADIO.emit("msg", "fetching data...")
-      await RELOAD()
+      try {
+        await RELOAD()
+      }
+      catch (e) {
+        console.log(e)
+        RADIO.emit("err", e)
+      }
+
 
       /*
       setInterval( async () => {
@@ -437,12 +441,12 @@ export const store = createStore(
       const me = await signer.getAddress()
       let pipe
       // 0 : ETH
-      if(pipeAddress === "0x4B3E65104805A303c274f078127D5a7E9F9b47b2"){
+      if(pipeAddress === mapOfPipes["ETH"]){
         pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
       }
 
       // 1: rETH
-      if(pipeAddress === "0x6Af9BB9Cf7307AC439cc7E37859bdD844874ebc1"){
+      if(pipeAddress === mapOfPipes["rETH"]){
         pipe = new ethers.Contract(pipeAddress, outputPipesRETHAbi, signer);
       }
       RADIO.emit("spinner", "claiming emission rewards")
@@ -458,12 +462,12 @@ export const store = createStore(
 
       let pipe
       // 0 : ETH
-      if(pipeAddress === "0x4B3E65104805A303c274f078127D5a7E9F9b47b2"){
+      if(pipeAddress === mapOfPipes["ETH"]){
         pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
       }
 
       // 1: rETH
-      if(pipeAddress === "0x6Af9BB9Cf7307AC439cc7E37859bdD844874ebc1"){
+      if(pipeAddress === mapOfPipes["rETH"]){
         pipe = new ethers.Contract(pipeAddress, outputPipesRETHAbi, signer);
       }
 
@@ -732,7 +736,7 @@ export const store = createStore(
       // pipe claiming strategies
       
       // 0 : ETH
-      if(pipeAddr === "0x4B3E65104805A303c274f078127D5a7E9F9b47b2"){
+      if(pipeAddr === mapOfPipes["ETH"]){
         console.log("ETH claim strategy")
         const types = ["uint256", "uint256", "uint256", "uint256"]
         const values = [0, 0, 0, 0]
@@ -740,7 +744,7 @@ export const store = createStore(
       }
 
       // 1: rETH
-      if(pipeAddr === "0x6Af9BB9Cf7307AC439cc7E37859bdD844874ebc1"){
+      if(pipeAddr === mapOfPipes["rETH"]){
         console.log("rETH claim strategy")
         const data = await rocketSwapStaticOptimiseSwapTo(nextClaim[2])
         // uniswapPortion, balancerPortion, minOut, idealOut = _abi_decode(data, (uint256, uint256, uint256, uint256))
