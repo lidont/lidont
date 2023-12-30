@@ -758,6 +758,8 @@ export const store = createStore(
       }
 
       await lidontWeb3API.claim(signer, bytesData)
+      await waitForSeconds(1)
+      RADIO.emit("RAIN")
     },
 
     // wallet

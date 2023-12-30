@@ -174,7 +174,7 @@ export function waitForCallback(cb) {
 //
 
 export function formatDisplayAddr(addr){
-  return addr.slice(0, 4) +'...'+ addr.slice(Math.max(addr.length - 4, 0))
+  return addr.slice(0, 6) +'...'+ addr.slice(Math.max(addr.length - 4, 0))
 }
 
 
