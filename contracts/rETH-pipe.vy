@@ -51,7 +51,7 @@ def __init__(rewardTokenAddress: address, withdrawlerAddress: address, rocketSto
   rocketStorage = RocketStorage(rocketStorageAddress)
   rewardTokenRocket = ERC20(rocketStorage.getAddress(rocketTokenKey))
   assert rewardTokenRocket.decimals() == decimals, "decimals"
-  precision = 10 ** convert(decimals, uint256)
+  precision = 10 ** convert(decimals / 2, uint256)
   self.bondValueLidont = initialBondValue
   self.bondValueRocket = initialBondValue
   rocketEther = ERC20(rocketStorage.getAddress(rocketEtherKey))
