@@ -8,11 +8,10 @@ import {
   ERC20Abi, 
 lidontWeb3API } from "./lidontWeb3API.mjs";
 
-
-const chainIdTestnet = 5
+const chainIdTestnet = 1337
 const chainIdMainnet = 1
 
-const isProduction = true // false
+const isProduction = false
 const chainIdDefault = isProduction ? chainIdMainnet : chainIdTestnet
 
 console.log("chain id is: "+chainIdDefault)
@@ -20,7 +19,7 @@ console.log("chain id is: "+chainIdDefault)
 // output pipes
 //
 const mapOfPipes = {}
-mapOfPipes["ETH"] = "0x8D69e9bD46D3234a43fac3861b2A591C23546eC2"
+mapOfPipes["ETH"]  = "0x8D69e9bD46D3234a43fac3861b2A591C23546eC2"
 mapOfPipes["rETH"] = "0x61c8a978e078a03c671303Cc521D31bdD0A4Df87"
 
 
@@ -48,6 +47,17 @@ export const detailsByChainId = {
       SCAN: 'https://goerli.etherscan.io/',
       NAME: "Ethereum Goerli",
       ICON: "eth.png"
+  },
+  1337: {
+    withdrawler: "0x272347f941fb5f35854d8f5dbdcedef1a515db41",
+    lidont: "0xf68513fC61A040A29F3947fFff47A42E7C81082b",
+    rocketStorage: "0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46",
+    rocketSwapRouter: "0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C",
+    steth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+    unsteth: "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1",
+    SCAN: 'https://etherscan.io/',
+    NAME: "Ethereum Mainnet",
+    ICON: "eth.png"
   }
 }
 
@@ -223,6 +233,7 @@ export const store = createStore(
         try{
           const addr = await lidontWeb3API.getOutputPipes(signer, i)
           const stakes = await getStakesForPipe(addr)
+          console.log(addr, stakes)
           const claimable = await previewUnstake(addr, stakes.amount)
           console.log("got pipe "+i, addr)
           outputPipes[i] = {i, addr, stakes, claimable}
@@ -450,6 +461,8 @@ export const store = createStore(
         pipe = new ethers.Contract(pipeAddress, outputPipesRETHAbi, signer);
       }
       RADIO.emit("spinner", "claiming emission rewards")
+      console.log(amount)
+      // 
       const tx = await pipe.getFunction("unstake").call(me, amount)
       await tx.wait()
       await RELOAD()
@@ -473,6 +486,7 @@ export const store = createStore(
 
       RADIO.emit("spinner", "...getting emissions for: "+amount)
       try {
+        console.log(amount)
         const res = await pipe.previewUnstake.staticCall(me, amount)
         console.log(res)
         return res
