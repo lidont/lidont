@@ -11,7 +11,7 @@ lidontWeb3API } from "./lidontWeb3API.mjs";
 const chainIdTestnet = 1337
 const chainIdMainnet = 1
 
-const isProduction = false
+const isProduction = true // false
 const chainIdDefault = isProduction ? chainIdMainnet : chainIdTestnet
 
 console.log("chain id is: "+chainIdDefault)
