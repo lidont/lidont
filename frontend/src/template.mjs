@@ -5,7 +5,7 @@ import { RADIO, html } from "./util.mjs";
 const template = html`
 <main>
 <logger-radio></logger-radio>
-<sub class="text-light">v1.0beta - unaudited - use at own risk</sub>
+<sub class="text-light">v1.1beta - unaudited - use at own risk</sub>
 <div class="container">
     <div class="nav">
         <div class="stack">
