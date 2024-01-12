@@ -19,8 +19,9 @@ console.log("chain id is: "+chainIdDefault)
 // output pipes
 //
 const mapOfPipes = {}
-mapOfPipes["ETH"]  = "0x8D69e9bD46D3234a43fac3861b2A591C23546eC2"
-mapOfPipes["rETH"] = "0x61c8a978e078a03c671303Cc521D31bdD0A4Df87"
+mapOfPipes["ETH"]        = "0x8D69e9bD46D3234a43fac3861b2A591C23546eC2"
+mapOfPipes["rETH"]       = "0xC150624D7776A44d231B91D39559Fc653cFF10Aa"
+mapOfPipes["rETHOLD"]    = "0x61c8a978e078a03c671303Cc521D31bdD0A4Df87"
 
 
 // addresses
@@ -310,11 +311,15 @@ export const store = createStore(
       const size = await lidontWeb3API.getQueueSize(signer)
       const front = await lidontWeb3API.getQueueFront(signer)
       const back = await lidontWeb3API.getQueueBack(signer)
+      console.log(size, front, back)
       const queue = []
-      for(let index = 0; index <= size; index++){
+      for(let index = 0; index <= front; index++){
+        console.log("get for", size, index)
         const entry = await lidontWeb3API.getQueue(signer, index)
+        console.log(entry)
         queue.push(entry)
       }
+      
       setState({queue})
       setState({queueDetails: {size, front, back}})
     },
@@ -451,19 +456,28 @@ export const store = createStore(
       const signer = await provider.getSigner();
       const me = await signer.getAddress()
       let pipe
+
       // 0 : ETH
       if(pipeAddress === mapOfPipes["ETH"]){
         pipe = new ethers.Contract(pipeAddress, outputPipesAbi, signer);
       }
 
       // 1: rETH
-      if(pipeAddress === mapOfPipes["rETH"]){
+      if(pipeAddress === mapOfPipes["rETH"] || pipeAddress === mapOfPipes["rETHOLD"]){
         pipe = new ethers.Contract(pipeAddress, outputPipesRETHAbi, signer);
       }
+
       RADIO.emit("spinner", "claiming emission rewards")
       console.log(amount)
-      // 
-      const tx = await pipe.getFunction("unstake").call(me, amount)
+      const bufferedAmount = parseInt(amount)
+      const finalAmount = bufferedAmount
+ 
+      // const tx = await lidontWeb3API.triggerEmission(signer, pipeAddress)
+      const tx = await pipe.unstake(finalAmount.toString())
+      //const total = await pipe.totalStake()
+      //const prec = await pipe.precision()
+      //console.log(total, prec)
+      //debugger
       await tx.wait()
       await RELOAD()
     },
@@ -480,7 +494,7 @@ export const store = createStore(
       }
 
       // 1: rETH
-      if(pipeAddress === mapOfPipes["rETH"]){
+      if(pipeAddress === mapOfPipes["rETH"] && pipeAddress === mapOfPipes["rETHOLD"]){
         pipe = new ethers.Contract(pipeAddress, outputPipesRETHAbi, signer);
       }
 
@@ -758,7 +772,7 @@ export const store = createStore(
       }
 
       // 1: rETH
-      if(pipeAddr === mapOfPipes["rETH"]){
+      if(pipeAddr === mapOfPipes["rETH"] || pipeAddr === mapOfPipes["rETHOLD"]){
         console.log("rETH claim strategy")
         const data = await rocketSwapStaticOptimiseSwapTo(nextClaim[2])
         // uniswapPortion, balancerPortion, minOut, idealOut = _abi_decode(data, (uint256, uint256, uint256, uint256))

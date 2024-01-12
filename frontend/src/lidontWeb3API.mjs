@@ -55,6 +55,14 @@ export class lidontWeb3API {
     return tx
   }
 
+  async triggerEmission(signer, outputPipeAddr) {
+    const who = await signer.getAddress()
+    const contract = this.contract.connect(signer)
+    const tx = await contract.getFunction("triggerEmission").call(who, outputPipeAddr);
+    this.addTx(tx)
+    return tx
+  }
+
   // Manage Lido Withdrawals
   //
 
