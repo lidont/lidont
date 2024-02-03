@@ -114,4 +114,5 @@ def previewUnstake(user: address, amount: uint256) -> uint256:
 @external
 @payable
 def receive(user: address, unused_data: Bytes[1]):
+  assert msg.sender == withdrawler.address, "auth"
   self._stake(user, msg.value)

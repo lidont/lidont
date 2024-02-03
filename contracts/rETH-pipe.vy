@@ -173,6 +173,7 @@ def previewUnstake(user: address, amount: uint256) -> (uint256, uint256):
 @external
 @payable
 def receive(user: address, data: Bytes[MAX_DATA]):
+  assert msg.sender == withdrawler.address, "auth"
   rETHBefore: uint256 = rocketEther.balanceOf(self)
   uniswapPortion: uint256 = empty(uint256)
   balancerPortion: uint256 = empty(uint256)
