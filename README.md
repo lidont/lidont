@@ -17,7 +17,7 @@ Fails if there are already too many (32) pending deposits that have not yet been
 ## Initiate Lido withdrawal
 `initiateWithdrawal(address[] depositors) → uint256[] requestIds`: request unstaking the stETH from Lido for each of the `depositors`.
 
-The array of `requestIds` from Lido is returned and also included in the emitted log `WithdrawalRequest(uint256[] requestIds, address[] depositors, uint256[] requestAmounts)`.
+The array of `requestIds` from Lido is returned and also included in the emitted log `WithdrawalRequest(uint256[] requestIds, address[] depositors, uint256[] requestAmounts)`.  
 
 Fails if any of the `depositors` does not have a stETH deposit that is waiting to be unstaked.
 

@@ -13,7 +13,7 @@ function convert(jsonAbi){
     const iface = new ethers.Interface(jsonAbi);
     iface.format("full");
     iface.fragments.forEach(fragment => {
-        if(fragment.payable) return
+        // if(fragment.payable) return
         if(fragment.type === "constructor") return
         out.push(fragment.format('full'))
     });

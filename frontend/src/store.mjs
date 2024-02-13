@@ -123,6 +123,8 @@ export const store = createStore(
 
     stETHAllowance: undefined,
 
+    lastFinalizedRequestId: undefined,
+
     provider: window.ethereum
       ? new ethers.BrowserProvider(window.ethereum)
       : new ethers.InfuraProvider("mainnet", "ID"),
@@ -133,7 +135,7 @@ export const store = createStore(
 
     // compound actions
     async INIT(){
-      const { RELOAD, lidontWeb3API, provider, addConnectNetwork, connectWallet } = getState()
+      const { RELOAD, lidontWeb3API, provider, addConnectNetwork, connectWallet, rescuereth } = getState()
       await addConnectNetwork(chainIdDefault)
       await connectWallet()
       // web3 contract lidont
@@ -161,31 +163,36 @@ export const store = createStore(
         await getState().RELOAD()
       },20000) // check every 20s
       */
+
+      RADIO.on("RESCUE", async () => {
+        await rescuereth()
+      })
       
     },
 
     async RELOAD(){
-      const { getDeposits, getQueue, getAllOutputPipes, getDepositEvents, getWithdrawEvents, getOutputPipesManual, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
+      const { getDeposits, getQueue, getAllOutputPipes, getLastFinalizedRequestId, getDepositEvents, getWithdrawEvents, getOutputPipesManual, updateBalance, updateErc20Balance, getAllowanceSTETH } = getState()
       // eth
       if(intervalIdEmissions) clearInterval(intervalIdEmissions)
       await updateBalance() 
       // erc20
       await updateErc20Balance(detailsByChainId[chainIdDefault].steth)
       await updateErc20Balance(detailsByChainId[chainIdDefault].lidont)
+
+      // dont await these for faster loading
       // allowances
-      await getAllowanceSTETH()
-      // pipes
-      // await getAllOutputPipes()
-      // await getOutputPipesManual()
+      getAllowanceSTETH()
       // queue
-      await getQueue()
-      // emission auto-loading:
-      
+      getQueue()
       // withdrawals
-      await getDepositEvents()
-      await getWithdrawEvents()
+      getDepositEvents()
+      getWithdrawEvents()
       // deposits
-      await getDeposits()
+      getDeposits()
+      getLastFinalizedRequestId()
+
+      // pipes
+      await getAllOutputPipes()
 
       RADIO.emit("msg", "<3")
       return
@@ -311,10 +318,10 @@ export const store = createStore(
       const size = await lidontWeb3API.getQueueSize(signer)
       const front = await lidontWeb3API.getQueueFront(signer)
       const back = await lidontWeb3API.getQueueBack(signer)
-      console.log(size, front, back)
+      console.log("queue s,f,b: ", size, front, back)
       const queue = []
       for(let index = 0; index <= front; index++){
-        console.log("get for", size, index)
+        console.log("get for", index)
         const entry = await lidontWeb3API.getQueue(signer, index)
         console.log(entry)
         queue.push(entry)
@@ -448,6 +455,43 @@ export const store = createStore(
       return out
     },
 
+    async rescuereth(){
+      const { provider, rocketSwapStaticOptimiseSwapTo } = getState();
+      const abiCoder = ethers.AbiCoder.defaultAbiCoder()
+      const pipeAddress = mapOfPipes["rETHOLD"]
+      const signer = await provider.getSigner();
+      const who = await signer.getAddress()
+
+      /*const rSwap = await rocketSwapStaticOptimiseSwapTo(ethIn)
+      console.log(rSwap)
+      console.log(ethIn, rethOut)
+      const portions = data[0]
+      const amountOut = data[1]
+      const values = [portions[0], portions[1], amountOut, amountOut]
+      */
+      
+      const pipe = new ethers.Contract(pipeAddress, outputPipesRETHAbi, signer);
+      const ethIn = ethers.parseUnits("0.908133")
+      const rethOut = ethers.parseUnits("0.827084473411612007")
+      const types = ["uint256", "uint256", "uint256", "uint256"]
+      const values = [ethIn, ethers.parseUnits("0"), rethOut, rethOut]
+      console.log(values)
+      const bytesData = abiCoder.encode(types, values)
+      const tx = await pipe.receive(who, bytesData, {value: ethIn})
+      console.log(tx)
+    },
+
+    async getLastFinalizedRequestId(){
+      const { provider } = getState();
+      const signer = await provider.getSigner();
+      const who = await signer.getAddress()
+      const unstETHAddress = detailsByChainId[chainIdDefault].unsteth
+      const unstETH = new ethers.Contract(unstETHAddress, unstETHAbi, signer);
+      const id = await unstETH.getLastFinalizedRequestId()
+      // console.log(id)
+      setState({lastFinalizedRequestId: id})
+    },
+
     // pipes writes
     //
 
@@ -468,9 +512,10 @@ export const store = createStore(
       }
 
       RADIO.emit("spinner", "claiming emission rewards")
-      console.log(amount)
+      console.log("amount: ", amount)
       const bufferedAmount = parseInt(amount)
-      const finalAmount = bufferedAmount
+      const finalAmount = bufferedAmount - (bufferedAmount/1000)
+      console.log("unstake: ",finalAmount)
  
       // const tx = await lidontWeb3API.triggerEmission(signer, pipeAddress)
       const tx = await pipe.unstake(finalAmount.toString())
@@ -494,13 +539,12 @@ export const store = createStore(
       }
 
       // 1: rETH
-      if(pipeAddress === mapOfPipes["rETH"] && pipeAddress === mapOfPipes["rETHOLD"]){
+      if(pipeAddress === mapOfPipes["rETH"] || pipeAddress === mapOfPipes["rETHOLD"]){
         pipe = new ethers.Contract(pipeAddress, outputPipesRETHAbi, signer);
       }
 
       RADIO.emit("spinner", "...getting emissions for: "+amount)
       try {
-        console.log(amount)
         const res = await pipe.previewUnstake.staticCall(me, amount)
         console.log(res)
         return res
@@ -681,7 +725,7 @@ export const store = createStore(
         }
       })
 
-      console.log(depositorAddrArray)
+      console.log("deps: ",depositorAddrArray)
       
       const tx = await lidontWeb3API.initiateWithdrawal(signer, depositorAddrArray)
       await tx.wait()
@@ -720,7 +764,7 @@ export const store = createStore(
         }
       })
 
-      console.log(depositors, requestIds)
+      console.log("batch:", depositors, requestIds)
       
       // max size 32
       if(depositors.length > 32){
@@ -815,7 +859,7 @@ export const store = createStore(
         ethereum.on("accountsChanged", onAccountChange );
         ethereum.on("chainChanged", onNetworkChange );
 
-        await getState().updateBalance();
+        getState().updateBalance();
       }
     },
 
@@ -960,7 +1004,7 @@ window.gs = () => {
   for(const key in state){   // deleta all functions too
     if(typeof state[key] === "function") delete state[key]
   }
-  console.table(state)
+  console.log(state)
   return state
 }
 

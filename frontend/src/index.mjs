@@ -20,7 +20,6 @@ window.RADIO.emit("msg", "App Init!")
 async function boot(){
     const actions = store.getState()
     await actions.INIT()
-    await actions.getAllOutputPipes()
 }
 
 try {
