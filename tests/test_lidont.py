@@ -80,7 +80,7 @@ def test_cannot_deposit_no_pipe(withdrawler, accounts):
     import secrets
     arbitraryPipe = f'0x{secrets.token_hex(20)}'
     assert withdrawler.outputIndex(arbitraryPipe) == 0
-    with reverts("invalid pipe"):
+    with reverts("revert: invalid pipe"):
         withdrawler.deposit(100, arbitraryPipe, sender=accounts[0])
 
 def test_toggle_pipe_makes_valid(withdrawler, ETH_pipe, accounts):
@@ -99,7 +99,7 @@ def rETH_pipe_added(withdrawler, rETH_pipe, accounts):
     return rETH_pipe
 
 def test_cannot_deposit_no_amount(withdrawler, ETH_pipe_added, accounts):
-    with reverts("deposit too small"):
+    with reverts("revert: deposit too small"):
         withdrawler.deposit(0, ETH_pipe_added['pipe'].address, sender=accounts[0])
 
 @pytest.fixture(scope="function")
@@ -107,13 +107,13 @@ def have_stETH(stETH, accounts):
     return stETH.submit(accounts[0], value='6.9 ETH', sender=accounts[0])
 
 def test_cannot_deposit_not_approved(withdrawler, have_stETH, ETH_pipe_added, accounts):
-    with reverts("ALLOWANCE_EXCEEDED"):
+    with reverts("revert: ALLOWANCE_EXCEEDED"):
         withdrawler.deposit(100, ETH_pipe_added['pipe'].address, sender=accounts[0])
 
 def test_cannot_deposit_no_balance(withdrawler, stETH, ETH_pipe_added, accounts):
     assert stETH.balanceOf(accounts[0]) == 0
     assert stETH.approve(withdrawler.address, 100, sender=accounts[0])
-    with reverts("balance"):
+    with reverts("revert: balance"):
         withdrawler.deposit(100, ETH_pipe_added['pipe'].address, sender=accounts[0])
 
 @pytest.fixture(scope="function")
@@ -139,7 +139,7 @@ def test_deposit_pipe_rETH(withdrawler, deposit_rETH_pipe, accounts):
 def test_cannot_deposit_different_pipe_after_deposit(withdrawler, addr, accounts, stETH, have_stETH, rETH_pipe_added, deposit_ETH_pipe):
     amount = 42 * 10 ** 9
     assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
-    with reverts("pending deposit"):
+    with reverts("revert: pending deposit"):
         withdrawler.deposit('42 gwei', rETH_pipe_added.address, sender=accounts[0])
 
 @pytest.fixture(scope="function")
