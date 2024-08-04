@@ -1,4 +1,6 @@
-# @version ^0.3.9
+#pragma version ~=0.4.0
+#pragma evm-version cancun
+#pragma optimize gas
 
 interface ERC20:
   def name() -> String[64]: view
@@ -26,13 +28,13 @@ interface Minter:
 
 minter: Minter
 
-@external
+@deploy
 def __init__(m: address):
   self.minter = Minter(m)
 
 @external
 def setMinter():
-  m: address = self.minter.newMinter()
+  m: address = staticcall self.minter.newMinter()
   if m != empty(address):
     self.minter = Minter(m)
 

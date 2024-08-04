@@ -1,4 +1,6 @@
-# @version ^0.3.9
+#pragma version ~=0.4.0
+#pragma evm-version cancun
+#pragma optimize gas
 
 MAX_REQUESTS: constant(uint256) = 32 # maximum number of requestIds to process at a time
 MAX_OUTPUT_PIPES: constant(uint256) = 32
@@ -87,7 +89,7 @@ event ChangeEmission:
   oldEmissionPerBlock: indexed(uint256)
   newEmissionPerBlock: indexed(uint256)
 
-@external
+@deploy
 def __init__(stETHAddress: address, unstETHAddress: address):
   stakedEther = StETH(stETHAddress)
   unstETH = UnstETH(unstETHAddress)
@@ -121,12 +123,12 @@ def _updatePendingRewardsFor(output: address):
   log SetLastRewardBlock(output, block.number)
   reward: uint256 = unclaimedBlocks * self.emissionPerBlock
   if 0 < reward:
-    self.lidont.mint(reward, output)
-    OutputPipe(output).receiveReward(self.lidont.address, empty(address), reward)
+    extcall self.lidont.mint(reward, output)
+    extcall OutputPipe(output).receiveReward(self.lidont.address, empty(address), reward)
 
 @internal
 def _updatePendingRewards():
-  for output in self.outputPipes:
+  for output: address in self.outputPipes:
     self._updatePendingRewardsFor(output)
 
 @external
@@ -140,7 +142,7 @@ def toggleValidOutput(output: address):
   newValidity: bool = self.outputIndex[output] == 0
   if not newValidity:
     self._updatePendingRewardsFor(output)
-  for i in range(MAX_OUTPUT_PIPES):
+  for i: uint256 in range(MAX_OUTPUT_PIPES):
     if i == len(self.outputPipes): break
     if newValidity and self.outputPipes[i] == empty(address):
       self.outputPipes[i] = output
@@ -189,8 +191,8 @@ def deposit(stETHAmount: uint256, outputPipe: address):
   assert 0 < self.outputIndex[outputPipe], "invalid pipe"
   assert MIN_LIDO_DEPOSIT <= stETHAmount, "deposit too small"
   assert stETHAmount <= MAX_LIDO_DEPOSIT, "deposit too large"
-  assert stETHAmount <= stakedEther.balanceOf(msg.sender), "balance"
-  assert stakedEther.transferFrom(msg.sender, self, stETHAmount), "stETH transfer failed"
+  assert stETHAmount <= staticcall stakedEther.balanceOf(msg.sender), "balance"
+  assert extcall stakedEther.transferFrom(msg.sender, self, stETHAmount), "stETH transfer failed"
   assert self.deposits[msg.sender].outputPipe == empty(address) and self.deposits[msg.sender].stETH == 0, "pending deposit"
   self.deposits[msg.sender].outputPipe = outputPipe
   self.deposits[msg.sender].stETH = stETHAmount
@@ -207,15 +209,15 @@ def changeOutput(outputPipe: address):
 def initiateWithdrawal(depositors: DynArray[address, MAX_REQUESTS]) -> DynArray[uint256, MAX_REQUESTS]:
   requestAmounts: DynArray[uint256, MAX_REQUESTS] = []
   totalRequestAmount: uint256 = 0
-  for depositor in depositors:
+  for depositor: address in depositors:
     assert self.deposits[depositor].ETH == 0, "claim pending"
     amount: uint256 = self.deposits[depositor].stETH
     assert amount > 0, "no deposit"
     requestAmounts.append(amount)
     totalRequestAmount += amount
-  assert stakedEther.approve(unstETH.address, totalRequestAmount), "stETH approve failed"
-  requestIds: DynArray[uint256, MAX_REQUESTS] = unstETH.requestWithdrawals(requestAmounts, self)
-  for i in range(MAX_REQUESTS):
+  assert extcall stakedEther.approve(unstETH.address, totalRequestAmount), "stETH approve failed"
+  requestIds: DynArray[uint256, MAX_REQUESTS] = extcall unstETH.requestWithdrawals(requestAmounts, self)
+  for i: uint256 in range(MAX_REQUESTS):
     if i == len(requestIds): break
     depositor: address = depositors[i]
     self.deposits[depositor].stETH = 0
@@ -227,11 +229,11 @@ def initiateWithdrawal(depositors: DynArray[address, MAX_REQUESTS]) -> DynArray[
 def finaliseWithdrawal(depositors: DynArray[address, MAX_REQUESTS],
                        _hints: DynArray[uint256, MAX_REQUESTS]) -> DynArray[uint256, MAX_REQUESTS]:
   requestIds: DynArray[uint256, MAX_REQUESTS] = []
-  for depositor in depositors:
+  for depositor: address in depositors:
     requestIds.append(self.deposits[depositor].requestId)
-  claimAmounts: DynArray[uint256, MAX_REQUESTS] = unstETH.getClaimableEther(requestIds, _hints)
-  unstETH.claimWithdrawals(requestIds, _hints)
-  for i in range(MAX_REQUESTS):
+  claimAmounts: DynArray[uint256, MAX_REQUESTS] = staticcall unstETH.getClaimableEther(requestIds, _hints)
+  extcall unstETH.claimWithdrawals(requestIds, _hints)
+  for i: uint256 in range(MAX_REQUESTS):
     if i == len(claimAmounts): break
     self.deposits[depositors[i]].ETH = claimAmounts[i]
   return claimAmounts
@@ -248,7 +250,7 @@ def claim(data: Bytes[MAX_PIPE_DATA]) -> uint256:
   assert output != empty(address), "not deposited" # TODO: impossible?
   amount: uint256 = self.deposits[recipient].ETH
   assert 0 < amount, "not finalised"
-  OutputPipe(output).receive(recipient, data, value=amount)
+  extcall OutputPipe(output).receive(recipient, data, value=amount)
   self.deposits[recipient].ETH = 0
   self.deposits[recipient].outputPipe = empty(address)
   log Claim(recipient, output, amount)

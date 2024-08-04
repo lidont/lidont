@@ -1,4 +1,6 @@
-# @version ^0.3.9
+#pragma version ~=0.4.0
+#pragma evm-version cancun
+#pragma optimize gas
 
 interface Withdrawler:
   def triggerEmission(_pipe: address): nonpayable
@@ -27,11 +29,11 @@ struct StakedBond:
 stakes: public(HashMap[address, StakedBond])
 totalStake: public(uint256)
 
-@external
+@deploy
 def __init__(rewardTokenAddress: address, withdrawlerAddress: address):
   withdrawler = Withdrawler(withdrawlerAddress)
   rewardToken = RewardToken(rewardTokenAddress)
-  decimals = convert(rewardToken.decimals(), uint256)
+  decimals = convert(staticcall rewardToken.decimals(), uint256)
   self.bondValue = initialBondValue
 
 event Receive:
@@ -42,9 +44,9 @@ event Receive:
 @external
 def receiveReward(_token: address, _from: address, _amount: uint256):
   assert _token == rewardToken.address, "token"
-  assert rewardToken.transferFrom(_from, self, _amount), "transferFrom"
+  assert extcall rewardToken.transferFrom(_from, self, _amount), "transferFrom"
 
-  totalBonds: uint256 = self.totalStake / decimals
+  totalBonds: uint256 = self.totalStake // decimals
 
   if totalBonds == 0:
     self.temp += _amount
@@ -57,7 +59,7 @@ def receiveReward(_token: address, _from: address, _amount: uint256):
     self.temp = 0
 
   toDistribute: uint256 = self.dust + amount
-  bondIncrease: uint256 = toDistribute / totalBonds
+  bondIncrease: uint256 = toDistribute // totalBonds
   distributedTotal: uint256 = totalBonds * bondIncrease
   oldBondValue: uint256 = self.bondValue
   self.bondValue += bondIncrease
@@ -100,7 +102,7 @@ def _unstake(user: address, amount: uint256):
   assert self.forceSend(user, amount), "send"
   log Unstake(user, amount, reward)
   if 0 < reward:
-    assert rewardToken.transfer(user, reward), "transfer"
+    assert extcall rewardToken.transfer(user, reward), "transfer"
 
 @internal
 @view
@@ -109,12 +111,12 @@ def _reward(user: address, stake: uint256) -> uint256:
 
 @external
 def unstake(amount: uint256):
-  withdrawler.triggerEmission(self)
+  extcall withdrawler.triggerEmission(self)
   self._unstake(msg.sender, amount)
 
 @external
 def previewUnstake(user: address, amount: uint256) -> uint256:
-  withdrawler.triggerEmission(self)
+  extcall withdrawler.triggerEmission(self)
   return self._reward(user, amount) + self.stakes[user].pending
 
 @external

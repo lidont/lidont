@@ -1,4 +1,6 @@
-# @version ^0.3.9
+#pragma version ~=0.4.0
+#pragma evm-version cancun
+#pragma optimize gas
 
 interface Withdrawler:
   def triggerEmission(_pipe: address): nonpayable
@@ -46,17 +48,17 @@ struct StakedBond:
 stakes: public(HashMap[address, StakedBond])
 totalStake: public(uint256)
 
-@external
+@deploy
 def __init__(rewardTokenAddress: address, withdrawlerAddress: address, rocketStorageAddress: address):
   withdrawler = Withdrawler(withdrawlerAddress)
   rewardTokenLidont = ERC20(rewardTokenAddress)
   rocketStorage = RocketStorage(rocketStorageAddress)
-  rewardTokenRocket = ERC20(rocketStorage.getAddress(rocketTokenKey))
-  decimals = convert(rewardTokenLidont.decimals(), uint256)
-  assert convert(rewardTokenRocket.decimals(), uint256) == decimals, "decimals"
+  rewardTokenRocket = ERC20(staticcall rocketStorage.getAddress(rocketTokenKey))
+  decimals = convert(staticcall rewardTokenLidont.decimals(), uint256)
+  assert convert(staticcall rewardTokenRocket.decimals(), uint256) == decimals, "decimals"
   self.bondValueLidont = initialBondValue
   self.bondValueRocket = initialBondValue
-  rocketEther = ERC20(rocketStorage.getAddress(rocketEtherKey))
+  rocketEther = ERC20(staticcall rocketStorage.getAddress(rocketEtherKey))
   rocketSwapRouter = SwapRouter(0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C)
 
 interface RocketStorage:
@@ -80,9 +82,9 @@ event Receive:
 @external
 def receiveReward(_token: address, _from: address, _amount: uint256):
   if _token == rewardTokenLidont.address:
-    assert rewardTokenLidont.transferFrom(_from, self, _amount), "transferFrom lidont"
+    assert extcall rewardTokenLidont.transferFrom(_from, self, _amount), "transferFrom lidont"
 
-    totalBonds: uint256 = self.totalStake / decimals
+    totalBonds: uint256 = self.totalStake // decimals
 
     if totalBonds == 0:
       self.tempLidont += _amount
@@ -95,7 +97,7 @@ def receiveReward(_token: address, _from: address, _amount: uint256):
       self.tempLidont = 0
 
     toDistribute: uint256 = self.dustLidont + amount
-    bondIncrease: uint256 = toDistribute / totalBonds
+    bondIncrease: uint256 = toDistribute // totalBonds
     distributedTotal: uint256 = totalBonds * bondIncrease
     oldBondValue: uint256 = self.bondValueLidont
     self.bondValueLidont += bondIncrease
@@ -104,9 +106,9 @@ def receiveReward(_token: address, _from: address, _amount: uint256):
     log Receive(_token, _amount, oldBondValue, self.bondValueLidont)
 
   elif _token == rewardTokenRocket.address:
-    assert rewardTokenRocket.transferFrom(_from, self, _amount), "transferFrom RPL"
+    assert extcall rewardTokenRocket.transferFrom(_from, self, _amount), "transferFrom RPL"
 
-    totalBonds: uint256 = self.totalStake / decimals
+    totalBonds: uint256 = self.totalStake // decimals
 
     if totalBonds == 0:
       self.tempRocket += _amount
@@ -119,7 +121,7 @@ def receiveReward(_token: address, _from: address, _amount: uint256):
       self.tempRocket = 0
 
     toDistribute: uint256 = self.dustRocket + amount
-    bondIncrease: uint256 = toDistribute / totalBonds
+    bondIncrease: uint256 = toDistribute // totalBonds
     distributedTotal: uint256 = totalBonds * bondIncrease
     oldBondValue: uint256 = self.bondValueRocket
     self.bondValueRocket += bondIncrease
@@ -164,12 +166,12 @@ def _unstake(user: address, amount: uint256):
   self.stakes[user].pendingLidont = 0
   rewardRocket: uint256 = self._rewardRocket(user, amount) + self.stakes[user].pendingRocket
   self.stakes[user].pendingRocket = 0
-  assert rocketEther.transfer(user, amount), "send"
+  assert extcall rocketEther.transfer(user, amount), "send"
   log Unstake(user, amount, rewardLidont, rewardRocket)
   if 0 < rewardLidont:
-    assert rewardTokenLidont.transfer(user, rewardLidont), "transfer lidont"
+    assert extcall rewardTokenLidont.transfer(user, rewardLidont), "transfer lidont"
   if 0 < rewardRocket:
-    assert rewardTokenRocket.transfer(user, rewardRocket), "transfer RPL"
+    assert extcall rewardTokenRocket.transfer(user, rewardRocket), "transfer RPL"
 
 @internal
 @view
@@ -183,25 +185,25 @@ def _rewardRocket(user: address, stake: uint256) -> uint256:
 
 @external
 def unstake(amount: uint256):
-  withdrawler.triggerEmission(self)
+  extcall withdrawler.triggerEmission(self)
   self._unstake(msg.sender, amount)
 
 @external
 def previewUnstake(user: address, amount: uint256) -> (uint256, uint256):
-  withdrawler.triggerEmission(self)
+  extcall withdrawler.triggerEmission(self)
   return (self._rewardLidont(user, amount), self._rewardRocket(user, amount))
 
 @external
 @payable
 def receive(user: address, data: Bytes[MAX_DATA]):
   assert msg.sender == withdrawler.address, "auth"
-  rETHBefore: uint256 = rocketEther.balanceOf(self)
+  rETHBefore: uint256 = staticcall rocketEther.balanceOf(self)
   uniswapPortion: uint256 = empty(uint256)
   balancerPortion: uint256 = empty(uint256)
   minOut: uint256 = empty(uint256)
   idealOut: uint256 = empty(uint256)
   uniswapPortion, balancerPortion, minOut, idealOut = _abi_decode(data, (uint256, uint256, uint256, uint256))
-  rocketSwapRouter.swapTo(
+  extcall rocketSwapRouter.swapTo(
     uniswapPortion, balancerPortion, minOut, idealOut, value = msg.value)
-  rETHMinted: uint256 = rocketEther.balanceOf(self) - rETHBefore
+  rETHMinted: uint256 = staticcall rocketEther.balanceOf(self) - rETHBefore
   self._stake(user, rETHMinted)
