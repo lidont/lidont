@@ -24,52 +24,52 @@ addresses = dict(mainnet =
 
 ONE_DAY_SECONDS = 24 * 60 * 60
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def addr(networks):
     network = networks.provider.network.name.removesuffix('-fork')
     return addresses[network]
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def stETH(addr):
     return Contract(addr['stETHAddress'])
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def unstETH(addr):
     return Contract(addr['unstETHAddress'])
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def rocketStorage(addr):
     return Contract(addr['rocketStorageAddress'])
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def rocketSwapRouter(addr):
     return Contract(addr['rocketSwapRouter'])
 
 EMISSION_PER_BLOCK = 10 ** 9
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def withdrawler(project, addr, accounts):
     withdrawler = project.withdrawler.deploy(
             addr['stETHAddress'], addr['unstETHAddress'], sender=accounts[0])
     return withdrawler
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def start_emission(withdrawler, accounts):
     return withdrawler.changeEmissionRate(EMISSION_PER_BLOCK, sender=accounts[0])
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def lidont(project, accounts, withdrawler):
     lidont = project.lidont.deploy(withdrawler.address, sender=accounts[0])
     withdrawler.setLidont(lidont.address, sender=accounts[0])
     return lidont
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def ETH_pipe(project, lidont, withdrawler, accounts):
-    return project._get_attr('ETH-pipe').deploy(lidont.address, withdrawler.address, sender=accounts[0])
+    return project.get_contract('ETH-pipe').deploy(lidont.address, withdrawler.address, sender=accounts[0])
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def rETH_pipe(project, lidont, withdrawler, accounts, addr):
-    return project._get_attr('rETH-pipe').deploy(lidont.address, withdrawler.address, addr["rocketStorageAddress"], sender=accounts[0])
+    return project.get_contract('rETH-pipe').deploy(lidont.address, withdrawler.address, addr["rocketStorageAddress"], sender=accounts[0])
 
 
 def test_lidont_symbol_decimals(lidont):
@@ -88,12 +88,12 @@ def test_toggle_pipe_makes_valid(withdrawler, ETH_pipe, accounts):
     withdrawler.toggleValidOutput(ETH_pipe.address, sender=accounts[0])
     assert withdrawler.outputIndex(ETH_pipe.address) == 1
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def ETH_pipe_added(withdrawler, ETH_pipe, accounts):
     receipt = withdrawler.toggleValidOutput(ETH_pipe.address, sender=accounts[0])
     return {'pipe': ETH_pipe, 'toggle_valid_receipt': receipt}
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def rETH_pipe_added(withdrawler, rETH_pipe, accounts):
     withdrawler.toggleValidOutput(rETH_pipe.address, sender=accounts[0])
     return rETH_pipe
@@ -102,7 +102,7 @@ def test_cannot_deposit_no_amount(withdrawler, ETH_pipe_added, accounts):
     with reverts("revert: deposit too small"):
         withdrawler.deposit(0, ETH_pipe_added['pipe'].address, sender=accounts[0])
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def have_stETH(stETH, accounts):
     return stETH.submit(accounts[0], value='6.9 ETH', sender=accounts[0])
 
@@ -116,7 +116,7 @@ def test_cannot_deposit_no_balance(withdrawler, stETH, ETH_pipe_added, accounts)
     with reverts("revert: balance"):
         withdrawler.deposit(100, ETH_pipe_added['pipe'].address, sender=accounts[0])
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def deposit_ETH_pipe(accounts, withdrawler, have_stETH, stETH, ETH_pipe_added):
     amount = 42 * 10 ** 17
     assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
@@ -126,7 +126,7 @@ def deposit_ETH_pipe(accounts, withdrawler, have_stETH, stETH, ETH_pipe_added):
 def test_deposit_pipe_ETH(withdrawler, deposit_ETH_pipe, accounts):
     assert withdrawler.deposits(accounts[0]).stETH == deposit_ETH_pipe["amount"]
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def deposit_rETH_pipe(accounts, withdrawler, have_stETH, stETH, rETH_pipe_added):
     amount = 42 * 10 ** 9
     assert stETH.approve(withdrawler.address, amount, sender=accounts[0])
@@ -142,7 +142,7 @@ def test_cannot_deposit_different_pipe_after_deposit(withdrawler, addr, accounts
     with reverts("revert: pending deposit"):
         withdrawler.deposit('42 gwei', rETH_pipe_added.address, sender=accounts[0])
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def one_withdrawal_initiated(withdrawler, deposit_ETH_pipe, accounts):
     queueSize = withdrawler.queueSize()
     assert queueSize == 1
@@ -151,7 +151,7 @@ def one_withdrawal_initiated(withdrawler, deposit_ETH_pipe, accounts):
     requestIds = receipt.return_value
     return requestIds
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def reth_withdrawal_initiated(withdrawler, deposit_rETH_pipe, accounts):
     queueSize = withdrawler.queueSize()
     assert queueSize == 1
@@ -272,22 +272,22 @@ def finalize(requestId, withdrawler, addr, stETH, unstETH, chain, accounts):
     claimAmounts = receipt.return_value
     return claimAmounts
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def one_withdrawal_finalized(withdrawler, addr, stETH, unstETH, one_withdrawal_initiated, chain, accounts):
     requestId = one_withdrawal_initiated[0]
     return finalize(requestId, withdrawler, addr, stETH, unstETH, chain, accounts)
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def reth_withdrawal_finalized(withdrawler, addr, stETH, unstETH, reth_withdrawal_initiated, chain, accounts):
     requestId = reth_withdrawal_initiated[0]
     return finalize(requestId, withdrawler, addr, stETH, unstETH, chain, accounts)
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def one_withdrawal_claimed(one_withdrawal_finalized, withdrawler, accounts):
     assert len(one_withdrawal_finalized) == 1
     return withdrawler.claim(b'', sender=accounts[0])
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def reth_withdrawal_claimed(reth_withdrawal_finalized, withdrawler, rocketSwapRouter, accounts):
     assert len(reth_withdrawal_finalized) == 1
     amount = reth_withdrawal_finalized[0]
