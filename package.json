@@ -7,6 +7,7 @@
         "compile": "ape compile",
         "test": "ape test",
         "test::single": "ape test -I -s -k test_manual_cycle",
+        "test::lidont": "ape test tests/test_lidont",
         "serve": "cd frontend && npx http-server -o /frontend -a localhost -p 3001",
         "serve::live": "cd frontend && npx http-server -o /frontend -a 0.0.0.0",
         "postinstall": "npm run install::ape && npm run install::foundry",
