@@ -37,7 +37,6 @@ def test_cannot_deposit_no_balance(withdrawler, stETH, ETH_pipe_added, accounts)
 def test_deposit_pipe_ETH(withdrawler, deposit_ETH_pipe, accounts):
     assert withdrawler.deposits(accounts[0]).stETH == deposit_ETH_pipe["amount"]
 
-
 def test_deposit_pipe_rETH(withdrawler, deposit_rETH_pipe, accounts):
     assert withdrawler.deposits(accounts[0]).stETH == deposit_rETH_pipe["amount"]
 

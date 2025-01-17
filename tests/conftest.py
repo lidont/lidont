@@ -161,3 +161,9 @@ def reth_withdrawal_claimed(reth_withdrawal_finalized, withdrawler, rocketSwapRo
 def have_stETH(stETH, accounts):
     time.sleep(1)
     return stETH.submit(accounts[0], value='6.9 ETH', sender=accounts[0])
+
+@pytest.fixture()
+def mint_lidont(lidont, project, withdrawler, accounts):
+    lidont.mint(800 * 10 ** 18, accounts[0].address, sender=withdrawler)
+    lidont.transferFrom("0x0000000000000000000000000000000000000000", accounts[0], 800 * 10 ** 18, sender=accounts[0])
+    return lidont.balanceOf(accounts[0].address)

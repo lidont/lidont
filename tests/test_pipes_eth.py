@@ -4,6 +4,15 @@ from eth_utils import keccak
 import pytest
 import time
 
+@pytest.fixture(scope="function")
+def setup_allowance(ETH_pipe, lidont, accounts):
+    lidont.approve(ETH_pipe.address, 99999999 * 10**18, sender=accounts[0])
+    return lidont.allowance(accounts[0].address, ETH_pipe.address)
+
+@pytest.fixture(scope="function")
+def distribute_reward(ETH_pipe, lidont, mint_lidont, accounts):
+    ETH_pipe.receiveReward(lidont.address, accounts[0].address, mint_lidont, sender=accounts[0])
+    return mint_lidont
 
 def test_init_eth(ETH_pipe, lidont, accounts):
     assert ETH_pipe.temp() == 0
@@ -11,59 +20,47 @@ def test_init_eth(ETH_pipe, lidont, accounts):
     assert ETH_pipe.bondValue() == 100000000
     assert ETH_pipe.totalStake() == 0
 
-def test_stake_eth(withdrawler, deposit_ETH_pipe, accounts):
-    assert withdrawler.deposits(accounts[0]).stETH == deposit_ETH_pipe["amount"]
+def test_stake_eth(ETH_pipe, stake_ETH, accounts):
+    assert ETH_pipe.totalStake() == stake_ETH['stake0'] + stake_ETH['stake1']
+    assert ETH_pipe.stakes(accounts[0].address).amount == stake_ETH['stake0']
+    assert ETH_pipe.stakes(accounts[1].address).amount == stake_ETH['stake1']
 
-def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, one_withdrawal_claimed, chain, accounts):
-    stake_blocks = ONE_DAY_SECONDS // 12 + 128
-    before_mine = chain.blocks.head.number
-    chain.mine(stake_blocks)
-    after_mine = chain.blocks.head.number
-    assert after_mine - before_mine == stake_blocks
-    
-    setLastLogs = list(withdrawler.SetLastRewardBlock.range(withdrawler.receipt.block_number, chain.blocks.head.number))
-    assert setLastLogs[-1].bnum == ETH_pipe_added['toggle_valid_receipt'].block_number
-    
-    amount = one_withdrawal_claimed.return_value // 2
-    receipt = ETH_pipe_added['pipe'].unstake(amount, sender=accounts[0])
-    
-    mint_logs = lidont.Mint.from_receipt(receipt)
-    assert len(ETH_pipe_added['pipe'].Receive.from_receipt(receipt)) == 1
-    assert len(mint_logs) == 1
-    assert mint_logs[0].recipient == ETH_pipe_added['pipe'].address
-    assert mint_logs[0].amount == (receipt.block_number - ETH_pipe_added['toggle_valid_receipt'].block_number) * EMISSION_PER_BLOCK
+def test_unstake_eth_no_rewards(ETH_pipe, stake_ETH, accounts):
+    ETH_pipe.unstake(stake_ETH['stake0'], sender=accounts[0])
+    assert ETH_pipe.totalStake() == stake_ETH['stake1']
 
-    logs = ETH_pipe_added['pipe'].Unstake.from_receipt(receipt)
-    assert len(logs) == 1
-    assert lidont.balanceOf(accounts[0]) in [4055100000000, 4057200000000]
+def test_rewards_eth_no_stakers(ETH_pipe, lidont, mint_lidont, setup_allowance, distribute_reward, accounts):
+    assert ETH_pipe.temp() == mint_lidont
+    assert ETH_pipe.bondValue() == 100000000
 
-def test_rewards_distribution(ETH_pipe, lidont, withdrawler, accounts, deposit_ETH_pipe, one_withdrawal_claimed):
-    reward_amount = 800 * 10 ** 18
-    lidont.mint(reward_amount, accounts[0].address, sender=withdrawler)
-    lidont.transferFrom("0x0000000000000000000000000000000000000000", accounts[0], reward_amount, sender=accounts[0])
-    
-    # Approve and distribute rewards
-    lidont.approve(ETH_pipe.address, reward_amount, sender=accounts[0])
-    ETH_pipe.receiveReward(lidont.address, accounts[0].address, reward_amount, sender=accounts[0])
-    
-    totalBonds = ETH_pipe.totalStake() // 10 ** 9
-    bondInc = reward_amount // totalBonds
+def test_rewards_eth(ETH_pipe, lidont, mint_lidont, setup_allowance, stake_ETH, distribute_reward, accounts):
+    assert ETH_pipe.temp() == 0
+    totalBonds = ETH_pipe.totalStake() // 10 ** 9 # dividing the stake by precision here
+    bondInc = distribute_reward // totalBonds
     totalDistributed = bondInc * totalBonds
-    
     assert ETH_pipe.bondValue() == 100000000 + bondInc
-    assert ETH_pipe.dust() == reward_amount - totalDistributed
+    assert ETH_pipe.dust() == distribute_reward - totalDistributed
 
-def test_rewards_dust_clearing(ETH_pipe, lidont, withdrawler, accounts):
-    initial_dust = ETH_pipe.dust()
-    assert initial_dust > 0
-    
+def test_rewards_eth_temp_clearing(ETH_pipe, lidont, withdrawler, mint_lidont, setup_allowance, distribute_reward, stake_ETH, accounts):
+    assert ETH_pipe.temp() == mint_lidont
+    lidont.mint(800 * 10 ** 18, accounts[0].address, sender=withdrawler)
+    lidont.transferFrom("0x0000000000000000000000000000000000000000", accounts[0], 800 * 10 ** 18, sender=accounts[0])
+    ETH_pipe.receiveReward(lidont.address, accounts[0].address, mint_lidont, sender=accounts[0])
+    assert ETH_pipe.temp() == 0
+
+def test_rewards_eth_dust_clearing(ETH_pipe, lidont, withdrawler, mint_lidont, setup_allowance, stake_ETH, distribute_reward, accounts):
+    assert ETH_pipe.dust() > 0
+    dust = ETH_pipe.dust()
     totalBonds = ETH_pipe.totalStake() // 10 ** 9
     perfectReward = totalBonds * 2
-    rewardsToClear = perfectReward - initial_dust
-    
+    rewardsToClear = perfectReward - dust
     lidont.mint(rewardsToClear, accounts[0].address, sender=withdrawler)
     lidont.transferFrom("0x0000000000000000000000000000000000000000", accounts[0], rewardsToClear, sender=accounts[0])
-    lidont.approve(ETH_pipe.address, rewardsToClear, sender=accounts[0])
     ETH_pipe.receiveReward(lidont.address, accounts[0].address, rewardsToClear, sender=accounts[0])
-    
     assert ETH_pipe.dust() == 0
+
+def test_unstake_eth_with_rewards(ETH_pipe, lidont, mint_lidont, setup_allowance, stake_ETH, distribute_reward, accounts):
+    reward = (stake_ETH['stake1'] * (ETH_pipe.bondValue() - ETH_pipe.stakes(accounts[1]).bondValue)) // 10 * 9
+    ETH_pipe.unstake(stake_ETH['stake1'], sender=accounts[1])
+    assert ETH_pipe.totalStake() == stake_ETH['stake0']
+    lidont.balanceOf(accounts[1]) == reward
