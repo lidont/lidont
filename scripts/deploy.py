@@ -1,7 +1,6 @@
 from ape import accounts, networks, project
 import IPython
 
-
 addresses = dict(mainnet =
                  dict(rocketStorageAddress = '0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46',
                       stETHAddress         = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
@@ -22,16 +21,20 @@ def main():
         deployer = accounts[0]
     network = network.removesuffix('-fork')
     addr = addresses[network]
+
+    # Deploy withdrawler and lidont
     withdrawler = project.withdrawler.deploy(
             addr['stETHAddress'], addr['unstETHAddress'], sender=deployer)
     lidont = project.lidont.deploy(withdrawler.address, sender=deployer)
     withdrawler.setLidont(lidont.address, sender=deployer)
-    ethPipe = project._get_attr('ETH-pipe').deploy(
+    
+    # Deploy pipes using the correct attribute names
+    ethPipe = project.ETH_pipe.deploy(
             lidont.address, withdrawler.address, sender=deployer)
-    rethPipe = project._get_attr('rETH-pipe').deploy(
-            lidont.address, withdrawler.address,  addr['rocketStorageAddress'], sender=deployer)
+    rethPipe = project.rETH_pipe.deploy(
+            lidont.address, withdrawler.address, addr['rocketStorageAddress'], sender=deployer)
+            
     withdrawler.toggleValidOutput(ethPipe.address, sender=deployer)
     withdrawler.toggleValidOutput(rethPipe.address, sender=deployer)
-
     
     IPython.embed()
