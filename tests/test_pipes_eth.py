@@ -14,6 +14,14 @@ def distribute_reward(ETH_pipe, lidont, mint_lidont, accounts):
     ETH_pipe.receiveReward(lidont.address, accounts[0].address, mint_lidont, sender=accounts[0])
     return mint_lidont
 
+@pytest.fixture(scope="function")
+def stake_ETH(ETH_pipe, accounts):
+    amount0 = 10**18
+    amount1 = 5 * 10**17
+    ETH_pipe.receive(accounts[0].address, b'', value=amount0, sender=accounts[0])
+    ETH_pipe.receive(accounts[1].address, b'', value=amount1, sender=accounts[0])
+    return {"stake0":amount0, "stake1":amount1}
+
 def test_init_eth(ETH_pipe, lidont, accounts):
     assert ETH_pipe.temp() == 0
     assert ETH_pipe.dust() == 0
