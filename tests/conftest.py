@@ -1,4 +1,5 @@
 from ape import Contract
+from eth_abi.abi import encode
 from test_lidont import finalize, EMISSION_PER_BLOCK
 import pytest
 import time
