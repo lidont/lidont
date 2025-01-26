@@ -13,7 +13,7 @@ addresses = dict(mainnet =
                       elRewardsVault       = '0x388C818CA8B9251b393131C08a736A67ccB19297',
                       burner               = '0xD15a672319Cf0352560eE76d9e89eAB0889046D3',
                       sanityChecker        = '0x9305c1Dbfe22c12c66339184C0025d7006f0f1cC',
-                      rocketSwapRouter     = '0x16D5A408e807db8eF7c578279BEeEe6b228f1cC',
+                      rocketSwapRouter     = '0x16D5A408e807db8eF7c578279BEeEe6b228f1c1C',
                       ),
                  goerli =
                  dict(rocketStorageAddress = '0xd8Cd47263414aFEca62d6e2a3917d6600abDceB3',
