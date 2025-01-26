@@ -6,13 +6,15 @@
     "scripts": {
         "compile": "ape compile",
         "test": "ape test",
-        "test::single": "ape test -I -s -k test_manual_cycle",
+        "test::single": "ape test -s -k test_unstake_partial",
+        "test::interactive": "ape test -I -s -k test_unstake_partial",
         "test::lidont": "ape test tests/test_lidont",
         "serve": "cd frontend && npx http-server -o /frontend -a localhost -p 3001",
         "serve::live": "cd frontend && npx http-server -o /frontend -a 0.0.0.0",
         "postinstall": "npm run install::ape && npm run install::foundry",
         "install::foundry": "curl -L https://foundry.paradigm.xyz | bash",
         "install::ape": "pip install -U pip && pip install eth-ape && pip install ape-foundry && ape plugins install .",
+        "testapi": "ETHERSCAN_API_KEY=5TI6IIS6RHV68DPMVJI7H8DG16WSUUV8HG ape test tests/test_lidont.py",
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview"

@@ -188,7 +188,7 @@ def test_unstake_partial(lidont, withdrawler, start_emission, ETH_pipe_added, on
     chain.mine(stake_blocks)
     after_mine = chain.blocks.head.number
     assert after_mine - before_mine == stake_blocks
-    setLastLogs = list(withdrawler.SetLastRewardBlock.range(withdrawler.receipt.block_number, chain.blocks.head.number))
+    setLastLogs = list(withdrawler.SetLastRewardBlock.range(withdrawler.creation_metadata.receipt.block_number, chain.blocks.head.number))
     assert setLastLogs[-1].bnum == ETH_pipe_added['toggle_valid_receipt'].block_number
     amount = one_withdrawal_claimed.return_value // 2
     receipt = ETH_pipe_added['pipe'].unstake(amount, sender=accounts[0])
