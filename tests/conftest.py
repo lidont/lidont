@@ -1,4 +1,5 @@
 from ape import Contract
+from test_lidont import finalize, EMISSION_PER_BLOCK
 import pytest
 import time
 
@@ -20,9 +21,6 @@ addresses = dict(mainnet =
                       unstETHAddress       = '0xCF117961421cA9e546cD7f50bC73abCdB3039533',
                       )
                  )
-
-ONE_DAY_SECONDS = 24 * 60 * 60
-EMISSION_PER_BLOCK = 10 ** 9
 
 @pytest.fixture()
 def addr(networks):

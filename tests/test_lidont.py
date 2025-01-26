@@ -4,6 +4,9 @@ from eth_utils import keccak
 import pytest
 import time
 
+ONE_DAY_SECONDS = 24 * 60 * 60
+EMISSION_PER_BLOCK = 10 ** 9
+
 def test_lidont_symbol_decimals(lidont):
     assert lidont.symbol() == 'LIDONT'
     assert lidont.decimals() == 18
